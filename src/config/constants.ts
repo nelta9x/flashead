@@ -80,7 +80,7 @@ export const UPGRADE_UI = {
   BOX_WIDTH: 200,
   BOX_HEIGHT: 100,
   BOX_SPACING: 30,
-  HOVER_DURATION: 500, // 0.5초 호버로 선택
+  HOVER_DURATION: 300, // 0.3초 호버로 선택
   BOX_Y_OFFSET: 120, // 화면 하단에서의 거리
 } as const;
 

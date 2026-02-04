@@ -263,9 +263,6 @@ export class InGameUpgradeUI {
     // 업그레이드 적용
     this.upgradeSystem.applyUpgrade(upgrade);
 
-    // 선택 효과 (플래시)
-    this.scene.cameras.main.flash(150, 0, 255, 255, true);
-
     // UI 숨김 후 이벤트 발행
     this.hide();
 
