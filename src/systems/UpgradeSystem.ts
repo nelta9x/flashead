@@ -1,4 +1,4 @@
-import { UPGRADE_INTERVAL } from '../config/constants';
+import { UPGRADE_TIMING, RARITY_WEIGHTS_BY_COUNT } from '../config/constants';
 import { EventBus, GameEvents } from '../utils/EventBus';
 
 export interface Upgrade {
@@ -15,10 +15,10 @@ const UPGRADES: Upgrade[] = [
   {
     id: 'damage_up',
     name: '화력 강화',
-    description: '접시에 주는 데미지가 1 증가합니다.',
+    description: '접시에 주는 데미지가 2 증가합니다.',
     rarity: 'common',
     maxStack: 5,
-    effect: (us) => us.addDamageBonus(1),
+    effect: (us) => us.addDamageBonus(2),
   },
   {
     id: 'attack_speed',
@@ -199,6 +199,7 @@ const UPGRADES: Upgrade[] = [
 export class UpgradeSystem {
   private upgradeStacks: Map<string, number> = new Map();
   private upgradeCount: number = 0;
+  private nextUpgradeTime: number = UPGRADE_TIMING.BASE_INTERVAL; // 첫 업그레이드 시간
 
   // 기본 강화
   private damageBonus: number = 0;
@@ -238,6 +239,7 @@ export class UpgradeSystem {
   reset(): void {
     this.upgradeStacks.clear();
     this.upgradeCount = 0;
+    this.nextUpgradeTime = UPGRADE_TIMING.BASE_INTERVAL;
 
     // 기본 강화
     this.damageBonus = 0;
@@ -272,23 +274,23 @@ export class UpgradeSystem {
   }
 
   update(_delta: number, gameTime: number): void {
-    // 30초마다 업그레이드 제공
-    const expectedUpgrades = Math.floor(gameTime / UPGRADE_INTERVAL);
-
-    if (expectedUpgrades > this.upgradeCount) {
-      this.upgradeCount = expectedUpgrades;
+    // 동적 간격: 가속 후 감속 (15초 → 20초 → 25초 → 30초 상한)
+    if (gameTime >= this.nextUpgradeTime) {
+      this.upgradeCount++;
       EventBus.getInstance().emit(GameEvents.UPGRADE_AVAILABLE);
+
+      // 다음 업그레이드 시간 계산
+      const nextInterval = Math.min(
+        UPGRADE_TIMING.BASE_INTERVAL + this.upgradeCount * UPGRADE_TIMING.INCREMENT,
+        UPGRADE_TIMING.MAX_INTERVAL
+      );
+      this.nextUpgradeTime = gameTime + nextInterval;
     }
   }
 
   getRandomUpgrades(count: number): Upgrade[] {
-    // 레어리티 가중치
-    const rarityWeights: Record<string, number> = {
-      common: 50,
-      rare: 30,
-      epic: 15,
-      legendary: 5,
-    };
+    // 동적 희귀도 가중치 (업그레이드 횟수에 따라 변화)
+    const rarityWeights = this.getRarityWeights();
 
     // 사용 가능한 업그레이드 필터링 (최대 스택 미달성)
     const availableUpgrades = UPGRADES.filter((upgrade) => {
@@ -319,6 +321,33 @@ export class UpgradeSystem {
     }
 
     return selected;
+  }
+
+  private getRarityWeights(): Record<string, number> {
+    // 업그레이드 횟수에 따라 희귀도 가중치 변화
+    // 1~2회: 초반 (Common 위주)
+    // 3~4회: 중반 (Rare/Epic 증가)
+    // 5~6회: 후반 (Epic 증가, Legendary 출현)
+    // 7+회: 엔드게임 (Legendary 확률 대폭 증가)
+    const totalUpgrades = this.getTotalUpgradeCount();
+
+    if (totalUpgrades <= 2) {
+      return RARITY_WEIGHTS_BY_COUNT.early;
+    } else if (totalUpgrades <= 4) {
+      return RARITY_WEIGHTS_BY_COUNT.mid;
+    } else if (totalUpgrades <= 6) {
+      return RARITY_WEIGHTS_BY_COUNT.late;
+    } else {
+      return RARITY_WEIGHTS_BY_COUNT.endgame;
+    }
+  }
+
+  private getTotalUpgradeCount(): number {
+    let total = 0;
+    this.upgradeStacks.forEach((stack) => {
+      total += stack;
+    });
+    return total;
   }
 
   applyUpgrade(upgrade: Upgrade): void {
@@ -361,7 +390,12 @@ export class UpgradeSystem {
   }
 
   getAttackSpeedMultiplier(): number {
-    return Math.max(0.2, 1 - this.attackSpeedBonus); // 최소 20%까지만 감소
+    // 수확체감 공식: 스택이 쌓일수록 효율 감소
+    // k=0.5: 스택 1개에 33% 감소, 스택 5개에 77% 감소
+    // 최소 30%까지만 감소 (기존 20% → 30%로 너프)
+    const k = 0.5;
+    const reduction = this.attackSpeedBonus / (this.attackSpeedBonus + k);
+    return Math.max(0.3, 1 - reduction * 0.7);
   }
 
   getGlobalSlowPercent(): number {
