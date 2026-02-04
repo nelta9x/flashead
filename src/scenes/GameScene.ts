@@ -356,6 +356,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnDish(type: string, x: number, y: number, speedMultiplier: number = 1): void {
+    // 폭탄일 경우 경고 표시 후 딜레이하여 스폰
+    if (type === 'bomb') {
+      this.showBombWarningAndSpawn(x, y, speedMultiplier);
+      return;
+    }
+
+    this.spawnDishImmediate(type, x, y, speedMultiplier);
+  }
+
+  private spawnDishImmediate(type: string, x: number, y: number, speedMultiplier: number = 1): void {
     const dish = this.dishPool.acquire();
     if (dish) {
       // 업그레이드 옵션 적용
@@ -365,6 +375,75 @@ export class GameScene extends Phaser.Scene {
       dish.spawn(x, y, type, speedMultiplier, options);
       this.dishes.add(dish);
     }
+  }
+
+  private showBombWarningAndSpawn(x: number, y: number, speedMultiplier: number): void {
+    const warningDuration = 500; // 0.5초 경고
+    const warningRadius = 50;
+
+    // 경고 그래픽 생성
+    const warningGraphics = this.add.graphics();
+    warningGraphics.setDepth(500);
+
+    // 경고 애니메이션
+    let elapsed = 0;
+    const blinkInterval = 100; // 깜빡임 간격
+
+    const updateWarning = () => {
+      warningGraphics.clear();
+
+      // 깜빡임 효과
+      const blinkPhase = Math.floor(elapsed / blinkInterval) % 2;
+      const alpha = blinkPhase === 0 ? 0.6 : 0.3;
+
+      // 크기가 커지는 효과
+      const progress = elapsed / warningDuration;
+      const currentRadius = warningRadius * (0.5 + progress * 0.5);
+
+      // 빨간 경고 원
+      warningGraphics.fillStyle(COLORS.RED, alpha * 0.3);
+      warningGraphics.fillCircle(x, y, currentRadius);
+
+      // 빨간 테두리
+      warningGraphics.lineStyle(3, COLORS.RED, alpha);
+      warningGraphics.strokeCircle(x, y, currentRadius);
+
+      // 경고 X 표시
+      const crossSize = currentRadius * 0.5;
+      warningGraphics.lineStyle(4, COLORS.RED, alpha);
+      warningGraphics.beginPath();
+      warningGraphics.moveTo(x - crossSize, y - crossSize);
+      warningGraphics.lineTo(x + crossSize, y + crossSize);
+      warningGraphics.moveTo(x + crossSize, y - crossSize);
+      warningGraphics.lineTo(x - crossSize, y + crossSize);
+      warningGraphics.strokePath();
+    };
+
+    // 초기 그리기
+    updateWarning();
+
+    // 애니메이션 타이머
+    const warningTimer = this.time.addEvent({
+      delay: 16, // ~60fps
+      callback: () => {
+        elapsed += 16;
+        if (elapsed < warningDuration) {
+          updateWarning();
+        }
+      },
+      loop: true,
+    });
+
+    // 경고 후 폭탄 스폰
+    this.time.delayedCall(warningDuration, () => {
+      warningTimer.destroy();
+      warningGraphics.destroy();
+
+      // 게임 오버가 아닐 때만 스폰
+      if (!this.isGameOver) {
+        this.spawnDishImmediate('bomb', x, y, speedMultiplier);
+      }
+    });
   }
 
   private pauseGame(): void {
