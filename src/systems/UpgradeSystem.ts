@@ -10,63 +10,26 @@ export interface Upgrade {
 }
 
 const UPGRADES: Upgrade[] = [
-  // ========== Rare ==========
-  {
-    id: 'shrapnel',
-    name: '파편',
-    description: '접시 파괴 시 파편 1개를 생성합니다.',
-    rarity: 'rare',
-    maxStack: 3,
-    effect: (us) => us.addShrapnelCount(1),
-  },
   {
     id: 'cursor_size',
     name: '넓은 타격',
-    description: '커서 판정 범위가 20% 증가합니다.',
+    description: '커서 판정 범위가 3% 증가합니다. (기본 크기 기준)',
     rarity: 'rare',
-    maxStack: 3,
-    effect: (us) => us.addCursorSizeBonus(0.2),
-  },
-
-  // ========== Epic ==========
-  {
-    id: 'shrapnel_burst',
-    name: '파편 폭발',
-    description: '파편 2개 추가, 데미지 +5',
-    rarity: 'epic',
-    maxStack: 2,
-    effect: (us) => {
-      us.addShrapnelCount(2);
-      us.addShrapnelDamageBonus(5);
-    },
+    maxStack: Infinity,
+    effect: (us) => us.addCursorSizeBonus(0.03),
   },
   {
     id: 'electric_shock',
     name: '전기 충격',
     description: '주변 접시에 번개 데미지를 줍니다.',
-    rarity: 'epic',
+    rarity: 'rare',
     maxStack: 2,
     effect: (us) => us.addElectricShockLevel(1),
-  },
-
-  // ========== Legendary ==========
-  {
-    id: 'chain_shrapnel',
-    name: '연쇄 파편',
-    description: '파편으로 파괴된 접시도 파편을 생성합니다.',
-    rarity: 'legendary',
-    maxStack: 1,
-    effect: (us) => us.setChainShrapnelEnabled(true),
   },
 ];
 
 export class UpgradeSystem {
   private upgradeStacks: Map<string, number> = new Map();
-
-  // 파편 시스템
-  private shrapnelCount: number = 0;
-  private shrapnelDamageBonus: number = 0;
-  private chainShrapnelEnabled: boolean = false;
 
   // 커서 크기
   private cursorSizeBonus: number = 0;
@@ -80,11 +43,6 @@ export class UpgradeSystem {
 
   reset(): void {
     this.upgradeStacks.clear();
-
-    // 파편 시스템
-    this.shrapnelCount = 0;
-    this.shrapnelDamageBonus = 0;
-    this.chainShrapnelEnabled = false;
 
     // 커서 크기
     this.cursorSizeBonus = 0;
@@ -168,31 +126,6 @@ export class UpgradeSystem {
 
     // 효과 적용
     upgrade.effect(this, currentStack + 1);
-  }
-
-  // ========== 파편 시스템 ==========
-  addShrapnelCount(count: number): void {
-    this.shrapnelCount += count;
-  }
-
-  getShrapnelCount(): number {
-    return this.shrapnelCount;
-  }
-
-  addShrapnelDamageBonus(damage: number): void {
-    this.shrapnelDamageBonus += damage;
-  }
-
-  getShrapnelDamageBonus(): number {
-    return this.shrapnelDamageBonus;
-  }
-
-  setChainShrapnelEnabled(enabled: boolean): void {
-    this.chainShrapnelEnabled = enabled;
-  }
-
-  isChainShrapnelEnabled(): boolean {
-    return this.chainShrapnelEnabled;
   }
 
   // ========== 커서 크기 ==========

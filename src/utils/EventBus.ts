@@ -136,7 +136,4 @@ export const GameEvents = {
   HEALTH_PACK_SPAWNED: 'healthPack:spawned',
   HEALTH_PACK_COLLECTED: 'healthPack:collected',
   HEALTH_PACK_MISSED: 'healthPack:missed',
-
-  // 파편 관련
-  SHRAPNEL_HIT: 'shrapnel:hit',
 } as const;

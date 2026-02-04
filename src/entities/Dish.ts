@@ -613,8 +613,12 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
   }
 
   // 외부에서 데미지 적용 (전기 충격, 관통 등)
-  applyDamage(damage: number): void {
+  applyDamage(damage: number, isChainReaction: boolean = false): void {
     if (!this.active || this.invulnerable) return;
+
+    if (isChainReaction) {
+      this.chainReaction = true;
+    }
 
     this.currentHp -= damage;
     this.hitFlashPhase = 1;

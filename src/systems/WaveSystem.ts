@@ -71,6 +71,7 @@ export class WaveSystem {
     this.currentWave = waveNumber;
     this.timeSinceLastSpawn = 0;
     this.waveElapsedTime = 0;
+    this.wavePhase = 'spawning';
 
     // 웨이브 설정 가져오기 (12 이후 무한 스케일링)
     this.waveConfig = this.getScaledWaveConfig(waveNumber);

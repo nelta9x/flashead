@@ -52,49 +52,16 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
     vi.restoreAllMocks();
   });
 
-  describe('파편 시스템', () => {
-    it('파편 카운트 추적', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getShrapnelCount()).toBe(0);
-      upgrade.addShrapnelCount(1);
-      expect(upgrade.getShrapnelCount()).toBe(1);
-      upgrade.addShrapnelCount(2);
-      expect(upgrade.getShrapnelCount()).toBe(3);
-    });
-
-    it('파편 데미지 보너스 추적', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getShrapnelDamageBonus()).toBe(0);
-      upgrade.addShrapnelDamageBonus(5);
-      expect(upgrade.getShrapnelDamageBonus()).toBe(5);
-      upgrade.addShrapnelDamageBonus(5);
-      expect(upgrade.getShrapnelDamageBonus()).toBe(10);
-    });
-
-    it('연쇄 파편 활성화', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.isChainShrapnelEnabled()).toBe(false);
-      upgrade.setChainShrapnelEnabled(true);
-      expect(upgrade.isChainShrapnelEnabled()).toBe(true);
-    });
-  });
-
   describe('커서 크기', () => {
     it('커서 크기 보너스 추적', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
       const upgrade = new UpgradeSystem();
 
       expect(upgrade.getCursorSizeBonus()).toBe(0);
-      upgrade.addCursorSizeBonus(0.2);
-      expect(upgrade.getCursorSizeBonus()).toBe(0.2);
-      upgrade.addCursorSizeBonus(0.2);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.4);
+      upgrade.addCursorSizeBonus(0.03);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.03);
+      upgrade.addCursorSizeBonus(0.03);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.06);
     });
   });
 
@@ -117,9 +84,6 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       const upgrade = new UpgradeSystem();
 
       // 값 설정
-      upgrade.addShrapnelCount(3);
-      upgrade.addShrapnelDamageBonus(10);
-      upgrade.setChainShrapnelEnabled(true);
       upgrade.addCursorSizeBonus(0.4);
       upgrade.addElectricShockLevel(2);
 
@@ -127,30 +91,13 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       upgrade.reset();
 
       // 확인
-      expect(upgrade.getShrapnelCount()).toBe(0);
-      expect(upgrade.getShrapnelDamageBonus()).toBe(0);
-      expect(upgrade.isChainShrapnelEnabled()).toBe(false);
       expect(upgrade.getCursorSizeBonus()).toBe(0);
       expect(upgrade.getElectricShockLevel()).toBe(0);
     });
   });
 
   describe('업그레이드 적용', () => {
-    it('파편 업그레이드 적용', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      const upgrades = upgrade.getRandomUpgrades(5);
-      const shrapnelUpgrade = upgrades.find(u => u.id === 'shrapnel');
-
-      if (shrapnelUpgrade) {
-        upgrade.applyUpgrade(shrapnelUpgrade);
-        expect(upgrade.getShrapnelCount()).toBe(1);
-        expect(upgrade.getUpgradeStack('shrapnel')).toBe(1);
-      }
-    });
-
-    it('최대 스택 제한', async () => {
+    it('무한 스택 (넓은 타격)', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
       const upgrade = new UpgradeSystem();
 
@@ -158,12 +105,29 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       const cursorUpgrade = upgrades.find(u => u.id === 'cursor_size');
 
       if (cursorUpgrade) {
-        // maxStack은 3
+        // maxStack이 Infinity이므로 무한 중첩 가능
         for (let i = 0; i < 5; i++) {
           upgrade.applyUpgrade(cursorUpgrade);
         }
-        expect(upgrade.getUpgradeStack('cursor_size')).toBe(3);
-        expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.6); // 0.2 * 3
+        expect(upgrade.getUpgradeStack('cursor_size')).toBe(5);
+        expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.15); // 0.03 * 5
+      }
+    });
+
+    it('전기 충격 최대 스택 제한', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      const upgrades = upgrade.getRandomUpgrades(5);
+      const electricUpgrade = upgrades.find(u => u.id === 'electric_shock');
+
+      if (electricUpgrade) {
+        // maxStack은 2
+        for (let i = 0; i < 5; i++) {
+          upgrade.applyUpgrade(electricUpgrade);
+        }
+        expect(upgrade.getUpgradeStack('electric_shock')).toBe(2);
+        expect(upgrade.getElectricShockLevel()).toBe(2);
       }
     });
   });

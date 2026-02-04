@@ -419,42 +419,4 @@ export class ParticleManager {
     // 스파크 추가
     this.createSparkBurst(x, y, color);
   }
-
-  // 파편 히트 이펙트
-  createShrapnelHitEffect(x: number, y: number, color: number): void {
-    // 스파크 폭발
-    const emitter = this.emitters.get('spark');
-    if (emitter) {
-      emitter.setParticleTint(color);
-      emitter.explode(10, x, y);
-    }
-
-    // 작은 충격파
-    const shockwave = this.scene.add.graphics();
-    shockwave.lineStyle(3, color, 1);
-    shockwave.strokeCircle(x, y, 5);
-
-    this.scene.tweens.add({
-      targets: shockwave,
-      scaleX: 3,
-      scaleY: 3,
-      alpha: 0,
-      duration: 200,
-      ease: 'Power2',
-      onComplete: () => shockwave.destroy(),
-    });
-  }
-
-  // 파편 트레일 이펙트
-  createShrapnelTrail(x: number, y: number, color: number): void {
-    const trail = this.scene.add.circle(x, y, 3, color, 0.5);
-
-    this.scene.tweens.add({
-      targets: trail,
-      scale: 0,
-      alpha: 0,
-      duration: 150,
-      onComplete: () => trail.destroy(),
-    });
-  }
 }

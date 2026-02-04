@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, CURSOR_HITBOX, SPAWN_AREA, SHRAPNEL } from '../config/constants';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, CURSOR_HITBOX, SPAWN_AREA } from '../config/constants';
 import { Dish } from '../entities/Dish';
-import { Shrapnel } from '../entities/Shrapnel';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
 import { ComboSystem } from '../systems/ComboSystem';
@@ -22,8 +21,6 @@ import { WaveCountdownUI } from '../ui/WaveCountdownUI';
 export class GameScene extends Phaser.Scene {
   private dishPool!: ObjectPool<Dish>;
   private dishes!: Phaser.GameObjects.Group;
-  private shrapnelPool!: ObjectPool<Shrapnel>;
-  private shrapnels!: Phaser.GameObjects.Group;
 
   // 시스템
   private comboSystem!: ComboSystem;
@@ -68,7 +65,6 @@ export class GameScene extends Phaser.Scene {
 
     // Phaser 그룹 생성
     this.dishes = this.add.group();
-    this.shrapnels = this.add.group();
 
     // 시스템 초기화
     this.initializeSystems();
@@ -82,11 +78,8 @@ export class GameScene extends Phaser.Scene {
     // 입력 설정
     this.setupInput();
 
-    // 게임 시작: 카운트다운과 업그레이드 UI 동시 표시
-    this.pendingWaveNumber = 1;
-    this.waveSystem.startCountdown(this.pendingWaveNumber);
-    this.waveCountdownUI.show(this.pendingWaveNumber);
-    this.inGameUpgradeUI.show();
+    // 게임 시작: 첫 웨이브 바로 시작 (카운트다운 없음)
+    this.waveSystem.startWave(1);
 
     // 카메라 페이드 인
     this.cameras.main.fadeIn(500);
@@ -117,6 +110,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private initializeSystems(): void {
+    // 이전 게임의 이벤트 리스너 정리 (재시작 시 중복 방지)
+    EventBus.getInstance().clear();
+
     this.comboSystem = new ComboSystem();
     this.upgradeSystem = new UpgradeSystem();
 
@@ -158,7 +154,6 @@ export class GameScene extends Phaser.Scene {
   private initializeEntities(): void {
     // 오브젝트 풀 생성
     this.dishPool = new ObjectPool<Dish>(() => new Dish(this, 0, 0, 'basic'), 10, 50);
-    this.shrapnelPool = new ObjectPool<Shrapnel>(() => new Shrapnel(this), 10, 30);
   }
 
   private setupEventListeners(): void {
@@ -248,11 +243,6 @@ export class GameScene extends Phaser.Scene {
       this.onHealthPackCollected(data.x, data.y);
     });
 
-    // 파편 히트 이벤트
-    EventBus.getInstance().on(GameEvents.SHRAPNEL_HIT, (...args: unknown[]) => {
-      const data = args[0] as { x: number; y: number; color: number; target: Dish; isChainShrapnel: boolean };
-      this.onShrapnelHit(data);
-    });
   }
 
   private onHealthPackCollected(x: number, y: number): void {
@@ -309,7 +299,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private onDishDestroyed(data: { dish: Dish; x: number; y: number; chainReaction: boolean }): void {
+  private onDishDestroyed(data: { dish: Dish; x: number; y: number }): void {
     const { dish, x, y } = data;
 
     // 지뢰(Bomb) 터짐
@@ -334,12 +324,6 @@ export class GameScene extends Phaser.Scene {
     // ===== 업그레이드 효과 적용 =====
     const aoeRadius = 150;
 
-    // 파편 생성 (isChainShrapnel = false: 일반 파괴로 인한 파편)
-    const shrapnelCount = this.upgradeSystem.getShrapnelCount();
-    if (shrapnelCount > 0) {
-      this.spawnShrapnels(x, y, shrapnelCount, dish, dish.getColor(), false);
-    }
-
     // 전기 충격 (주변 접시에 데미지)
     const electricLevel = this.upgradeSystem.getElectricShockLevel();
     if (electricLevel > 0) {
@@ -361,73 +345,13 @@ export class GameScene extends Phaser.Scene {
         const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
         if (distance < radius) {
           targets.push({ x: dish.x, y: dish.y });
-          dish.applyDamage(damage);
+          dish.applyDamage(damage, true);
         }
       }
     });
 
     if (targets.length > 0) {
       this.feedbackSystem.onElectricShock(x, y, targets);
-    }
-  }
-
-  // 가장 가까운 접시 찾기 (파편 타겟용)
-  private findNearbyDishes(x: number, y: number, count: number, excludeDish: Dish): Dish[] {
-    const nearbyDishes: { dish: Dish; distance: number }[] = [];
-
-    this.dishPool.forEach((dish) => {
-      if (dish !== excludeDish && dish.active && !dish.isDangerous()) {
-        const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
-        nearbyDishes.push({ dish, distance });
-      }
-    });
-
-    // 거리순 정렬 후 count만큼 반환
-    nearbyDishes.sort((a, b) => a.distance - b.distance);
-    return nearbyDishes.slice(0, count).map(item => item.dish);
-  }
-
-  // 파편 생성
-  private spawnShrapnels(
-    x: number,
-    y: number,
-    count: number,
-    excludeDish: Dish,
-    color: number,
-    isChainShrapnel: boolean
-  ): void {
-    const targets = this.findNearbyDishes(x, y, count, excludeDish);
-    const damageBonus = this.upgradeSystem.getShrapnelDamageBonus();
-
-    for (let i = 0; i < count; i++) {
-      this.time.delayedCall(i * SHRAPNEL.SPAWN_DELAY, () => {
-        const shrapnel = this.shrapnelPool.acquire();
-        if (shrapnel) {
-          // 타겟이 있으면 할당, 없으면 null (랜덤 방향)
-          const target = targets[i] || null;
-          shrapnel.spawn(x, y, target, color, damageBonus, isChainShrapnel);
-          this.shrapnels.add(shrapnel);
-        }
-      });
-    }
-  }
-
-  // 파편 히트 이벤트 핸들러
-  private onShrapnelHit(data: { x: number; y: number; color: number; target: Dish; isChainShrapnel: boolean }): void {
-    const { x, y, color, target } = data;
-
-    // 피드백 효과
-    this.feedbackSystem.onShrapnelHit(x, y, color);
-
-    // 연쇄 파편: 파편으로 파괴된 접시도 파편 생성
-    if (this.upgradeSystem.isChainShrapnelEnabled() && !data.isChainShrapnel) {
-      // 접시가 파괴되었는지 확인 (HP가 0 이하)
-      if (target && !target.active) {
-        const chainCount = this.upgradeSystem.getShrapnelCount();
-        if (chainCount > 0) {
-          this.spawnShrapnels(x, y, chainCount, target, color, true);
-        }
-      }
     }
   }
 
@@ -473,7 +397,6 @@ export class GameScene extends Phaser.Scene {
   private cleanup(): void {
     EventBus.getInstance().clear();
     this.dishPool.clear();
-    this.shrapnelPool.clear();
     this.healthPackSystem.clear();
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
@@ -496,11 +419,6 @@ export class GameScene extends Phaser.Scene {
     // 접시 업데이트
     this.dishPool.forEach((dish) => {
       dish.update(delta);
-    });
-
-    // 파편 업데이트
-    this.shrapnelPool.forEach((shrapnel) => {
-      shrapnel.update(delta);
     });
 
     // HUD 업데이트

@@ -139,10 +139,4 @@ export class FeedbackSystem {
     this.particleManager.createElectricEffect(x, y, targets);
     this.screenShake.shake(5, 100);
   }
-
-  // 파편 히트 효과
-  onShrapnelHit(x: number, y: number, color: number): void {
-    this.particleManager.createShrapnelHitEffect(x, y, color);
-    this.screenShake.shake(2, 50);
-  }
 }

@@ -89,16 +89,6 @@ export const WAVE_TRANSITION = {
   COUNTDOWN_DURATION: 5000, // 5초 카운트다운
 } as const;
 
-// 파편 시스템
-export const SHRAPNEL = {
-  BASE_DAMAGE: 15,        // 기본 데미지
-  BASE_SPEED: 400,        // 이동 속도 (px/sec)
-  HOMING_STRENGTH: 0.08,  // 유도 강도
-  LIFETIME: 1500,         // 최대 생존 시간 (ms)
-  SIZE: 8,                // 파편 크기
-  SPAWN_DELAY: 50,        // 파편 간 생성 딜레이
-} as const;
-
 // 힐팩 시스템
 export const HEAL_PACK = {
   HEAL_AMOUNT: 1,
