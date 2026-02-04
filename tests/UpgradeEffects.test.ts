@@ -78,6 +78,21 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
     });
   });
 
+  describe('자기장', () => {
+    it('자기장 레벨 추적', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      expect(upgrade.getMagnetLevel()).toBe(0);
+      upgrade.addMagnetLevel(1);
+      expect(upgrade.getMagnetLevel()).toBe(1);
+      upgrade.addMagnetLevel(1);
+      expect(upgrade.getMagnetLevel()).toBe(2);
+      upgrade.addMagnetLevel(1);
+      expect(upgrade.getMagnetLevel()).toBe(3);
+    });
+  });
+
   describe('리셋', () => {
     it('모든 값이 리셋되어야 함', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
@@ -86,6 +101,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       // 값 설정
       upgrade.addCursorSizeBonus(0.4);
       upgrade.addElectricShockLevel(2);
+      upgrade.addMagnetLevel(3);
 
       // 리셋
       upgrade.reset();
@@ -93,6 +109,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       // 확인
       expect(upgrade.getCursorSizeBonus()).toBe(0);
       expect(upgrade.getElectricShockLevel()).toBe(0);
+      expect(upgrade.getMagnetLevel()).toBe(0);
     });
   });
 
@@ -128,6 +145,23 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
         }
         expect(upgrade.getUpgradeStack('electric_shock')).toBe(2);
         expect(upgrade.getElectricShockLevel()).toBe(2);
+      }
+    });
+
+    it('자기장 최대 스택 제한', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      const upgrades = upgrade.getRandomUpgrades(5);
+      const magnetUpgrade = upgrades.find(u => u.id === 'magnet');
+
+      if (magnetUpgrade) {
+        // maxStack은 3
+        for (let i = 0; i < 5; i++) {
+          upgrade.applyUpgrade(magnetUpgrade);
+        }
+        expect(upgrade.getUpgradeStack('magnet')).toBe(3);
+        expect(upgrade.getMagnetLevel()).toBe(3);
       }
     });
   });

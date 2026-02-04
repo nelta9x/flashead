@@ -89,6 +89,15 @@ export const WAVE_TRANSITION = {
   COUNTDOWN_DURATION: 5000, // 5초 카운트다운
 } as const;
 
+// 자기장 시스템
+export const MAGNET = {
+  BASE_RADIUS: 105, // 기본 범위 (70%)
+  RADIUS_PER_LEVEL: 35, // 레벨당 추가 범위 (70%)
+  BASE_FORCE: 30, // 기본 힘 (px/sec)
+  FORCE_PER_LEVEL: 20, // 레벨당 추가 힘
+  MIN_PULL_DISTANCE: 30, // 최소 당김 거리
+} as const;
+
 // 힐팩 시스템
 export const HEAL_PACK = {
   HEAL_AMOUNT: 1,

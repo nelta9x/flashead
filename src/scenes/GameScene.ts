@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, CURSOR_HITBOX, SPAWN_AREA } from '../config/constants';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, CURSOR_HITBOX, SPAWN_AREA, MAGNET } from '../config/constants';
 import { Dish } from '../entities/Dish';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
@@ -427,11 +427,48 @@ export class GameScene extends Phaser.Scene {
     // 인게임 업그레이드 UI 업데이트
     this.inGameUpgradeUI.update(delta);
 
+    // 자기장 효과 업데이트
+    this.updateMagnetEffect(delta);
+
     // 커서 범위 기반 공격 처리
     this.updateCursorAttack();
 
     // 공격 범위 인디케이터 업데이트
     this.updateAttackRangeIndicator();
+  }
+
+  private updateMagnetEffect(delta: number): void {
+    const magnetLevel = this.upgradeSystem.getMagnetLevel();
+    if (magnetLevel <= 0) return;
+
+    const pointer = this.input.activePointer;
+    const cursorX = pointer.worldX;
+    const cursorY = pointer.worldY;
+
+    // 자기장 범위/힘 계산
+    const magnetRadius = MAGNET.BASE_RADIUS + magnetLevel * MAGNET.RADIUS_PER_LEVEL;
+    const magnetForce = MAGNET.BASE_FORCE + magnetLevel * MAGNET.FORCE_PER_LEVEL;
+
+    // delta를 초 단위로 변환
+    const deltaSeconds = delta / 1000;
+
+    this.dishPool.forEach((dish) => {
+      if (!dish.active) return;
+      // 폭탄(dangerous)은 당기지 않음
+      if (dish.isDangerous()) return;
+
+      const dist = Phaser.Math.Distance.Between(cursorX, cursorY, dish.x, dish.y);
+      if (dist > magnetRadius || dist < MAGNET.MIN_PULL_DISTANCE) return;
+
+      // 거리 기반 선형 감쇠 (가까울수록 강함)
+      const pullStrength = 1 - dist / magnetRadius;
+      const pullAmount = magnetForce * pullStrength * deltaSeconds;
+
+      // 커서 방향으로 이동
+      const angle = Phaser.Math.Angle.Between(dish.x, dish.y, cursorX, cursorY);
+      dish.x += Math.cos(angle) * pullAmount;
+      dish.y += Math.sin(angle) * pullAmount;
+    });
   }
 
   private updateCursorAttack(): void {
@@ -465,6 +502,20 @@ export class GameScene extends Phaser.Scene {
     const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 
     this.attackRangeIndicator.clear();
+
+    // 자기장 범위 원 (자기장 레벨 > 0일 때만)
+    const magnetLevel = this.upgradeSystem.getMagnetLevel();
+    if (magnetLevel > 0) {
+      const magnetRadius = MAGNET.BASE_RADIUS + magnetLevel * MAGNET.RADIUS_PER_LEVEL;
+
+      // 자기장 범위 (마젠타, 더 투명하게)
+      this.attackRangeIndicator.lineStyle(1, COLORS.MAGENTA, 0.15);
+      this.attackRangeIndicator.strokeCircle(x, y, magnetRadius);
+
+      // 내부 채우기 (매우 투명)
+      this.attackRangeIndicator.fillStyle(COLORS.MAGENTA, 0.02);
+      this.attackRangeIndicator.fillCircle(x, y, magnetRadius);
+    }
 
     // 공격 범위 원
     this.attackRangeIndicator.lineStyle(2, COLORS.CYAN, 0.5);

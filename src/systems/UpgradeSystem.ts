@@ -26,6 +26,14 @@ const UPGRADES: Upgrade[] = [
     maxStack: 2,
     effect: (us) => us.addElectricShockLevel(1),
   },
+  {
+    id: 'magnet',
+    name: '자기장',
+    description: '커서 주변 접시가 끌려옵니다',
+    rarity: 'rare',
+    maxStack: 3,
+    effect: (us) => us.addMagnetLevel(1),
+  },
 ];
 
 export class UpgradeSystem {
@@ -36,6 +44,9 @@ export class UpgradeSystem {
 
   // 전기 충격
   private electricShockLevel: number = 0;
+
+  // 자기장
+  private magnetLevel: number = 0;
 
   constructor() {
     this.reset();
@@ -49,6 +60,9 @@ export class UpgradeSystem {
 
     // 전기 충격
     this.electricShockLevel = 0;
+
+    // 자기장
+    this.magnetLevel = 0;
   }
 
   update(_delta: number, _gameTime: number): void {
@@ -144,6 +158,15 @@ export class UpgradeSystem {
 
   getElectricShockLevel(): number {
     return this.electricShockLevel;
+  }
+
+  // ========== 자기장 ==========
+  addMagnetLevel(level: number): void {
+    this.magnetLevel += level;
+  }
+
+  getMagnetLevel(): number {
+    return this.magnetLevel;
   }
 
   // ========== 유틸리티 ==========
