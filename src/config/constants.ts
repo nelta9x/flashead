@@ -86,13 +86,13 @@ export const UPGRADE_UI = {
 
 // 웨이브 전환
 export const WAVE_TRANSITION = {
-  COUNTDOWN_DURATION: 5000, // 5초 카운트다운
+  COUNTDOWN_DURATION: 3000, // 3초 카운트다운
 } as const;
 
 // 자기장 시스템
 export const MAGNET = {
-  BASE_RADIUS: 105, // 기본 범위 (70%)
-  RADIUS_PER_LEVEL: 35, // 레벨당 추가 범위 (70%)
+  BASE_RADIUS: 70, // 기본 범위
+  RADIUS_PER_LEVEL: 25, // 레벨당 추가 범위
   BASE_FORCE: 30, // 기본 힘 (px/sec)
   FORCE_PER_LEVEL: 20, // 레벨당 추가 힘
   MIN_PULL_DISTANCE: 30, // 최소 당김 거리

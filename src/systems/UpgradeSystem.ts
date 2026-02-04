@@ -13,17 +13,17 @@ const UPGRADES: Upgrade[] = [
   {
     id: 'cursor_size',
     name: '넓은 타격',
-    description: '커서 판정 범위가 3% 증가합니다. (기본 크기 기준)',
+    description: '커서 판정 범위가 6% 증가합니다. (기본 크기 기준)',
     rarity: 'rare',
-    maxStack: Infinity,
-    effect: (us) => us.addCursorSizeBonus(0.03),
+    maxStack: 5,
+    effect: (us) => us.addCursorSizeBonus(0.06),
   },
   {
     id: 'electric_shock',
     name: '전기 충격',
     description: '주변 접시에 번개 데미지를 줍니다.',
     rarity: 'rare',
-    maxStack: 2,
+    maxStack: 5,
     effect: (us) => us.addElectricShockLevel(1),
   },
   {
@@ -31,7 +31,7 @@ const UPGRADES: Upgrade[] = [
     name: '자기장',
     description: '커서 주변 접시가 끌려옵니다',
     rarity: 'rare',
-    maxStack: 3,
+    maxStack: 5,
     effect: (us) => us.addMagnetLevel(1),
   },
 ];

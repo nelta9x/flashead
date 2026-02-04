@@ -327,7 +327,8 @@ export class GameScene extends Phaser.Scene {
     // 전기 충격 (주변 접시에 데미지)
     const electricLevel = this.upgradeSystem.getElectricShockLevel();
     if (electricLevel > 0) {
-      this.applyElectricShock(x, y, electricLevel, dish, aoeRadius);
+      const electricRadius = 100 + electricLevel * 15; // 레벨당 15 증가
+      this.applyElectricShock(x, y, electricLevel, dish, electricRadius);
     }
 
     // 풀에서 제거
@@ -338,7 +339,7 @@ export class GameScene extends Phaser.Scene {
   // 전기 충격: 주변 접시에 데미지
   private applyElectricShock(x: number, y: number, level: number, excludeDish: Dish, radius: number): void {
     const targets: { x: number; y: number }[] = [];
-    const damage = 5 + level * 5; // 레벨당 5 데미지
+    const damage = level; // 레벨당 1 데미지
 
     this.dishPool.forEach((dish) => {
       if (dish !== excludeDish && dish.active && !dish.isDangerous()) {
