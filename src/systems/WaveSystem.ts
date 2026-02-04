@@ -7,33 +7,35 @@ import { Dish } from '../entities/Dish';
 type WavePhase = 'waiting' | 'countdown' | 'spawning';
 
 interface WaveConfig {
-  dishCount: number;
+  duration: number; // 웨이브 지속 시간 (ms)
   spawnInterval: number;
   dishTypes: { type: string; weight: number }[];
 }
 
+const WAVE_DURATION = 20000; // 모든 웨이브 20초
+
 const WAVE_CONFIGS: WaveConfig[] = [
   // 웨이브 1-3: 입문
-  { dishCount: 6, spawnInterval: 1000, dishTypes: [{ type: 'basic', weight: 1 }] },
-  { dishCount: 8, spawnInterval: 900, dishTypes: [{ type: 'basic', weight: 0.9 }, { type: 'bomb', weight: 0.1 }] },
-  { dishCount: 10, spawnInterval: 800, dishTypes: [{ type: 'basic', weight: 0.8 }, { type: 'golden', weight: 0.1 }, { type: 'bomb', weight: 0.1 }] },
+  { duration: WAVE_DURATION, spawnInterval: 1000, dishTypes: [{ type: 'basic', weight: 1 }] },
+  { duration: WAVE_DURATION, spawnInterval: 900, dishTypes: [{ type: 'basic', weight: 0.9 }, { type: 'bomb', weight: 0.1 }] },
+  { duration: WAVE_DURATION, spawnInterval: 800, dishTypes: [{ type: 'basic', weight: 0.8 }, { type: 'golden', weight: 0.1 }, { type: 'bomb', weight: 0.1 }] },
   // 웨이브 4-6: 상승
-  { dishCount: 12, spawnInterval: 700, dishTypes: [{ type: 'basic', weight: 0.6 }, { type: 'golden', weight: 0.2 }, { type: 'crystal', weight: 0.1 }, { type: 'bomb', weight: 0.1 }] },
-  { dishCount: 15, spawnInterval: 600, dishTypes: [{ type: 'basic', weight: 0.5 }, { type: 'golden', weight: 0.2 }, { type: 'crystal', weight: 0.15 }, { type: 'bomb', weight: 0.15 }] },
-  { dishCount: 18, spawnInterval: 500, dishTypes: [{ type: 'basic', weight: 0.4 }, { type: 'golden', weight: 0.25 }, { type: 'crystal', weight: 0.2 }, { type: 'bomb', weight: 0.15 }] },
+  { duration: WAVE_DURATION, spawnInterval: 700, dishTypes: [{ type: 'basic', weight: 0.6 }, { type: 'golden', weight: 0.2 }, { type: 'crystal', weight: 0.1 }, { type: 'bomb', weight: 0.1 }] },
+  { duration: WAVE_DURATION, spawnInterval: 600, dishTypes: [{ type: 'basic', weight: 0.5 }, { type: 'golden', weight: 0.2 }, { type: 'crystal', weight: 0.15 }, { type: 'bomb', weight: 0.15 }] },
+  { duration: WAVE_DURATION, spawnInterval: 500, dishTypes: [{ type: 'basic', weight: 0.4 }, { type: 'golden', weight: 0.25 }, { type: 'crystal', weight: 0.2 }, { type: 'bomb', weight: 0.15 }] },
   // 웨이브 7-9: 혼돈
-  { dishCount: 22, spawnInterval: 400, dishTypes: [{ type: 'basic', weight: 0.3 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.2 }, { type: 'bomb', weight: 0.2 }] },
-  { dishCount: 26, spawnInterval: 350, dishTypes: [{ type: 'basic', weight: 0.25 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.25 }, { type: 'bomb', weight: 0.2 }] },
-  { dishCount: 30, spawnInterval: 300, dishTypes: [{ type: 'basic', weight: 0.2 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.25 }, { type: 'bomb', weight: 0.25 }] },
+  { duration: WAVE_DURATION, spawnInterval: 400, dishTypes: [{ type: 'basic', weight: 0.3 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.2 }, { type: 'bomb', weight: 0.2 }] },
+  { duration: WAVE_DURATION, spawnInterval: 350, dishTypes: [{ type: 'basic', weight: 0.25 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.25 }, { type: 'bomb', weight: 0.2 }] },
+  { duration: WAVE_DURATION, spawnInterval: 300, dishTypes: [{ type: 'basic', weight: 0.2 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.25 }, { type: 'bomb', weight: 0.25 }] },
   // 웨이브 10-12: 지옥
-  { dishCount: 35, spawnInterval: 250, dishTypes: [{ type: 'basic', weight: 0.15 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.3 }, { type: 'bomb', weight: 0.25 }] },
-  { dishCount: 40, spawnInterval: 220, dishTypes: [{ type: 'basic', weight: 0.1 }, { type: 'golden', weight: 0.35 }, { type: 'crystal', weight: 0.3 }, { type: 'bomb', weight: 0.25 }] },
-  { dishCount: 50, spawnInterval: 200, dishTypes: [{ type: 'basic', weight: 0.1 }, { type: 'golden', weight: 0.35 }, { type: 'crystal', weight: 0.3 }, { type: 'bomb', weight: 0.25 }] },
+  { duration: WAVE_DURATION, spawnInterval: 250, dishTypes: [{ type: 'basic', weight: 0.15 }, { type: 'golden', weight: 0.3 }, { type: 'crystal', weight: 0.3 }, { type: 'bomb', weight: 0.25 }] },
+  { duration: WAVE_DURATION, spawnInterval: 220, dishTypes: [{ type: 'basic', weight: 0.1 }, { type: 'golden', weight: 0.35 }, { type: 'crystal', weight: 0.3 }, { type: 'bomb', weight: 0.25 }] },
+  { duration: WAVE_DURATION, spawnInterval: 200, dishTypes: [{ type: 'basic', weight: 0.1 }, { type: 'golden', weight: 0.35 }, { type: 'crystal', weight: 0.3 }, { type: 'bomb', weight: 0.25 }] },
 ];
 
-// 피버 타임 설정 (지옥: 150ms 간격)
+// 피버 타임 설정 (지옥: 150ms 간격, 무한)
 const FEVER_CONFIG: WaveConfig = {
-  dishCount: 999,
+  duration: Infinity,
   spawnInterval: 150,
   dishTypes: [
     { type: 'basic', weight: 0.1 },
@@ -46,9 +48,8 @@ const FEVER_CONFIG: WaveConfig = {
 export class WaveSystem {
   private scene: Phaser.Scene;
   private currentWave: number = 0;
-  private dishesSpawned: number = 0;
-  private dishesDestroyed: number = 0;
   private timeSinceLastSpawn: number = 0;
+  private waveElapsedTime: number = 0; // 웨이브 경과 시간
   private waveConfig: WaveConfig | null = null;
   private isFeverTime: boolean = false;
   private totalGameTime: number = 0;
@@ -64,25 +65,12 @@ export class WaveSystem {
     this.scene = scene;
     this.getDishPool = getDishPool;
     this.getMaxSpawnY = getMaxSpawnY || (() => SPAWN_AREA.maxY);
-
-    // 접시 파괴 이벤트 리스닝
-    EventBus.getInstance().on(GameEvents.DISH_DESTROYED, () => {
-      this.dishesDestroyed++;
-      this.checkWaveComplete();
-    });
-
-    // 접시 타임아웃 이벤트 리스닝
-    EventBus.getInstance().on(GameEvents.DISH_MISSED, () => {
-      this.dishesDestroyed++;
-      this.checkWaveComplete();
-    });
   }
 
   startWave(waveNumber: number): void {
     this.currentWave = waveNumber;
-    this.dishesSpawned = 0;
-    this.dishesDestroyed = 0;
     this.timeSinceLastSpawn = 0;
+    this.waveElapsedTime = 0;
 
     // 웨이브 설정 가져오기 (12 이후 무한 스케일링)
     this.waveConfig = this.getScaledWaveConfig(waveNumber);
@@ -97,10 +85,9 @@ export class WaveSystem {
     // 웨이브 12 이하는 기본 설정 사용
     if (waveNumber <= 12) return base;
 
-    // 웨이브 12 이후: 난이도 점진적 증가
-    const scaleFactor = 1 + (waveNumber - 12) * 0.15; // 15%씩 증가
+    // 웨이브 12 이후: 난이도 점진적 증가 (스폰 간격 감소)
     return {
-      dishCount: Math.floor(base.dishCount * scaleFactor),
+      duration: WAVE_DURATION,
       spawnInterval: Math.max(150, base.spawnInterval - (waveNumber - 12) * 20),
       dishTypes: this.getScaledDishTypes(waveNumber),
     };
@@ -132,9 +119,8 @@ export class WaveSystem {
   startFeverTime(): void {
     this.isFeverTime = true;
     this.waveConfig = FEVER_CONFIG;
-    this.dishesSpawned = 0;
-    this.dishesDestroyed = 0;
     this.timeSinceLastSpawn = 0;
+    this.waveElapsedTime = 0;
   }
 
   getWavePhase(): WavePhase {
@@ -167,9 +153,16 @@ export class WaveSystem {
     // waiting 페이즈면 스폰 안함
     if (this.wavePhase !== 'spawning') return;
 
-    // 무한 생존 모드: 시간 제한 없음, HP 0일 때만 게임 오버
-
     if (!this.waveConfig) return;
+
+    // 웨이브 경과 시간 업데이트
+    this.waveElapsedTime += delta;
+
+    // 웨이브 지속 시간 체크 (피버 타임 제외)
+    if (!this.isFeverTime && this.waveElapsedTime >= this.waveConfig.duration) {
+      this.checkWaveComplete();
+      return;
+    }
 
     this.timeSinceLastSpawn += delta;
 
@@ -187,10 +180,8 @@ export class WaveSystem {
 
     // 스폰 인터벌 체크
     if (this.timeSinceLastSpawn >= effectiveInterval) {
-      if (this.dishesSpawned < this.waveConfig.dishCount || this.isFeverTime) {
-        this.spawnDish();
-        this.timeSinceLastSpawn = 0;
-      }
+      this.spawnDish();
+      this.timeSinceLastSpawn = 0;
     }
   }
 
@@ -212,8 +203,6 @@ export class WaveSystem {
     // GameScene에 접시 스폰 요청
     const gameScene = this.scene as unknown as { spawnDish: (type: string, x: number, y: number, speedMultiplier: number) => void };
     gameScene.spawnDish(type, x, y, speedMultiplier);
-
-    this.dishesSpawned++;
   }
 
   private findValidSpawnPosition(): { x: number; y: number } | null {
@@ -264,15 +253,11 @@ export class WaveSystem {
   private checkWaveComplete(): void {
     if (this.isFeverTime) return;
 
-    if (
-      this.waveConfig &&
-      this.dishesSpawned >= this.waveConfig.dishCount &&
-      this.dishesDestroyed >= this.waveConfig.dishCount
-    ) {
+    // 웨이브 지속 시간 완료
+    if (this.waveConfig && this.waveElapsedTime >= this.waveConfig.duration) {
       // 대기 상태로 전환 (업그레이드 선택 대기)
       this.wavePhase = 'waiting';
       EventBus.getInstance().emit(GameEvents.WAVE_COMPLETED, this.currentWave);
-      // 자동 다음 웨이브 시작 제거 - GameScene에서 업그레이드 선택 후 카운트다운 시작
     }
   }
 
@@ -286,7 +271,7 @@ export class WaveSystem {
 
   getProgress(): number {
     if (!this.waveConfig || this.isFeverTime) return 0;
-    return this.dishesDestroyed / this.waveConfig.dishCount;
+    return Math.min(1, this.waveElapsedTime / this.waveConfig.duration);
   }
 
   getTotalTime(): number {

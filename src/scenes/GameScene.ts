@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, CURSOR_HITBOX, SPAWN_AREA } from '../config/constants';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, CURSOR_HITBOX, SPAWN_AREA, SHRAPNEL } from '../config/constants';
 import { Dish } from '../entities/Dish';
+import { Shrapnel } from '../entities/Shrapnel';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
 import { ComboSystem } from '../systems/ComboSystem';
@@ -21,6 +22,8 @@ import { WaveCountdownUI } from '../ui/WaveCountdownUI';
 export class GameScene extends Phaser.Scene {
   private dishPool!: ObjectPool<Dish>;
   private dishes!: Phaser.GameObjects.Group;
+  private shrapnelPool!: ObjectPool<Shrapnel>;
+  private shrapnels!: Phaser.GameObjects.Group;
 
   // 시스템
   private comboSystem!: ComboSystem;
@@ -45,11 +48,6 @@ export class GameScene extends Phaser.Scene {
   private isGameOver: boolean = false;
   private isPaused: boolean = false;
 
-  // 업그레이드 효과 타이머
-  private timeStopTimer: number = 0;
-  private autoDestroyTimer: number = 0;
-  private lastComboHealCombo: number = 0;
-
   // 웨이브 전환 상태
   private pendingWaveNumber: number = 1;
 
@@ -70,6 +68,7 @@ export class GameScene extends Phaser.Scene {
 
     // Phaser 그룹 생성
     this.dishes = this.add.group();
+    this.shrapnels = this.add.group();
 
     // 시스템 초기화
     this.initializeSystems();
@@ -146,8 +145,7 @@ export class GameScene extends Phaser.Scene {
       this.screenShake,
       this.slowMotion,
       this.damageText,
-      this.soundSystem,
-      this.upgradeSystem
+      this.soundSystem
     );
 
     // HUD
@@ -160,6 +158,7 @@ export class GameScene extends Phaser.Scene {
   private initializeEntities(): void {
     // 오브젝트 풀 생성
     this.dishPool = new ObjectPool<Dish>(() => new Dish(this, 0, 0, 'basic'), 10, 50);
+    this.shrapnelPool = new ObjectPool<Shrapnel>(() => new Shrapnel(this), 10, 30);
   }
 
   private setupEventListeners(): void {
@@ -189,14 +188,12 @@ export class GameScene extends Phaser.Scene {
     EventBus.getInstance().on(GameEvents.COMBO_MILESTONE, (...args: unknown[]) => {
       const milestone = args[0] as number;
       this.feedbackSystem.onComboMilestone(milestone);
-      this.onComboMilestone(milestone);
     });
 
     // 웨이브 완료
     EventBus.getInstance().on(GameEvents.WAVE_COMPLETED, (...args: unknown[]) => {
       const waveNumber = args[0] as number;
       this.hud.showWaveComplete(waveNumber);
-      this.onWaveCompleted();
 
       // 다음 웨이브 번호 저장 후 카운트다운과 업그레이드 UI 동시 표시
       this.pendingWaveNumber = waveNumber + 1;
@@ -209,9 +206,9 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // 업그레이드 선택 완료 → 효과만 적용 (카운트다운은 WAVE_COMPLETED에서 이미 시작됨)
+    // 업그레이드 선택 완료 (현재는 특별한 처리 없음)
     EventBus.getInstance().on(GameEvents.UPGRADE_SELECTED, () => {
-      this.applyMaxHpBonus();
+      // 업그레이드 선택 완료
     });
 
     // 카운트다운 틱
@@ -227,12 +224,6 @@ export class GameScene extends Phaser.Scene {
 
     // 게임 오버
     EventBus.getInstance().on(GameEvents.GAME_OVER, () => {
-      // 부활 업그레이드 체크
-      if (this.upgradeSystem.useRevive()) {
-        this.healthSystem.revive(3);
-        this.feedbackSystem.onRevive();
-        return;
-      }
       this.gameOver();
     });
 
@@ -255,6 +246,12 @@ export class GameScene extends Phaser.Scene {
     EventBus.getInstance().on(GameEvents.HEALTH_PACK_COLLECTED, (...args: unknown[]) => {
       const data = args[0] as { pack: unknown; x: number; y: number };
       this.onHealthPackCollected(data.x, data.y);
+    });
+
+    // 파편 히트 이벤트
+    EventBus.getInstance().on(GameEvents.SHRAPNEL_HIT, (...args: unknown[]) => {
+      const data = args[0] as { x: number; y: number; color: number; target: Dish; isChainShrapnel: boolean };
+      this.onShrapnelHit(data);
     });
   }
 
@@ -281,25 +278,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onDishMissed(data: { dish: Dish; x: number; y: number; type: string; isDangerous: boolean }): void {
-    const { dish, x, y, type, isDangerous } = data;
+    const { dish, x, y, isDangerous } = data;
 
     // 지뢰 타임아웃: 조용히 사라짐 (피드백/패널티 없음)
     if (isDangerous) {
-      this.dishes.remove(dish);
-      this.dishPool.release(dish);
-      return;
-    }
-
-    // 두 번째 기회: 확률적으로 접시 재스폰
-    const secondChance = this.upgradeSystem.getSecondChancePercent();
-    if (secondChance > 0 && Math.random() < secondChance) {
-      // 같은 타입으로 새 위치에 재스폰
-      this.time.delayedCall(100, () => {
-        this.spawnDish(type, x + (Math.random() - 0.5) * 100, y + (Math.random() - 0.5) * 100, 1);
-      });
-      // 피드백 효과
-      this.feedbackSystem.onSecondChance(x, y);
-      // 풀에서 제거만 (패널티 없음)
       this.dishes.remove(dish);
       this.dishPool.release(dish);
       return;
@@ -328,25 +310,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onDishDestroyed(data: { dish: Dish; x: number; y: number; chainReaction: boolean }): void {
-    const { dish, x, y, chainReaction } = data;
+    const { dish, x, y } = data;
 
     // 지뢰(Bomb) 터짐
     if (dish.isDangerous()) {
-      // 폭탄 방어막 체크
-      if (this.upgradeSystem.useBombShield()) {
-        this.feedbackSystem.onBombShieldUsed(x, y);
-      } else {
-        // HP 1 감소
-        this.healthSystem.takeDamage(1);
-        // 피드백 효과 (폭발)
-        this.feedbackSystem.onBombExploded(x, y);
-      }
-
-      // 폭탄 전환 (폭탄 파괴 시 HP 회복)
-      if (this.upgradeSystem.isBombConvertHealEnabled()) {
-        this.healthSystem.heal(1);
-        this.feedbackSystem.onBombConvertHeal(x, y);
-      }
+      // HP 1 감소
+      this.healthSystem.takeDamage(1);
+      // 피드백 효과 (폭발)
+      this.feedbackSystem.onBombExploded(x, y);
 
       // 풀에서 제거
       this.dishes.remove(dish);
@@ -360,26 +331,13 @@ export class GameScene extends Phaser.Scene {
     // 피드백 효과
     this.feedbackSystem.onDishDestroyed(x, y, dish.getColor(), dish.getDishType());
 
-    // 생명력 흡수 (lifesteal)
-    const lifestealChance = this.upgradeSystem.getLifestealChance();
-    if (lifestealChance > 0 && Math.random() < lifestealChance) {
-      this.healthSystem.heal(1);
-      this.feedbackSystem.onLifesteal(x, y);
-    }
-
     // ===== 업그레이드 효과 적용 =====
-    const aoeRadius = 150 * this.upgradeSystem.getAoeRadiusMultiplier();
+    const aoeRadius = 150;
 
-    // 블랙홀 효과 (10% 확률로 주변 모든 접시 흡수)
-    const blackHoleChance = this.upgradeSystem.getBlackHoleChance();
-    if (blackHoleChance > 0 && Math.random() < blackHoleChance) {
-      this.triggerBlackHole(x, y, dish);
-    } else {
-      // 범위 파괴 효과 적용
-      const aoeCount = this.upgradeSystem.getAoeDestroyCount();
-      if (aoeCount > 0 || chainReaction) {
-        this.destroyNearbyDishes(x, y, aoeCount + (chainReaction ? 1 : 0), dish, aoeRadius);
-      }
+    // 파편 생성 (isChainShrapnel = false: 일반 파괴로 인한 파편)
+    const shrapnelCount = this.upgradeSystem.getShrapnelCount();
+    if (shrapnelCount > 0) {
+      this.spawnShrapnels(x, y, shrapnelCount, dish, dish.getColor(), false);
     }
 
     // 전기 충격 (주변 접시에 데미지)
@@ -388,47 +346,9 @@ export class GameScene extends Phaser.Scene {
       this.applyElectricShock(x, y, electricLevel, dish, aoeRadius);
     }
 
-    // 냉동 오라 (주변 접시 느려짐)
-    const freezeDuration = this.upgradeSystem.getFreezeAuraDuration();
-    if (freezeDuration > 0) {
-      this.applyFreezeAura(x, y, freezeDuration, dish, aoeRadius);
-    }
-
-    // 자석 효과 (주변 접시 끌어당김)
-    const magnetLevel = this.upgradeSystem.getMagnetPullLevel();
-    if (magnetLevel > 0) {
-      this.applyMagnetPull(x, y, magnetLevel, dish, aoeRadius);
-    }
-
     // 풀에서 제거
     this.dishes.remove(dish);
     this.dishPool.release(dish);
-  }
-
-  // 블랙홀: 주변 모든 접시 흡수
-  private triggerBlackHole(x: number, y: number, excludeDish: Dish): void {
-    const nearbyDishes: Dish[] = [];
-
-    this.dishPool.forEach((dish) => {
-      if (dish !== excludeDish && dish.active) {
-        const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
-        if (distance < 200) {
-          nearbyDishes.push(dish);
-        }
-      }
-    });
-
-    if (nearbyDishes.length === 0) return;
-
-    // 블랙홀 피드백
-    this.feedbackSystem.onBlackHole(x, y, () => {
-      // 모든 주변 접시 파괴
-      nearbyDishes.forEach((dish) => {
-        if (dish.active) {
-          dish.forceDestroy();
-        }
-      });
-    });
   }
 
   // 전기 충격: 주변 접시에 데미지
@@ -451,81 +371,63 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // 냉동 오라: 주변 접시 느려짐
-  private applyFreezeAura(x: number, y: number, duration: number, excludeDish: Dish, radius: number): void {
-    this.dishPool.forEach((dish) => {
-      if (dish !== excludeDish && dish.active) {
-        const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
-        if (distance < radius) {
-          dish.applySlow(duration, 0.3);
-        }
-      }
-    });
-
-    this.feedbackSystem.onFreezeAura(x, y, radius);
-  }
-
-  // 자석 효과: 주변 접시 끌어당김
-  private applyMagnetPull(x: number, y: number, level: number, excludeDish: Dish, radius: number): void {
-    const targets: { x: number; y: number }[] = [];
-    const strength = 20 + level * 15; // 레벨당 끌어당기는 힘
-
-    this.dishPool.forEach((dish) => {
-      if (dish !== excludeDish && dish.active) {
-        const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
-        if (distance < radius) {
-          targets.push({ x: dish.x, y: dish.y });
-          dish.pullTowards(x, y, strength);
-        }
-      }
-    });
-
-    if (targets.length > 0) {
-      this.feedbackSystem.onMagnetPull(x, y, targets);
-    }
-  }
-
-  private destroyNearbyDishes(x: number, y: number, count: number, excludeDish: Dish, radius: number = 150): void {
+  // 가장 가까운 접시 찾기 (파편 타겟용)
+  private findNearbyDishes(x: number, y: number, count: number, excludeDish: Dish): Dish[] {
     const nearbyDishes: { dish: Dish; distance: number }[] = [];
 
     this.dishPool.forEach((dish) => {
-      if (dish !== excludeDish && dish.active) {
+      if (dish !== excludeDish && dish.active && !dish.isDangerous()) {
         const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
-        if (distance < radius) { // 범위 내 접시만
-          nearbyDishes.push({ dish, distance });
-        }
+        nearbyDishes.push({ dish, distance });
       }
     });
 
-    // 거리순 정렬 후 count만큼 파괴
+    // 거리순 정렬 후 count만큼 반환
     nearbyDishes.sort((a, b) => a.distance - b.distance);
+    return nearbyDishes.slice(0, count).map(item => item.dish);
+  }
 
-    // 현재 웨이브 저장 (웨이브 전환 시 지연된 파괴 방지)
-    const currentWave = this.waveSystem.getCurrentWave();
+  // 파편 생성
+  private spawnShrapnels(
+    x: number,
+    y: number,
+    count: number,
+    excludeDish: Dish,
+    color: number,
+    isChainShrapnel: boolean
+  ): void {
+    const targets = this.findNearbyDishes(x, y, count, excludeDish);
+    const damageBonus = this.upgradeSystem.getShrapnelDamageBonus();
 
-    for (let i = 0; i < Math.min(count, nearbyDishes.length); i++) {
-      const { dish } = nearbyDishes[i];
-      // 약간의 딜레이로 연쇄 파괴 효과
-      this.time.delayedCall(i * 50, () => {
-        if (!dish.active) return;
-
-        // 웨이브가 바뀌었으면 이벤트 없이 정리만 (카운트 꼬임 방지)
-        if (this.waveSystem.getCurrentWave() !== currentWave) {
-          dish.deactivate();
-          this.dishes.remove(dish);
-          this.dishPool.release(dish);
-          return;
+    for (let i = 0; i < count; i++) {
+      this.time.delayedCall(i * SHRAPNEL.SPAWN_DELAY, () => {
+        const shrapnel = this.shrapnelPool.acquire();
+        if (shrapnel) {
+          // 타겟이 있으면 할당, 없으면 null (랜덤 방향)
+          const target = targets[i] || null;
+          shrapnel.spawn(x, y, target, color, damageBonus, isChainShrapnel);
+          this.shrapnels.add(shrapnel);
         }
-
-        EventBus.getInstance().emit(GameEvents.DISH_DESTROYED, {
-          dish,
-          x: dish.x,
-          y: dish.y,
-          type: dish.getDishType(),
-          chainReaction: false, // 연쇄 파괴의 연쇄 방지
-        });
-        dish.deactivate();
       });
+    }
+  }
+
+  // 파편 히트 이벤트 핸들러
+  private onShrapnelHit(data: { x: number; y: number; color: number; target: Dish; isChainShrapnel: boolean }): void {
+    const { x, y, color, target } = data;
+
+    // 피드백 효과
+    this.feedbackSystem.onShrapnelHit(x, y, color);
+
+    // 연쇄 파편: 파편으로 파괴된 접시도 파편 생성
+    if (this.upgradeSystem.isChainShrapnelEnabled() && !data.isChainShrapnel) {
+      // 접시가 파괴되었는지 확인 (HP가 0 이하)
+      if (target && !target.active) {
+        const chainCount = this.upgradeSystem.getShrapnelCount();
+        if (chainCount > 0) {
+          this.spawnShrapnels(x, y, chainCount, target, color, true);
+        }
+      }
     }
   }
 
@@ -534,10 +436,6 @@ export class GameScene extends Phaser.Scene {
     if (dish) {
       // 업그레이드 옵션 적용
       const options = {
-        damageBonus: this.upgradeSystem.getDamageBonus(),
-        attackSpeedMultiplier: this.upgradeSystem.getAttackSpeedMultiplier(),
-        criticalChance: this.upgradeSystem.getCriticalChance(),
-        globalSlowPercent: this.upgradeSystem.getGlobalSlowPercent(),
         cursorSizeBonus: this.upgradeSystem.getCursorSizeBonus(),
       };
       dish.spawn(x, y, type, speedMultiplier, options);
@@ -575,6 +473,7 @@ export class GameScene extends Phaser.Scene {
   private cleanup(): void {
     EventBus.getInstance().clear();
     this.dishPool.clear();
+    this.shrapnelPool.clear();
     this.healthPackSystem.clear();
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
@@ -588,19 +487,20 @@ export class GameScene extends Phaser.Scene {
 
     // 시스템 업데이트
     this.comboSystem.setWave(this.waveSystem.getCurrentWave());
-    this.comboSystem.setComboDurationBonus(this.upgradeSystem.getComboDurationBonus());
     this.comboSystem.update(delta);
     this.waveSystem.update(delta);
     this.upgradeSystem.update(delta, this.gameTime);
     this.healthPackSystem.update(delta, this.gameTime);
     this.slowMotion.update(delta);
 
-    // 업그레이드 타이머 업데이트 (시간 정지, 자동 파괴)
-    this.updateUpgradeTimers(delta);
-
     // 접시 업데이트
     this.dishPool.forEach((dish) => {
       dish.update(delta);
+    });
+
+    // 파편 업데이트
+    this.shrapnelPool.forEach((shrapnel) => {
+      shrapnel.update(delta);
     });
 
     // HUD 업데이트
@@ -673,91 +573,5 @@ export class GameScene extends Phaser.Scene {
 
   getDishPool(): ObjectPool<Dish> {
     return this.dishPool;
-  }
-
-  // 웨이브 완료 시 업그레이드 효과 적용
-  private onWaveCompleted(): void {
-    // 웨이브 힐
-    const waveHeal = this.upgradeSystem.getWaveHealAmount();
-    if (waveHeal > 0) {
-      this.healthSystem.heal(waveHeal);
-    }
-
-    // 폭탄 방어막 충전
-    this.upgradeSystem.rechargeBombShield();
-  }
-
-  // 콤보 마일스톤에서 힐
-  private onComboMilestone(milestone: number): void {
-    const comboHealThreshold = this.upgradeSystem.getComboHealThreshold();
-    if (comboHealThreshold > 0) {
-      // 10콤보마다 힐 (10, 20, 30...)
-      const healCount = Math.floor(milestone / 10);
-      const prevHealCount = Math.floor(this.lastComboHealCombo / 10);
-
-      if (healCount > prevHealCount) {
-        // 새로운 10콤보 마일스톤 달성
-        for (let i = 0; i < comboHealThreshold; i++) {
-          this.healthSystem.heal(1);
-        }
-      }
-      this.lastComboHealCombo = milestone;
-    }
-  }
-
-  // 최대 HP 보너스 적용
-  private applyMaxHpBonus(): void {
-    const bonus = this.upgradeSystem.getMaxHpBonus();
-    const baseHp = 5; // INITIAL_HP
-    this.healthSystem.setMaxHp(baseHp + bonus);
-  }
-
-  // 시간 정지 효과
-  private triggerTimeStop(): void {
-    // 모든 접시 1초간 정지
-    this.dishPool.forEach((dish) => {
-      if (dish.active) {
-        dish.applySlow(1000, 0); // factor 0 = 완전 정지
-      }
-    });
-    this.feedbackSystem.onTimeStop();
-  }
-
-  // 자동 파괴 효과
-  private triggerAutoDestroy(): void {
-    // 랜덤 접시 1개 선택 (지뢰 제외)
-    const candidates: Dish[] = [];
-    this.dishPool.forEach((dish) => {
-      if (dish.active && !dish.isDangerous()) {
-        candidates.push(dish);
-      }
-    });
-
-    if (candidates.length > 0) {
-      const target = candidates[Math.floor(Math.random() * candidates.length)];
-      target.forceDestroy();
-      this.feedbackSystem.onAutoDestroy(target.x, target.y);
-    }
-  }
-
-  // update 메서드에서 시간 정지/자동 파괴 타이머 처리
-  private updateUpgradeTimers(delta: number): void {
-    // 시간 정지 (10초마다)
-    if (this.upgradeSystem.isTimeStopEnabled()) {
-      this.timeStopTimer += delta;
-      if (this.timeStopTimer >= 10000) {
-        this.timeStopTimer = 0;
-        this.triggerTimeStop();
-      }
-    }
-
-    // 자동 파괴 (3초마다)
-    if (this.upgradeSystem.isAutoDestroyEnabled()) {
-      this.autoDestroyTimer += delta;
-      if (this.autoDestroyTimer >= 3000) {
-        this.autoDestroyTimer = 0;
-        this.triggerAutoDestroy();
-      }
-    }
   }
 }

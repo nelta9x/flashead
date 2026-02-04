@@ -5,7 +5,6 @@ import { ScreenShake } from '../effects/ScreenShake';
 import { SlowMotion } from '../effects/SlowMotion';
 import { DamageText } from '../ui/DamageText';
 import { SoundSystem } from './SoundSystem';
-import { UpgradeSystem } from './UpgradeSystem';
 
 export class FeedbackSystem {
   private particleManager: ParticleManager;
@@ -20,8 +19,7 @@ export class FeedbackSystem {
     screenShake: ScreenShake,
     slowMotion: SlowMotion,
     damageText: DamageText,
-    soundSystem: SoundSystem,
-    _upgradeSystem: UpgradeSystem
+    soundSystem: SoundSystem
   ) {
     this.particleManager = particleManager;
     this.screenShake = screenShake;
@@ -142,65 +140,9 @@ export class FeedbackSystem {
     this.screenShake.shake(5, 100);
   }
 
-  // 냉동 오라 효과 (업그레이드용)
-  onFreezeAura(x: number, y: number, radius: number): void {
-    this.particleManager.createFreezeEffect(x, y, radius);
-  }
-
-  // 자석 효과 (업그레이드용)
-  onMagnetPull(x: number, y: number, targets: { x: number; y: number }[]): void {
-    this.particleManager.createMagnetEffect(x, y, targets);
-  }
-
-  // 블랙홀 효과 (업그레이드용)
-  onBlackHole(x: number, y: number, callback?: () => void): void {
-    this.particleManager.createBlackHoleEffect(x, y, callback);
-    this.slowMotion.trigger(0.2, 600);
-    this.screenShake.shake(10, 500);
-  }
-
-  // 부활 효과
-  onRevive(): void {
-    // 화면 흔들림
-    this.screenShake.shake(8, 300);
-    // 슬로우모션
-    this.slowMotion.trigger(0.3, 500);
-  }
-
-  // 폭탄 방어막 사용 효과
-  onBombShieldUsed(x: number, y: number): void {
-    this.damageText.showText(x, y, 'BLOCKED!', COLORS.CYAN);
-    this.particleManager.createShieldEffect(x, y, COLORS.CYAN);
-    this.screenShake.shake(4, 100);
-  }
-
-  // 생명력 흡수 효과
-  onLifesteal(x: number, y: number): void {
-    this.damageText.showText(x, y, '+1', COLORS.GREEN);
-    this.particleManager.createHealEffect(x, y, COLORS.GREEN);
-  }
-
-  // 폭탄 전환 힐 효과
-  onBombConvertHeal(x: number, y: number): void {
-    this.damageText.showText(x, y, '+1 HP', COLORS.GREEN);
-    this.particleManager.createHealEffect(x, y, COLORS.GREEN);
-  }
-
-  // 두 번째 기회 효과
-  onSecondChance(x: number, y: number): void {
-    this.damageText.showText(x, y, 'SECOND CHANCE!', COLORS.YELLOW);
-    this.particleManager.createSparkBurst(x, y, COLORS.YELLOW);
-  }
-
-  // 시간 정지 효과
-  onTimeStop(): void {
-    this.slowMotion.trigger(0.1, 1000);
-  }
-
-  // 자동 파괴 효과
-  onAutoDestroy(x: number, y: number): void {
-    this.damageText.showText(x, y, 'AUTO!', COLORS.MAGENTA);
-    this.particleManager.createSparkBurst(x, y, COLORS.MAGENTA);
-    this.screenShake.shake(3, 80);
+  // 파편 히트 효과
+  onShrapnelHit(x: number, y: number, color: number): void {
+    this.particleManager.createShrapnelHitEffect(x, y, color);
+    this.screenShake.shake(2, 50);
   }
 }

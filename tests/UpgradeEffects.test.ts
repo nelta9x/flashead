@@ -43,7 +43,7 @@ vi.mock('../src/utils/EventBus', () => ({
   },
 }));
 
-describe('Upgrade Effects Integration', () => {
+describe('UpgradeSystem - 간소화된 시스템', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -52,195 +52,119 @@ describe('Upgrade Effects Integration', () => {
     vi.restoreAllMocks();
   });
 
-  describe('UpgradeSystem Stats', () => {
-    it('should track bomb shield count', async () => {
+  describe('파편 시스템', () => {
+    it('파편 카운트 추적', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
       const upgrade = new UpgradeSystem();
 
-      expect(upgrade.getBombShieldCount()).toBe(0);
-      upgrade.addBombShieldCount(2);
-      expect(upgrade.getBombShieldCount()).toBe(2);
+      expect(upgrade.getShrapnelCount()).toBe(0);
+      upgrade.addShrapnelCount(1);
+      expect(upgrade.getShrapnelCount()).toBe(1);
+      upgrade.addShrapnelCount(2);
+      expect(upgrade.getShrapnelCount()).toBe(3);
     });
 
-    it('should consume bomb shield when used', async () => {
+    it('파편 데미지 보너스 추적', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
       const upgrade = new UpgradeSystem();
 
-      upgrade.addBombShieldCount(2);
-      expect(upgrade.useBombShield()).toBe(true);
-      expect(upgrade.getBombShieldCount()).toBe(1);
-      expect(upgrade.useBombShield()).toBe(true);
-      expect(upgrade.getBombShieldCount()).toBe(0);
-      expect(upgrade.useBombShield()).toBe(false); // 더 이상 없음
+      expect(upgrade.getShrapnelDamageBonus()).toBe(0);
+      upgrade.addShrapnelDamageBonus(5);
+      expect(upgrade.getShrapnelDamageBonus()).toBe(5);
+      upgrade.addShrapnelDamageBonus(5);
+      expect(upgrade.getShrapnelDamageBonus()).toBe(10);
     });
 
-    it('should recharge bomb shield', async () => {
+    it('연쇄 파편 활성화', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
       const upgrade = new UpgradeSystem();
 
-      upgrade.addBombShieldCount(3);
-      upgrade.useBombShield();
-      upgrade.useBombShield();
-      expect(upgrade.getBombShieldCount()).toBe(1);
-
-      upgrade.rechargeBombShield();
-      expect(upgrade.getBombShieldCount()).toBe(3); // 최대로 충전
-    });
-
-    it('should track lifesteal chance', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getLifestealChance()).toBe(0);
-      upgrade.addLifestealChance(0.05);
-      upgrade.addLifestealChance(0.05);
-      expect(upgrade.getLifestealChance()).toBe(0.1);
-    });
-
-    it('should track combo heal threshold', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getComboHealThreshold()).toBe(0);
-      upgrade.addComboHealThreshold(1);
-      expect(upgrade.getComboHealThreshold()).toBe(1);
-      upgrade.addComboHealThreshold(1);
-      expect(upgrade.getComboHealThreshold()).toBe(2);
-    });
-
-    it('should track wave heal amount', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getWaveHealAmount()).toBe(0);
-      upgrade.addWaveHealAmount(1);
-      expect(upgrade.getWaveHealAmount()).toBe(1);
-    });
-
-    it('should track second chance percent with cap', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getSecondChancePercent()).toBe(0);
-      upgrade.addSecondChancePercent(0.5);
-      expect(upgrade.getSecondChancePercent()).toBe(0.5);
-      upgrade.addSecondChancePercent(0.6); // 총 1.1이지만 최대 1.0
-      expect(upgrade.getSecondChancePercent()).toBe(1.0);
-    });
-
-    it('should track bomb convert heal', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.isBombConvertHealEnabled()).toBe(false);
-      upgrade.setBombConvertHeal(true);
-      expect(upgrade.isBombConvertHealEnabled()).toBe(true);
-    });
-
-    it('should track revive count', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getReviveCount()).toBe(0);
-      upgrade.setReviveCount(1);
-      expect(upgrade.getReviveCount()).toBe(1);
-    });
-
-    it('should consume revive when used', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      upgrade.setReviveCount(1);
-      expect(upgrade.useRevive()).toBe(true);
-      expect(upgrade.getReviveCount()).toBe(0);
-      expect(upgrade.useRevive()).toBe(false);
-    });
-
-    it('should track time stop enabled', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.isTimeStopEnabled()).toBe(false);
-      upgrade.setTimeStopEnabled(true);
-      expect(upgrade.isTimeStopEnabled()).toBe(true);
-    });
-
-    it('should track auto destroy enabled', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.isAutoDestroyEnabled()).toBe(false);
-      upgrade.setAutoDestroyEnabled(true);
-      expect(upgrade.isAutoDestroyEnabled()).toBe(true);
-    });
-
-    it('should track max HP bonus', async () => {
-      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-      const upgrade = new UpgradeSystem();
-
-      expect(upgrade.getMaxHpBonus()).toBe(0);
-      upgrade.addMaxHpBonus(1);
-      upgrade.addMaxHpBonus(2);
-      expect(upgrade.getMaxHpBonus()).toBe(3);
+      expect(upgrade.isChainShrapnelEnabled()).toBe(false);
+      upgrade.setChainShrapnelEnabled(true);
+      expect(upgrade.isChainShrapnelEnabled()).toBe(true);
     });
   });
 
-  describe('ComboSystem Combo Heal', () => {
-    it('should emit combo milestone when threshold reached', async () => {
-      const { ComboSystem } = await import('../src/systems/ComboSystem');
-      const combo = new ComboSystem();
+  describe('커서 크기', () => {
+    it('커서 크기 보너스 추적', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
 
-      // 10콤보 달성
-      for (let i = 0; i < 10; i++) {
-        combo.increment();
-      }
-
-      // COMBO_MILESTONE 이벤트가 발생했는지 확인
-      const milestoneCall = mockEmit.mock.calls.find(
-        (call) => call[0] === 'combo_milestone' && call[1] === 10
-      );
-      expect(milestoneCall).toBeDefined();
+      expect(upgrade.getCursorSizeBonus()).toBe(0);
+      upgrade.addCursorSizeBonus(0.2);
+      expect(upgrade.getCursorSizeBonus()).toBe(0.2);
+      upgrade.addCursorSizeBonus(0.2);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.4);
     });
   });
 
-  describe('HealthSystem Integration', () => {
-    it('should work with max HP bonus from upgrade', async () => {
-      const { HealthSystem } = await import('../src/systems/HealthSystem');
+  describe('전기 충격', () => {
+    it('전기 충격 레벨 추적', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-
       const upgrade = new UpgradeSystem();
-      const health = new HealthSystem(5);
 
-      // 업그레이드로 max HP 보너스 획득
-      upgrade.addMaxHpBonus(2);
+      expect(upgrade.getElectricShockLevel()).toBe(0);
+      upgrade.addElectricShockLevel(1);
+      expect(upgrade.getElectricShockLevel()).toBe(1);
+      upgrade.addElectricShockLevel(1);
+      expect(upgrade.getElectricShockLevel()).toBe(2);
+    });
+  });
 
-      // HealthSystem에 적용
-      health.setMaxHp(5 + upgrade.getMaxHpBonus());
-      expect(health.getMaxHp()).toBe(7);
+  describe('리셋', () => {
+    it('모든 값이 리셋되어야 함', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      // 값 설정
+      upgrade.addShrapnelCount(3);
+      upgrade.addShrapnelDamageBonus(10);
+      upgrade.setChainShrapnelEnabled(true);
+      upgrade.addCursorSizeBonus(0.4);
+      upgrade.addElectricShockLevel(2);
+
+      // 리셋
+      upgrade.reset();
+
+      // 확인
+      expect(upgrade.getShrapnelCount()).toBe(0);
+      expect(upgrade.getShrapnelDamageBonus()).toBe(0);
+      expect(upgrade.isChainShrapnelEnabled()).toBe(false);
+      expect(upgrade.getCursorSizeBonus()).toBe(0);
+      expect(upgrade.getElectricShockLevel()).toBe(0);
+    });
+  });
+
+  describe('업그레이드 적용', () => {
+    it('파편 업그레이드 적용', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      const upgrades = upgrade.getRandomUpgrades(5);
+      const shrapnelUpgrade = upgrades.find(u => u.id === 'shrapnel');
+
+      if (shrapnelUpgrade) {
+        upgrade.applyUpgrade(shrapnelUpgrade);
+        expect(upgrade.getShrapnelCount()).toBe(1);
+        expect(upgrade.getUpgradeStack('shrapnel')).toBe(1);
+      }
     });
 
-    it('should revive with upgrade system', async () => {
-      const { HealthSystem } = await import('../src/systems/HealthSystem');
+    it('최대 스택 제한', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
-
       const upgrade = new UpgradeSystem();
-      const health = new HealthSystem(5);
 
-      // 부활 업그레이드 획득
-      upgrade.setReviveCount(1);
+      const upgrades = upgrade.getRandomUpgrades(5);
+      const cursorUpgrade = upgrades.find(u => u.id === 'cursor_size');
 
-      // HP 0으로 사망
-      health.takeDamage(5);
-      expect(health.isDead()).toBe(true);
-
-      // 부활 사용
-      if (upgrade.useRevive()) {
-        health.revive(3);
+      if (cursorUpgrade) {
+        // maxStack은 3
+        for (let i = 0; i < 5; i++) {
+          upgrade.applyUpgrade(cursorUpgrade);
+        }
+        expect(upgrade.getUpgradeStack('cursor_size')).toBe(3);
+        expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.6); // 0.2 * 3
       }
-
-      expect(health.getHp()).toBe(3);
-      expect(health.isDead()).toBe(false);
-      expect(upgrade.getReviveCount()).toBe(0);
     });
   });
 });

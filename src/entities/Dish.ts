@@ -645,23 +645,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     this.slowEndTime = this.elapsedTime + duration;
   }
 
-  // 위치로 끌어당기기 (자석 효과)
-  pullTowards(targetX: number, targetY: number, strength: number = 50): void {
-    if (!this.active) return;
-
-    const dx = targetX - this.x;
-    const dy = targetY - this.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    if (distance > 10) {
-      const moveX = (dx / distance) * strength;
-      const moveY = (dy / distance) * strength;
-
-      this.setPosition(this.x + moveX, this.y + moveY);
-    }
-  }
-
-  // 즉시 파괴 (블랙홀 등)
+  // 즉시 파괴
   forceDestroy(): void {
     if (!this.active) return;
     this.destroy_dish();

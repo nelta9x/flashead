@@ -204,82 +204,6 @@ export class ParticleManager {
     });
   }
 
-  // 냉동 이펙트
-  createFreezeEffect(x: number, y: number, radius: number): void {
-    // 파란색 냉동 링
-    const ring = this.scene.add.graphics();
-    ring.lineStyle(4, 0x00aaff, 0.8);
-    ring.strokeCircle(x, y, 10);
-
-    // 내부 채우기
-    ring.fillStyle(0x00aaff, 0.2);
-    ring.fillCircle(x, y, 10);
-
-    this.scene.tweens.add({
-      targets: ring,
-      scaleX: radius / 10,
-      scaleY: radius / 10,
-      alpha: 0,
-      duration: 500,
-      ease: 'Power2',
-      onComplete: () => ring.destroy(),
-    });
-
-    // 얼음 파티클
-    const emitter = this.emitters.get('spark');
-    if (emitter) {
-      emitter.setParticleTint(0x88ccff);
-      emitter.explode(15, x, y);
-    }
-  }
-
-  // 블랙홀 이펙트
-  createBlackHoleEffect(x: number, y: number, callback?: () => void): void {
-    // 중심 원
-    const center = this.scene.add.graphics();
-    center.fillStyle(0x000000, 1);
-    center.fillCircle(x, y, 5);
-    center.lineStyle(3, 0x9900ff, 1);
-    center.strokeCircle(x, y, 5);
-
-    // 나선형 파티클
-    const spiralCount = 20;
-    for (let i = 0; i < spiralCount; i++) {
-      const angle = (i / spiralCount) * Math.PI * 4;
-      const startRadius = 150;
-      const startX = x + Math.cos(angle) * startRadius;
-      const startY = y + Math.sin(angle) * startRadius;
-
-      const particle = this.scene.add.circle(startX, startY, 3, 0x9900ff, 0.8);
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: x,
-        y: y,
-        scale: 0,
-        duration: 500 + i * 20,
-        ease: 'Cubic.easeIn',
-        onComplete: () => particle.destroy(),
-      });
-    }
-
-    // 중심 확장 후 사라짐
-    this.scene.tweens.add({
-      targets: center,
-      scaleX: 8,
-      scaleY: 8,
-      duration: 300,
-      delay: 400,
-      ease: 'Power2',
-      onComplete: () => {
-        // 플래시 효과
-        this.scene.cameras.main.flash(100, 153, 0, 255);
-        center.destroy();
-        if (callback) callback();
-      },
-    });
-  }
-
   // 불꽃놀이 폭발 (3배 강화)
   createFireworksExplosion(x: number, y: number, color: number): void {
     const emitter = this.emitters.get('explosion');
@@ -496,35 +420,41 @@ export class ParticleManager {
     this.createSparkBurst(x, y, color);
   }
 
-  // 자석 효과 시각화
-  createMagnetEffect(x: number, y: number, targets: { x: number; y: number }[]): void {
-    // 중심 원
-    const center = this.scene.add.graphics();
-    center.fillStyle(COLORS.MAGENTA, 0.5);
-    center.fillCircle(x, y, 20);
-    center.lineStyle(2, COLORS.MAGENTA, 1);
-    center.strokeCircle(x, y, 20);
+  // 파편 히트 이펙트
+  createShrapnelHitEffect(x: number, y: number, color: number): void {
+    // 스파크 폭발
+    const emitter = this.emitters.get('spark');
+    if (emitter) {
+      emitter.setParticleTint(color);
+      emitter.explode(10, x, y);
+    }
 
-    // 타겟으로 향하는 선
-    targets.forEach((target) => {
-      const line = this.scene.add.graphics();
-      line.lineStyle(2, COLORS.MAGENTA, 0.5);
-      line.lineBetween(x, y, target.x, target.y);
-
-      this.scene.tweens.add({
-        targets: line,
-        alpha: 0,
-        duration: 300,
-        onComplete: () => line.destroy(),
-      });
-    });
+    // 작은 충격파
+    const shockwave = this.scene.add.graphics();
+    shockwave.lineStyle(3, color, 1);
+    shockwave.strokeCircle(x, y, 5);
 
     this.scene.tweens.add({
-      targets: center,
-      scale: 1.5,
+      targets: shockwave,
+      scaleX: 3,
+      scaleY: 3,
       alpha: 0,
-      duration: 300,
-      onComplete: () => center.destroy(),
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => shockwave.destroy(),
+    });
+  }
+
+  // 파편 트레일 이펙트
+  createShrapnelTrail(x: number, y: number, color: number): void {
+    const trail = this.scene.add.circle(x, y, 3, color, 0.5);
+
+    this.scene.tweens.add({
+      targets: trail,
+      scale: 0,
+      alpha: 0,
+      duration: 150,
+      onComplete: () => trail.destroy(),
     });
   }
 }
