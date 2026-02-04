@@ -45,7 +45,7 @@
     {
       "number": 5,
       "name": "다양성",
-      "dishCount": 6,
+      "dishCount": 8,
       "spawnInterval": 1900,
       "dishTypes": [
         { "type": "basic", "weight": 0.5 },
@@ -57,7 +57,7 @@
     {
       "number": 6,
       "name": "위험 등장",
-      "dishCount": 6,
+      "dishCount": 8,
       "spawnInterval": 1800,
       "dishTypes": [
         { "type": "basic", "weight": 0.5 },
@@ -70,7 +70,7 @@
     {
       "number": 7,
       "name": "혼돈",
-      "dishCount": 7,
+      "dishCount": 9,
       "spawnInterval": 1700,
       "dishTypes": [
         { "type": "basic", "weight": 0.45 },
@@ -83,7 +83,7 @@
     {
       "number": 8,
       "name": "폭풍 전야",
-      "dishCount": 8,
+      "dishCount": 10,
       "spawnInterval": 1600,
       "dishTypes": [
         { "type": "basic", "weight": 0.4 },
@@ -96,7 +96,7 @@
     {
       "number": 9,
       "name": "폭풍",
-      "dishCount": 9,
+      "dishCount": 11,
       "spawnInterval": 1500,
       "dishTypes": [
         { "type": "basic", "weight": 0.35 },
@@ -109,7 +109,7 @@
     {
       "number": 10,
       "name": "최대",
-      "dishCount": 10,
+      "dishCount": 12,
       "spawnInterval": 1400,
       "dishTypes": [
         { "type": "basic", "weight": 0.3 },
@@ -122,7 +122,7 @@
     {
       "number": 11,
       "name": "극한",
-      "dishCount": 11,
+      "dishCount": 13,
       "spawnInterval": 1300,
       "dishTypes": [
         { "type": "basic", "weight": 0.25 },
@@ -135,7 +135,7 @@
     {
       "number": 12,
       "name": "마지막",
-      "dishCount": 12,
+      "dishCount": 14,
       "spawnInterval": 1200,
       "dishTypes": [
         { "type": "basic", "weight": 0.2 },
