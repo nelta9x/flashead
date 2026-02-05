@@ -367,11 +367,6 @@ export class GameScene extends Phaser.Scene {
                 }
                 lightning.strokePath();
             }
-
-            // 기 모으는 강도에 따른 미세한 화면 흔들림
-            if (p > 0.5) {
-                this.cameras.main.shake(50, 0.001 * p, true);
-            }
         },
         onComplete: () => {
             glow.destroy();
@@ -383,7 +378,6 @@ export class GameScene extends Phaser.Scene {
             const fireY = projectile.y;
             
             // 발사 순간 연출
-            this.cameras.main.shake(100, 0.005);
             this.particleManager.createSparkBurst(fireX, fireY, COLORS.YELLOW);
             this.particleManager.createHitEffect(fireX, fireY, COLORS.WHITE);
 
