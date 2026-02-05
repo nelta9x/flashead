@@ -1001,22 +1001,34 @@ export class GameScene extends Phaser.Scene {
     const config = Data.gameConfig.monsterAttack.laser;
     
     // 화면 외곽에서 임의의 시작점과 끝점 선정 (대각선 지원)
-    const side1 = Phaser.Math.Between(0, 3); // 0:상, 1:하, 2:좌, 3:우
-    let side2 = Phaser.Math.Between(0, 3);
-    while (side1 === side2) side2 = Phaser.Math.Between(0, 3); // 같은 변에서 발사되지 않도록
+    // "이상한 곳"에 나오지 않도록 최소 거리를 보장하고 중심부를 관통하도록 개선
+    let p1 = { x: 0, y: 0 };
+    let p2 = { x: 0, y: 0 };
+    let distance = 0;
+    const minDistance = Math.min(GAME_WIDTH, GAME_HEIGHT) * 0.7; // 최소 거리 보장 (화면 짧은 변의 70%)
 
-    const getPointOnSide = (side: number) => {
-        switch(side) {
-            case 0: return { x: Phaser.Math.Between(0, GAME_WIDTH), y: 0 };
-            case 1: return { x: Phaser.Math.Between(0, GAME_WIDTH), y: GAME_HEIGHT };
-            case 2: return { x: 0, y: Phaser.Math.Between(0, GAME_HEIGHT) };
-            case 3: return { x: GAME_WIDTH, y: Phaser.Math.Between(0, GAME_HEIGHT) };
-            default: return { x: 0, y: 0 };
-        }
-    };
+    let attempts = 0;
+    while (distance < minDistance && attempts < 10) {
+        const side1 = Phaser.Math.Between(0, 3); // 0:상, 1:하, 2:좌, 3:우
+        let side2 = Phaser.Math.Between(0, 3);
+        while (side1 === side2) side2 = Phaser.Math.Between(0, 3);
 
-    const p1 = getPointOnSide(side1);
-    const p2 = getPointOnSide(side2);
+        const getPointOnSide = (side: number) => {
+            const padding = -100; // 화면 바깥에서 시작하게 하여 끝부분이 잘리지 않게 함
+            switch(side) {
+                case 0: return { x: Phaser.Math.Between(0, GAME_WIDTH), y: padding };
+                case 1: return { x: Phaser.Math.Between(0, GAME_WIDTH), y: GAME_HEIGHT - padding };
+                case 2: return { x: padding, y: Phaser.Math.Between(0, GAME_HEIGHT) };
+                case 3: return { x: GAME_WIDTH - padding, y: Phaser.Math.Between(0, GAME_HEIGHT) };
+                default: return { x: 0, y: 0 };
+            }
+        };
+
+        p1 = getPointOnSide(side1);
+        p2 = getPointOnSide(side2);
+        distance = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
+        attempts++;
+    }
 
     const laser = {
       x1: p1.x,
