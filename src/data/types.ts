@@ -191,6 +191,9 @@ export interface EnergyEffectConfig {
 }
 
 export interface BossAttackConfig {
+  mainColor: string;
+  accentColor: string;
+  innerTrailColor: string;
   charge: {
     duration: number;
     initialRadius: number;
@@ -208,6 +211,9 @@ export interface BossAttackConfig {
     duration: number;
     trailAlpha: number;
     trailLifespan: number;
+    trailWidthMultiplier: number;
+    innerTrailWidthMultiplier: number;
+    innerTrailAlphaMultiplier: number;
     hitStopTimescale: number;
     hitStopDuration: number;
   };

@@ -297,6 +297,11 @@ export class GameScene extends Phaser.Scene {
     const endX = GAME_WIDTH / 2;
     const endY = 80; // Approximate boss pos
     const config = Data.feedback.bossAttack;
+    
+    // 색상 변환
+    const mainColor = Phaser.Display.Color.HexStringToColor(config.mainColor).color;
+    const accentColor = Phaser.Display.Color.HexStringToColor(config.accentColor).color;
+    const innerTrailColor = Phaser.Display.Color.HexStringToColor(config.innerTrailColor).color;
 
     // 1. Charge Phase (에네르기파 스타일 기 모으기)
     const chargeDuration = config.charge.duration;
@@ -305,7 +310,7 @@ export class GameScene extends Phaser.Scene {
     this.soundSystem.playBossChargeSound();
     
     // 발사체 생성 (빛나는 구체 느낌)
-    const projectile = this.add.circle(pointer.worldX, pointer.worldY, config.charge.initialRadius, COLORS.YELLOW);
+    const projectile = this.add.circle(pointer.worldX, pointer.worldY, config.charge.initialRadius, mainColor);
     projectile.setDepth(2000);
     this.physics.add.existing(projectile);
     
@@ -319,7 +324,7 @@ export class GameScene extends Phaser.Scene {
         scale: { start: 0.8, end: 0 },
         lifespan: 400,
         blendMode: 'ADD',
-        tint: COLORS.YELLOW,
+        tint: accentColor,
         emitting: true,
         frequency: config.charge.particleFrequency,
     });
@@ -347,7 +352,7 @@ export class GameScene extends Phaser.Scene {
 
             // 글로우 연출
             glow.clear();
-            glow.fillStyle(COLORS.YELLOW, config.charge.glowInitialAlpha * p);
+            glow.fillStyle(mainColor, config.charge.glowInitialAlpha * p);
             glow.fillCircle(curX, curY, config.charge.glowInitialRadius + p * (config.charge.glowMaxRadius - config.charge.glowInitialRadius));
             glow.fillStyle(COLORS.WHITE, 0.5 * p);
             glow.fillCircle(curX, curY, 10 + p * 20);
@@ -355,7 +360,7 @@ export class GameScene extends Phaser.Scene {
             // 찌지직! 전기 스파크 연출 (p가 높을수록 빈번)
             lightning.clear();
             if (Math.random() < config.charge.lightningChanceBase + p * config.charge.lightningChanceP) {
-                lightning.lineStyle(2, 0xffffff, 0.8);
+                lightning.lineStyle(2, accentColor, 0.8);
                 const segments = config.charge.lightningSegments;
                 let lastX = curX + (Math.random() - 0.5) * 100 * (1-p/2);
                 let lastY = curY + (Math.random() - 0.5) * 100 * (1-p/2);
@@ -387,10 +392,13 @@ export class GameScene extends Phaser.Scene {
             this.soundSystem.playBossFireSound();
 
             // 발사 순간 연출
-            this.particleManager.createSparkBurst(fireX, fireY, COLORS.YELLOW);
+            this.particleManager.createSparkBurst(fireX, fireY, mainColor);
             this.particleManager.createHitEffect(fireX, fireY, COLORS.WHITE);
 
             // 날아가기
+            let lastTrailX = fireX;
+            let lastTrailY = fireY;
+
             this.tweens.add({
                 targets: projectile,
                 x: endX,
@@ -398,12 +406,34 @@ export class GameScene extends Phaser.Scene {
                 duration: config.fire.duration,
                 ease: 'Expo.In',
                 onUpdate: () => {
-                   // 강력한 빔 트레일 연출
-                   const trail = this.add.circle(projectile.x, projectile.y, projectile.displayWidth / 2, COLORS.YELLOW, config.fire.trailAlpha);
+                   const curX = projectile.x;
+                   const curY = projectile.y;
+
+                   // 강력한 빔 트레일 연출 (TrailRenderer 느낌)
+                   const trail = this.add.graphics();
                    trail.setDepth(1997);
+                   
+                   // 메인 궤적 (메인 컬러)
+                   trail.lineStyle(
+                     projectile.displayWidth * config.fire.trailWidthMultiplier, 
+                     mainColor, 
+                     config.fire.trailAlpha
+                   );
+                   trail.lineBetween(lastTrailX, lastTrailY, curX, curY);
+                   
+                   // 중앙 심지 (더 밝게)
+                   trail.lineStyle(
+                     projectile.displayWidth * config.fire.innerTrailWidthMultiplier, 
+                     innerTrailColor, 
+                     config.fire.trailAlpha * config.fire.innerTrailAlphaMultiplier
+                   );
+                   trail.lineBetween(lastTrailX, lastTrailY, curX, curY);
+
+                   lastTrailX = curX;
+                   lastTrailY = curY;
+
                    this.tweens.add({
                        targets: trail,
-                       scale: 0,
                        alpha: 0,
                        duration: config.fire.trailLifespan,
                        onComplete: () => trail.destroy()
@@ -802,7 +832,8 @@ export class GameScene extends Phaser.Scene {
 
     // 공격 범위 테두리
     const isReady = this.gaugeRatio >= 1;
-    const baseColor = isReady ? COLORS.YELLOW : COLORS.CYAN;
+    const readyColor = Phaser.Display.Color.HexStringToColor(Data.feedback.bossAttack.mainColor).color;
+    const baseColor = isReady ? readyColor : COLORS.CYAN;
     
     this.attackRangeIndicator.lineStyle(2, baseColor, 0.5);
     this.attackRangeIndicator.strokeCircle(x, y, cursorRadius);
@@ -817,7 +848,7 @@ export class GameScene extends Phaser.Scene {
       
       if (isReady) {
         // 준비 완료 시 글로우 효과
-        this.attackRangeIndicator.lineStyle(4, COLORS.YELLOW, 0.3);
+        this.attackRangeIndicator.lineStyle(4, readyColor, 0.3);
         this.attackRangeIndicator.strokeCircle(x, y, cursorRadius + 2);
       }
     }
