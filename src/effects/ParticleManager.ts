@@ -277,8 +277,9 @@ export class ParticleManager {
     RAINBOW_COLORS.forEach((color, index) => {
       this.scene.time.delayedCall(index * 40, () => {
         const ring = this.scene.add.graphics();
+        ring.setPosition(x, y);
         ring.lineStyle(3, color, 1);
-        ring.strokeCircle(x, y, 15 + index * 5);
+        ring.strokeCircle(0, 0, 15 + index * 5);
 
         this.scene.tweens.add({
           targets: ring,
@@ -425,8 +426,9 @@ export class ParticleManager {
 
   private createRingEffect(x: number, y: number, color: number): void {
     const ring = this.scene.add.graphics();
+    ring.setPosition(x, y);
     ring.lineStyle(4, color, 1);
-    ring.strokeCircle(x, y, 10);
+    ring.strokeCircle(0, 0, 10);
 
     this.scene.tweens.add({
       targets: ring,
@@ -449,8 +451,9 @@ export class ParticleManager {
 
   private createShockwave(x: number, y: number, color: number): void {
     const shockwave = this.scene.add.graphics();
+    shockwave.setPosition(x, y);
     shockwave.lineStyle(6, color, 1);
-    shockwave.strokeCircle(x, y, 20);
+    shockwave.strokeCircle(0, 0, 20);
 
     this.scene.tweens.add({
       targets: shockwave,
@@ -470,14 +473,15 @@ export class ParticleManager {
     for (let i = 0; i < rays; i++) {
       const angle = (i / rays) * Math.PI * 2;
       const ray = this.scene.add.graphics();
+      ray.setPosition(x, y);
 
       ray.lineStyle(3, color, 1);
-      ray.lineBetween(x, y, x + Math.cos(angle) * 10, y + Math.sin(angle) * 10);
+      ray.lineBetween(0, 0, Math.cos(angle) * 10, Math.sin(angle) * 10);
 
       this.scene.tweens.add({
         targets: ray,
-        x: Math.cos(angle) * rayLength,
-        y: Math.sin(angle) * rayLength,
+        x: x + Math.cos(angle) * rayLength,
+        y: y + Math.sin(angle) * rayLength,
         alpha: 0,
         duration: 200,
         ease: 'Power2',
@@ -512,8 +516,9 @@ export class ParticleManager {
 
   private createHealRing(x: number, y: number, color: number): void {
     const ring = this.scene.add.graphics();
+    ring.setPosition(x, y);
     ring.lineStyle(3, color, 1);
-    ring.strokeCircle(x, y, 15);
+    ring.strokeCircle(0, 0, 15);
 
     this.scene.tweens.add({
       targets: ring,
@@ -549,30 +554,24 @@ export class ParticleManager {
   createShieldEffect(x: number, y: number, color: number): void {
     // 육각형 방어막
     const shield = this.scene.add.graphics();
+    shield.setPosition(x, y);
     shield.lineStyle(4, color, 1);
     shield.fillStyle(color, 0.3);
 
     const sides = 6;
     const radius = 40;
-    const points: number[] = [];
+    const points: { x: number; y: number }[] = [];
 
     for (let i = 0; i < sides; i++) {
       const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
-      points.push(x + Math.cos(angle) * radius);
-      points.push(y + Math.sin(angle) * radius);
+      points.push({
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+      });
     }
 
-    shield.fillPoints(
-      points
-        .map((_, i) => (i % 2 === 0 ? { x: points[i], y: points[i + 1] } : null))
-        .filter(Boolean) as Phaser.Geom.Point[]
-    );
-    shield.strokePoints(
-      points
-        .map((_, i) => (i % 2 === 0 ? { x: points[i], y: points[i + 1] } : null))
-        .filter(Boolean) as Phaser.Geom.Point[],
-      true
-    );
+    shield.fillPoints(points, true);
+    shield.strokePoints(points, true);
 
     this.scene.tweens.add({
       targets: shield,
