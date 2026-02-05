@@ -377,6 +377,9 @@ export class GameScene extends Phaser.Scene {
             const fireX = projectile.x;
             const fireY = projectile.y;
             
+            // 발사 순간 히트스탑 (강력한 발사 반동 느낌)
+            this.slowMotion.trigger(0.02, 300);
+
             // 발사 순간 연출
             this.particleManager.createSparkBurst(fireX, fireY, COLORS.YELLOW);
             this.particleManager.createHitEffect(fireX, fireY, COLORS.WHITE);
@@ -406,9 +409,6 @@ export class GameScene extends Phaser.Scene {
                     
                     // 3. Impact Phase (타격!)
                     
-                    // 히트스탑 (극적인 연출을 위해 거의 정지에 가깝게)
-                    this.slowMotion.trigger(0.01, 400);
-
                     // 화면 흔들림 (약한 강도로 조금 더 길게 유지)
                     this.cameras.main.shake(300, 0.005);
 
