@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, CURSOR_HITBOX, SPAWN_AREA, MAGNET } from '../data/constants';
+import { Data } from '../data/DataManager';
 import { Dish } from '../entities/Dish';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
@@ -294,15 +295,16 @@ export class GameScene extends Phaser.Scene {
     const pointer = this.input.activePointer;
     const endX = GAME_WIDTH / 2;
     const endY = 80; // Approximate boss pos
+    const config = Data.feedback.bossAttack;
 
     // 1. Charge Phase (에네르기파 스타일 기 모으기)
-    const chargeDuration = 600; // 약간 더 길게 조절
+    const chargeDuration = config.charge.duration;
     
     // 사운드 재생: 기 모으기
     this.soundSystem.playBossChargeSound();
     
     // 발사체 생성 (빛나는 구체 느낌)
-    const projectile = this.add.circle(pointer.worldX, pointer.worldY, 5, COLORS.YELLOW);
+    const projectile = this.add.circle(pointer.worldX, pointer.worldY, config.charge.initialRadius, COLORS.YELLOW);
     projectile.setDepth(2000);
     this.physics.add.existing(projectile);
     
@@ -318,7 +320,7 @@ export class GameScene extends Phaser.Scene {
         blendMode: 'ADD',
         tint: COLORS.YELLOW,
         emitting: true,
-        frequency: 20,
+        frequency: config.charge.particleFrequency,
     });
     chargeParticles.setDepth(1998);
 
@@ -339,21 +341,21 @@ export class GameScene extends Phaser.Scene {
 
             // 위치 동기화
             projectile.setPosition(curX, curY);
-            projectile.setScale(1 + p * 4); // 점점 커짐
+            projectile.setScale(1 + p * (config.charge.maxScale - 1)); // 점점 커짐
             chargeParticles.setPosition(curX, curY);
 
             // 글로우 연출
             glow.clear();
-            glow.fillStyle(COLORS.YELLOW, 0.3 * p);
-            glow.fillCircle(curX, curY, 20 + p * 40);
+            glow.fillStyle(COLORS.YELLOW, config.charge.glowInitialAlpha * p);
+            glow.fillCircle(curX, curY, config.charge.glowInitialRadius + p * (config.charge.glowMaxRadius - config.charge.glowInitialRadius));
             glow.fillStyle(COLORS.WHITE, 0.5 * p);
             glow.fillCircle(curX, curY, 10 + p * 20);
 
             // 찌지직! 전기 스파크 연출 (p가 높을수록 빈번)
             lightning.clear();
-            if (Math.random() < 0.3 + p * 0.5) {
+            if (Math.random() < config.charge.lightningChanceBase + p * config.charge.lightningChanceP) {
                 lightning.lineStyle(2, 0xffffff, 0.8);
-                const segments = 3;
+                const segments = config.charge.lightningSegments;
                 let lastX = curX + (Math.random() - 0.5) * 100 * (1-p/2);
                 let lastY = curY + (Math.random() - 0.5) * 100 * (1-p/2);
                 
@@ -392,17 +394,17 @@ export class GameScene extends Phaser.Scene {
                 targets: projectile,
                 x: endX,
                 y: endY,
-                duration: 150, // 더 빠르게!
+                duration: config.fire.duration,
                 ease: 'Expo.In',
                 onUpdate: () => {
                    // 강력한 빔 트레일 연출
-                   const trail = this.add.circle(projectile.x, projectile.y, projectile.displayWidth / 2, COLORS.YELLOW, 0.6);
+                   const trail = this.add.circle(projectile.x, projectile.y, projectile.displayWidth / 2, COLORS.YELLOW, config.fire.trailAlpha);
                    trail.setDepth(1997);
                    this.tweens.add({
                        targets: trail,
                        scale: 0,
                        alpha: 0,
-                       duration: 150,
+                       duration: config.fire.trailLifespan,
                        onComplete: () => trail.destroy()
                    });
                 },
@@ -416,19 +418,19 @@ export class GameScene extends Phaser.Scene {
                     this.soundSystem.playBossImpactSound();
 
                     // 화면 흔들림 (약한 강도로 조금 더 길게 유지)
-                    this.cameras.main.shake(300, 0.005);
+                    this.cameras.main.shake(config.impact.shakeDuration, config.impact.shakeIntensity);
                     
                     // 카메라 줌 인 펀치 효과
-                    this.cameras.main.zoomTo(1.05, 50, 'Power2', true, (_cam, progress) => {
+                    this.cameras.main.zoomTo(config.impact.zoomIntensity, config.impact.zoomDurationIn, 'Power2', true, (_cam, progress) => {
                         if (progress === 1) {
-                            this.time.delayedCall(100, () => {
-                                this.cameras.main.zoomTo(1.0, 300, 'Elastic.Out');
+                            this.time.delayedCall(config.impact.zoomHold, () => {
+                                this.cameras.main.zoomTo(1.0, config.impact.zoomDurationOut, 'Elastic.Out');
                             });
                         }
                     });
 
-                    this.particleManager.createExplosion(endX, endY, COLORS.RED, 'bomb', 4);
-                    this.particleManager.createRainbowExplosion(endX, endY, 2); // 도파민 폭발!
+                    this.particleManager.createExplosion(endX, endY, COLORS.RED, 'bomb', config.impact.particleMultiplier);
+                    this.particleManager.createRainbowExplosion(endX, endY, config.impact.rainbowParticleMultiplier);
                 }
             });
         }

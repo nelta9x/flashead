@@ -117,5 +117,39 @@
     "targetYOffset": -22.5,
     "knockbackDistance": 120,
     "trailLifespan": 200
+  },
+  "bossAttack": {
+    "charge": {
+      "duration": 600,
+      "initialRadius": 5,
+      "maxScale": 4,
+      "particleFrequency": 20,
+      "glowInitialAlpha": 0.3,
+      "glowMaxAlpha": 0.8,
+      "glowInitialRadius": 20,
+      "glowMaxRadius": 60,
+      "lightningChanceBase": 0.3,
+      "lightningChanceP": 0.5,
+      "lightningSegments": 3
+    },
+    "fire": {
+      "duration": 150,
+      "trailAlpha": 0.6,
+      "trailLifespan": 150,
+      "hitStopTimescale": 0.05,
+      "hitStopDuration": 200
+    },
+    "impact": {
+      "shakeIntensity": 0.005,
+      "shakeDuration": 300,
+      "zoomIntensity": 1.05,
+      "zoomDurationIn": 50,
+      "zoomDurationOut": 300,
+      "zoomHold": 100,
+      "hitStopTimescale": 0.01,
+      "hitStopDuration": 400,
+      "particleMultiplier": 4,
+      "rainbowParticleMultiplier": 2
+    }
   }
 }

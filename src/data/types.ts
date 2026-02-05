@@ -190,6 +190,41 @@ export interface EnergyEffectConfig {
   trailLifespan: number;     // 꼬리 지속 시간
 }
 
+export interface BossAttackConfig {
+  charge: {
+    duration: number;
+    initialRadius: number;
+    maxScale: number;
+    particleFrequency: number;
+    glowInitialAlpha: number;
+    glowMaxAlpha: number;
+    glowInitialRadius: number;
+    glowMaxRadius: number;
+    lightningChanceBase: number;
+    lightningChanceP: number;
+    lightningSegments: number;
+  };
+  fire: {
+    duration: number;
+    trailAlpha: number;
+    trailLifespan: number;
+    hitStopTimescale: number;
+    hitStopDuration: number;
+  };
+  impact: {
+    shakeIntensity: number;
+    shakeDuration: number;
+    zoomIntensity: number;
+    zoomDurationIn: number;
+    zoomDurationOut: number;
+    zoomHold: number;
+    hitStopTimescale: number;
+    hitStopDuration: number;
+    particleMultiplier: number;
+    rainbowParticleMultiplier: number;
+  };
+}
+
 export interface FeedbackConfig {
   damageText: DamageTextConfig;
   comboMilestones: Record<string, ComboMilestoneEffect>;
@@ -200,6 +235,7 @@ export interface FeedbackConfig {
     bomb: ParticleConfig;
   };
   energyEffect: EnergyEffectConfig;
+  bossAttack: BossAttackConfig;
 }
 
 // ========== 색상 설정 ==========
