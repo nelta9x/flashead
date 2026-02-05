@@ -51,10 +51,6 @@ export const RARITY_WEIGHTS_BY_COUNT: Record<
   endgame: Data.upgrades.rarityWeights.endgame,
 } as const;
 
-// 레거시 호환용
-export const UPGRADE_INTERVAL = Data.upgrades.timing.maxInterval;
-export const COMBO_TIMEOUT = Data.combo.timeout.base;
-
 // HP 시스템
 export const INITIAL_HP = Data.gameConfig.player.initialHp;
 

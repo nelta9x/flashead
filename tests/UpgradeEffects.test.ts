@@ -3,8 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mock constants
 vi.mock('../src/data/constants', () => ({
   INITIAL_HP: 5,
-  UPGRADE_INTERVAL: 30000,
-  COMBO_TIMEOUT: 1500,
   UPGRADE_TIMING: {
     BASE_INTERVAL: 15000,
     INCREMENT: 5000,
@@ -38,7 +36,6 @@ vi.mock('../src/utils/EventBus', () => ({
     COMBO_CHANGED: 'combo_changed',
     COMBO_MILESTONE: 'combo_milestone',
     WAVE_COMPLETED: 'wave_completed',
-    UPGRADE_AVAILABLE: 'upgrade_available',
     UPGRADE_SELECTED: 'upgrade_selected',
   },
 }));

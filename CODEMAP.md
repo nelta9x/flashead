@@ -73,7 +73,6 @@
 | 이벤트 카테고리 | 주요 이벤트 | 발생 시점 | 주요 구독자 |
 |-----------------|-------------|-----------|-------------|
 | **접시(적)** | `DISH_DESTROYED` | 접시 파괴 시 | `WaveSystem`, `ComboSystem`, `GameScene`(피드백) |
-| | `DISH_ESCAPED` | 접시가 화면 밖으로 나갈 때 | `HealthSystem`, `ComboSystem` |
 | **웨이브** | `WAVE_COMPLETED` | 모든 접시 처리 시 | `GameScene`(UI 표시), `WaveSystem`, `UpgradeSystem` |
 | | `WAVE_STARTED` | 웨이브 정식 시작 시 | `MonsterSystem`, `WaveCountdownUI` |
 | **플레이어 상태** | `HP_CHANGED` | 데미지/회복 발생 시 | `HUD`, `GameScene`(피드백), `HealthPackSystem` |
@@ -89,8 +88,7 @@
 ## 🛠️ 주요 유틸리티
 
 - **`ObjectPool.ts`**: 빈번하게 생성/삭제되는 `Dish`와 `HealthPack` 리소스를 관리하여 가비지 컬렉션 부하를 줄임.
-- **`EventBus.ts`**: 전역 이벤트 발행/구독 시스템.
-- **`src/utils/EventBus.ts`**: 모든 게임 이벤트 상수가 정의된 곳.
+- **`EventBus.ts`**: 전역 이벤트 발행/구독 시스템 및 모든 게임 이벤트 상수(`GameEvents`)가 정의된 곳.
 
 ---
 

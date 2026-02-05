@@ -4,8 +4,6 @@ export {
   GAME_HEIGHT,
   COLORS,
   COLORS_HEX,
-  UPGRADE_INTERVAL,
-  COMBO_TIMEOUT,
 } from './constants';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './constants';
 

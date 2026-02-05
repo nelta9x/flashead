@@ -96,7 +96,6 @@ export const eventBus = EventBus.getInstance();
 export const GameEvents = {
   // 접시 관련
   DISH_DESTROYED: 'dish:destroyed',
-  DISH_ESCAPED: 'dish:escaped',
   DISH_SPAWNED: 'dish:spawned',
   DISH_DAMAGED: 'dish:damaged',
 
@@ -113,7 +112,6 @@ export const GameEvents = {
   WAVE_READY: 'wave:ready',
 
   // 업그레이드 관련
-  UPGRADE_AVAILABLE: 'upgrade:available',
   UPGRADE_SELECTED: 'upgrade:selected',
   UPGRADES_CHANGED: 'upgrade:changed',
 
@@ -124,10 +122,6 @@ export const GameEvents = {
   GAME_OVER: 'game:over',
   GAME_PAUSED: 'game:paused',
   GAME_RESUMED: 'game:resumed',
-
-  // 피드백
-  SCREEN_SHAKE: 'feedback:screenShake',
-  SLOW_MOTION: 'feedback:slowMotion',
 
   // HP 관련
   DISH_MISSED: 'dish:missed',
