@@ -8,11 +8,21 @@ interface TrailPoint {
   radius: number;
 }
 
+interface TrailConfig {
+  enabled: boolean;
+  color: string;
+  lifespan: number;
+  maxLength: number;
+  minDistance: number;
+  alpha: number;
+  minWidth: number;
+}
+
 export class CursorTrail {
   private scene: Phaser.Scene;
   private graphics: Phaser.GameObjects.Graphics;
   private points: TrailPoint[] = [];
-  private config: any;
+  private config: TrailConfig;
   private lastCenter: { x: number; y: number } | null = null;
 
   constructor(scene: Phaser.Scene) {
@@ -22,16 +32,24 @@ export class CursorTrail {
     this.graphics.setDepth(900); // HUD(1000)보다 아래, 일반 오브젝트보다 위
   }
 
-  update(_delta: number, currentRadius: number): void {
+  update(_delta: number, currentRadius: number, forcedX?: number, forcedY?: number): void {
     if (!this.config.enabled) {
       this.graphics.clear();
       return;
     }
 
-    const pointer = this.scene.input.activePointer;
     const currentTime = this.scene.time.now;
-    const currentX = pointer.worldX;
-    const currentY = pointer.worldY;
+    let currentX: number;
+    let currentY: number;
+
+    if (forcedX !== undefined && forcedY !== undefined) {
+      currentX = forcedX;
+      currentY = forcedY;
+    } else {
+      const pointer = this.scene.input.activePointer;
+      currentX = pointer.worldX;
+      currentY = pointer.worldY;
+    }
 
     // 초기화
     if (!this.lastCenter) {

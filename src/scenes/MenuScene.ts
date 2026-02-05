@@ -1,58 +1,277 @@
 import Phaser from 'phaser';
 import { COLORS, COLORS_HEX, GAME_WIDTH, GAME_HEIGHT, FONTS } from '../data/constants';
+import { Data } from '../data/DataManager';
 import { SoundSystem } from '../systems/SoundSystem';
+import { CursorTrail } from '../effects/CursorTrail';
+import { ParticleManager } from '../effects/ParticleManager';
 
 export class MenuScene extends Phaser.Scene {
   private titleText!: Phaser.GameObjects.Text;
   private startPrompt!: Phaser.GameObjects.Text;
   private isTransitioning: boolean = false;
+  private gridGraphics!: Phaser.GameObjects.Graphics;
+  private bossGraphics!: Phaser.GameObjects.Graphics;
+  private mountainGraphics!: Phaser.GameObjects.Graphics;
+  private starsGraphics!: Phaser.GameObjects.Graphics;
+  private menuCursorGraphics!: Phaser.GameObjects.Graphics;
+  private cursorTrail!: CursorTrail;
+  private particleManager!: ParticleManager;
+  private menuDishes!: Phaser.GameObjects.Group;
+  private cursorPos = { x: 0, y: 0 };
+  
+  private gridOffset: number = 0;
+  private bossTime: number = 0;
+  private cursorTime: number = 0;
+  private lastDishSpawnTime: number = 0;
 
   constructor() {
     super({ key: 'MenuScene' });
   }
 
   create(): void {
-    this.createBackground();
+    this.createStars();
+    this.createBoss();
+    this.createMountains();
+    this.createGrid();
+    
+    this.particleManager = new ParticleManager(this);
+    this.menuDishes = this.add.group();
+    
+    this.cursorTrail = new CursorTrail(this);
+    this.createMenuCursor();
     this.createTitle();
     this.createStartUI();
 
-    // 입력을 감지하기 위한 이벤트 리스너 등록
     this.setupInputHandlers();
   }
 
-  private createBackground(): void {
-    // 그리드 배경
-    const graphics = this.add.graphics();
-    graphics.lineStyle(1, COLORS.CYAN, 0.05);
+  // ... (createStars는 변경 없음) ...
 
-    const gridSize = 50;
-    for (let x = 0; x < GAME_WIDTH; x += gridSize) {
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, GAME_HEIGHT);
+  private createStars(): void {
+    this.starsGraphics = this.add.graphics();
+    this.starsGraphics.fillStyle(COLORS.WHITE, 0.8);
+    for (let i = 0; i < 100; i++) {
+      const x = Math.random() * GAME_WIDTH;
+      const y = Math.random() * (GAME_HEIGHT * 0.6);
+      const size = Math.random() * 2;
+      this.starsGraphics.fillCircle(x, y, size);
     }
-    for (let y = 0; y < GAME_HEIGHT; y += gridSize) {
-      graphics.moveTo(0, y);
-      graphics.lineTo(GAME_WIDTH, y);
+  }
+
+  private createBoss(): void {
+    this.bossGraphics = this.add.graphics();
+    // 보스 위치: 이전 태양 위치와 비슷하게
+    this.updateBoss(0);
+  }
+  
+  private updateBoss(delta: number): void {
+    const config = Data.gameConfig.menu.boss;
+    this.bossGraphics.clear();
+    this.bossTime += delta;
+    
+    const bossX = GAME_WIDTH / 2;
+    const bossY = GAME_HEIGHT * config.posYRatio;
+    
+    // 1. 배경 아우라 (붉은빛)
+    const auraPulse = 0.2 + Math.sin(this.bossTime * config.aura.pulseSpeed) * 0.1;
+    for (let i = 0; i < config.aura.count; i++) {
+      const alpha = (1 - i / config.aura.count) * auraPulse;
+      this.bossGraphics.fillStyle(COLORS.RED, alpha);
+      this.bossGraphics.fillCircle(bossX, bossY, config.baseRadius * (1 + i * config.aura.spacing));
     }
-    graphics.strokePath();
+
+    // 2. 중앙 거대 코어
+    const corePulse = 0.6 + Math.sin(this.bossTime * config.core.pulseSpeed) * 0.2;
+    this.bossGraphics.fillStyle(COLORS.RED, corePulse);
+    this.bossGraphics.fillCircle(bossX, bossY, config.coreRadius);
+    
+    // 코어 내부 흰색 광원
+    this.bossGraphics.fillStyle(0xffffff, 0.8);
+    this.bossGraphics.fillCircle(bossX, bossY, config.innerLightRadius);
+
+    // 3. 회전하는 거대 아머 조각들
+    const rotation = this.bossTime * config.armor.rotationSpeed;
+    const pieceAngle = (Math.PI * 2) / config.armor.pieceCount;
+
+    for (let i = 0; i < config.armor.pieceCount; i++) {
+      const startAngle = rotation + i * pieceAngle + config.armor.gap;
+      const endAngle = rotation + (i + 1) * pieceAngle - config.armor.gap;
+      
+      const p1x = bossX + Math.cos(startAngle) * config.armor.innerRadius;
+      const p1y = bossY + Math.sin(startAngle) * config.armor.innerRadius;
+      const p2x = bossX + Math.cos(endAngle) * config.armor.innerRadius;
+      const p2y = bossY + Math.sin(endAngle) * config.armor.innerRadius;
+      const p3x = bossX + Math.cos(endAngle) * config.armor.outerRadius;
+      const p3y = bossY + Math.sin(endAngle) * config.armor.outerRadius;
+      const p4x = bossX + Math.cos(startAngle) * config.armor.outerRadius;
+      const p4y = bossY + Math.sin(startAngle) * config.armor.outerRadius;
+
+      // 아머 본체 (어두운 색)
+      this.bossGraphics.fillStyle(0x1a0505, 0.9);
+      this.bossGraphics.fillPoints([
+        { x: p1x, y: p1y },
+        { x: p2x, y: p2y },
+        { x: p3x, y: p3y },
+        { x: p4x, y: p4y }
+      ], true);
+
+      // 아머 테두리 (네온 레드)
+      this.bossGraphics.lineStyle(3, COLORS.RED, 0.8);
+      this.bossGraphics.strokePoints([
+        { x: p1x, y: p1y },
+        { x: p2x, y: p2y },
+        { x: p3x, y: p3y },
+        { x: p4x, y: p4y }
+      ], true);
+      
+      // 아머 내부 디테일 라인
+      this.bossGraphics.lineStyle(1, COLORS.RED, 0.4);
+      const midR = (config.armor.innerRadius + config.armor.outerRadius) / 2;
+      this.bossGraphics.beginPath();
+      this.bossGraphics.arc(bossX, bossY, midR, startAngle, endAngle);
+      this.bossGraphics.strokePath();
+    }
+    
+    // 보스 미세 진동 효과
+    const shakeX = (Math.random() - 0.5) * 2;
+    const shakeY = (Math.random() - 0.5) * 2;
+    this.bossGraphics.x = shakeX;
+    this.bossGraphics.y = shakeY;
+  }
+
+  // ... (createMountains, drawMountain, createGrid, createCar, createTitle, createStartUI, setupInputHandlers는 변경 없음) ...
+  private createMountains(): void {
+    this.mountainGraphics = this.add.graphics();
+    const horizonY = GAME_HEIGHT * Data.gameConfig.menu.grid.horizonRatio;
+
+    // 먼 산
+    this.drawMountain(100, horizonY, 300, 150, COLORS.DARK_PURPLE, COLORS.CYAN);
+    this.drawMountain(GAME_WIDTH - 400, horizonY, 400, 200, COLORS.DARK_PURPLE, COLORS.CYAN);
+
+    // 가까운 산
+    this.drawMountain(-50, horizonY, 400, 100, COLORS.DARK_BG, COLORS.CYAN);
+    this.drawMountain(GAME_WIDTH - 250, horizonY, 350, 80, COLORS.DARK_BG, COLORS.CYAN);
+  }
+
+  private drawMountain(x: number, y: number, w: number, h: number, fillColor: number, strokeColor: number): void {
+    const points = [
+      { x: x, y: y },
+      { x: x + w * 0.3, y: y - h * 0.6 },
+      { x: x + w * 0.5, y: y - h },
+      { x: x + w * 0.7, y: y - h * 0.4 },
+      { x: x + w, y: y },
+    ];
+
+    this.mountainGraphics.lineStyle(2, strokeColor, 1);
+    this.mountainGraphics.fillStyle(fillColor, 1);
+    this.mountainGraphics.beginPath();
+    this.mountainGraphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      this.mountainGraphics.lineTo(points[i].x, points[i].y);
+    }
+    this.mountainGraphics.closePath();
+    this.mountainGraphics.fillPath();
+    this.mountainGraphics.strokePath();
+  }
+
+  private createGrid(): void {
+    this.gridGraphics = this.add.graphics();
+  }
+
+  private createMenuCursor(): void {
+    const config = Data.gameConfig.menu.cursor;
+    this.menuCursorGraphics = this.add.graphics();
+    this.cursorPos.x = GAME_WIDTH / 2;
+    this.cursorPos.y = GAME_HEIGHT - config.yOffset;
+    this.updateMenuCursor(0);
+  }
+
+  private updateMenuCursor(delta: number): void {
+    const config = Data.gameConfig.menu.cursor;
+    this.menuCursorGraphics.clear();
+    this.cursorTime += delta;
+
+    // 1. 타겟 결정
+    let targetX: number;
+    let targetY: number;
+
+    // 가장 가까운 접시 찾기
+    let nearestDish: Phaser.GameObjects.Graphics | null = null;
+    let minDist = Infinity;
+
+    this.menuDishes.getChildren().forEach((child: Phaser.GameObjects.GameObject) => {
+      const dish = child as Phaser.GameObjects.Graphics;
+      const dist = Phaser.Math.Distance.Between(this.cursorPos.x, this.cursorPos.y, dish.x, dish.y);
+      // 너무 멀리 있는(지평선 근처) 접시는 무시하고 어느 정도 다가온 것부터 추적
+      if (dist < minDist && dish.y > GAME_HEIGHT * config.trackingYThreshold) {
+        minDist = dist;
+        nearestDish = dish;
+      }
+    });
+
+    if (nearestDish) {
+      // 접시가 있으면 접시 위치를 타겟으로 (추적 속도 향상)
+      targetX = nearestDish.x;
+      targetY = nearestDish.y;
+    } else {
+      // 접시가 없으면 기본 8자 유영 패턴
+      const centerX = GAME_WIDTH / 2;
+      const centerY = GAME_HEIGHT - config.yOffset;
+      targetX = centerX + Math.sin(this.cursorTime * config.floatSpeed) * config.floatRangeX;
+      targetY = centerY + Math.sin(this.cursorTime * config.floatSpeed * 1.5) * config.floatRangeY;
+    }
+
+    // 2. 부드러운 이동 (Lerp)
+    const lerpFactor = nearestDish ? config.lerpTracking : config.lerpIdle; // 추적 시 더 민첩하게 반응
+    this.cursorPos.x = Phaser.Math.Linear(this.cursorPos.x, targetX, lerpFactor);
+    this.cursorPos.y = Phaser.Math.Linear(this.cursorPos.y, targetY, lerpFactor);
+
+    const x = this.cursorPos.x;
+    const y = this.cursorPos.y;
+
+    // 원근감 계산: Y값이 작을수록(위로 갈수록) 멀리 있는 것이므로 크기를 줄임
+    const horizonY = GAME_HEIGHT * Data.gameConfig.menu.grid.horizonRatio;
+    const verticalRange = GAME_HEIGHT - horizonY;
+    const perspectiveFactor = Phaser.Math.Clamp((y - horizonY) / verticalRange, 0, 1);
+    
+    // 멀어질수록 작아지고(0.4x ~ 1.0x), 가까울수록 커짐
+    const currentRadius = config.radius * (0.4 + perspectiveFactor * 0.6);
+
+    // 트레일 업데이트
+    this.cursorTrail.update(delta, currentRadius, x, y);
+
+    // 1. 외곽 원 (원근감이 적용된 두께와 크기)
+    this.menuCursorGraphics.lineStyle(1 + perspectiveFactor * 2, COLORS.CYAN, 0.2 + perspectiveFactor * 0.4);
+    this.menuCursorGraphics.strokeCircle(x, y, currentRadius);
+    
+    // 2. 내부 채우기
+    this.menuCursorGraphics.fillStyle(COLORS.CYAN, 0.05 + perspectiveFactor * 0.1);
+    this.menuCursorGraphics.fillCircle(x, y, currentRadius);
+
+    // 4. 중앙 점
+    this.menuCursorGraphics.fillStyle(COLORS.WHITE, 0.5 + perspectiveFactor * 0.5);
+    this.menuCursorGraphics.fillCircle(x, y, 2 * (0.5 + perspectiveFactor * 0.5));
   }
 
   private createTitle(): void {
-    // 메인 타이틀
-    this.titleText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, 'VIBESHOOTER', {
+    const config = Data.gameConfig.menu.title;
+    // 메인 타이틀 (크롬 느낌의 네온 텍스트)
+    this.titleText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - config.yOffset, 'VIBESHOOTER', {
       fontFamily: FONTS.MAIN,
-      fontSize: '84px',
+      fontSize: config.fontSize,
       color: COLORS_HEX.CYAN,
-      stroke: COLORS_HEX.WHITE,
-      strokeThickness: 2,
+      fontStyle: 'italic bold',
     });
     this.titleText.setOrigin(0.5);
+    // 그림자와 이탤릭체로 인해 글자가 잘리는 것을 방지하기 위해 패딩 추가
+    this.titleText.setPadding(config.padding, config.padding, config.padding, config.padding);
+    this.titleText.setShadow(0, 0, COLORS_HEX.MAGENTA, config.shadowBlur, true, true);
 
     // 은은한 글로우/애니메이션
     this.tweens.add({
       targets: this.titleText,
-      y: GAME_HEIGHT / 2 - 30,
-      duration: 2000,
+      y: GAME_HEIGHT / 2 - config.moveY,
+      duration: config.moveDuration,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
@@ -61,31 +280,120 @@ export class MenuScene extends Phaser.Scene {
 
   private createStartUI(): void {
     // 시작 안내 텍스트
-    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80, 'CLICK TO START', {
+    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150, 'CLICK TO START', {
       fontFamily: FONTS.MAIN,
-      fontSize: '24px',
-      color: COLORS_HEX.CYAN,
+      fontSize: '28px',
+      color: COLORS_HEX.WHITE,
     });
     this.startPrompt.setOrigin(0.5);
+    this.startPrompt.setShadow(0, 0, COLORS_HEX.CYAN, 10, true, true);
 
     this.tweens.add({
       targets: this.startPrompt,
-      alpha: 0.3,
+      alpha: 0.2,
+      scale: 1.1,
       duration: 800,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut',
+      ease: 'Cubic.easeInOut',
     });
   }
 
-  private setupInputHandlers(): void {
-    // 아무 키나 입력
-    this.input.keyboard?.on('keydown', () => this.startGame());
+  private updateMenuDishes(delta: number): void {
+    const config = Data.gameConfig.menu.dishSpawn;
+    const gridConfig = Data.gameConfig.menu.grid;
+    const cursorConfig = Data.gameConfig.menu.cursor;
+    const horizonY = GAME_HEIGHT * gridConfig.horizonRatio;
+    
+    // 1. 스폰
+    if (this.time.now - this.lastDishSpawnTime > config.interval) {
+      this.spawnMenuDish(horizonY, config);
+      this.lastDishSpawnTime = this.time.now;
+    }
 
-    // 마우스 클릭
+    // 2. 이동 및 충돌
+    const cursorRadius = cursorConfig.radius;
+    
+    this.menuDishes.getChildren().forEach((child: Phaser.GameObjects.GameObject) => {
+      const dish = child as Phaser.GameObjects.Graphics;
+      
+      // 원근감 이동 (아래로 갈수록 빨라짐)
+      const verticalRange = GAME_HEIGHT - horizonY;
+      const perspectiveFactor = (dish.y - horizonY) / verticalRange;
+      const speed = gridConfig.speed * delta * (1 + perspectiveFactor * config.speedMultiplier);
+      
+      dish.y += speed;
+      
+      // X축 이동 (중앙에서 퍼져나가는 효과 등은 제외하고 직선 이동)
+      
+      // 원근감 스케일링
+      const scale = 0.2 + perspectiveFactor * 0.8;
+      dish.setScale(scale);
+      
+      // 화면 밖 제거
+      if (dish.y > GAME_HEIGHT + 50) {
+        dish.destroy();
+        return;
+      }
+      
+      // 충돌 체크 (커서와 접시)
+      // 원근감이 적용된 실제 화면상 거리와 반지름 비교
+      const dist = Phaser.Math.Distance.Between(dish.x, dish.y, this.cursorPos.x, this.cursorPos.y);
+      const hitDist = (config.radius * scale) + (cursorRadius * (0.4 + perspectiveFactor * 0.6));
+      
+      if (dist < hitDist) {
+        // 파괴 이펙트
+        const color = parseInt(config.color.replace('#', ''), 16);
+        this.particleManager.createExplosion(dish.x, dish.y, color, 'basic', 0.5);
+        this.particleManager.createHitEffect(dish.x, dish.y, COLORS.WHITE);
+        
+        // 사운드 재생 시도 (사용자 상호작용 전이라 재생 안 될 수 있음)
+        const ss = SoundSystem.getInstance();
+        if (ss) {
+             try { ss.playHitSound(); } catch (e) { /* ignore */ }
+        }
+        
+        dish.destroy();
+      }
+    });
+  }
+
+  private spawnMenuDish(horizonY: number, config: { spawnRangeX: number, color: string, radius: number }): void {
+    // 커서가 움직이는 X 범위 내에서 스폰하여 충돌 확률 높임
+    const spawnXRange = config.spawnRangeX || 300;
+    const x = GAME_WIDTH / 2 + (Math.random() - 0.5) * spawnXRange;
+    const y = horizonY;
+    
+    const dish = this.add.graphics();
+    dish.x = x;
+    dish.y = y;
+    
+    // 네온 팔각형 그리기
+    const color = parseInt(config.color.replace('#', ''), 16);
+    dish.lineStyle(2, color, 1);
+    dish.fillStyle(color, 0.3);
+    
+    const radius = config.radius;
+    dish.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const px = Math.cos(angle) * radius;
+      const py = Math.sin(angle) * radius;
+      if (i === 0) dish.moveTo(px, py);
+      else dish.lineTo(px, py);
+    }
+    dish.closePath();
+    dish.fillPath();
+    dish.strokePath();
+
+    this.menuDishes.add(dish);
+  }
+
+  private setupInputHandlers(): void {
+    // 입력을 감지하기 위한 이벤트 리스너 등록
+    this.input.keyboard?.on('keydown', () => this.startGame());
     this.input.on('pointerdown', () => this.startGame());
 
-    // 화면 어디든 클릭 시 시작 (안전장치 - 브라우저 네이티브 이벤트)
     const onNativeInput = () => {
       this.startGame();
       window.removeEventListener('mousedown', onNativeInput);
@@ -95,8 +403,61 @@ export class MenuScene extends Phaser.Scene {
     window.addEventListener('keydown', onNativeInput);
   }
 
-  update(): void {
-    // 업데이트 로직 불필요
+  update(time: number, delta: number): void {
+    this.updateGrid(delta);
+    this.updateBoss(delta);
+    this.updateMenuCursor(delta);
+    this.updateMenuDishes(delta);
+  }
+
+  private updateGrid(delta: number): void {
+    const config = Data.gameConfig.menu.grid;
+    this.gridGraphics.clear();
+    const horizonY = GAME_HEIGHT * config.horizonRatio;
+
+    this.gridGraphics.lineStyle(1, COLORS.CYAN, config.alpha);
+
+    // 원근법을 위한 수직선들
+    const vanishingPointX = GAME_WIDTH / 2;
+
+    for (let i = 0; i <= config.verticalLines; i++) {
+      const xPos = (GAME_WIDTH / config.verticalLines) * i;
+      this.gridGraphics.moveTo(vanishingPointX, horizonY);
+      // 아래쪽으로 퍼지는 선
+      const bottomX = vanishingPointX + (xPos - vanishingPointX) * 4;
+      this.gridGraphics.lineTo(bottomX, GAME_HEIGHT);
+    }
+
+    // 움직이는 수평선들
+    this.gridOffset += delta * config.speed;
+    // 중요: 그리드 오프셋이 그리드 간격을 넘어가면 0으로 리셋 (부드러운 루프를 위해 간격과 동일하게 설정)
+    if (this.gridOffset >= config.size) {
+      this.gridOffset -= config.size;
+    }
+
+    for (let i = 0; i < config.horizontalLines; i++) {
+      // 거리에 따른 간격 조절 (원근법)
+      // i * config.size + gridOffset을 통해 연속적인 위치 계산
+      const lineProgress = ((i * config.size + this.gridOffset) % 400) / 400;
+      
+      // 화면 밖으로 나가는 선 처리 방지 (선택사항, 안전장치)
+      if (lineProgress < 0) continue;
+
+      const y = horizonY + lineProgress * (GAME_HEIGHT - horizonY);
+
+      // 수평선 그리기
+      const widthAtY = 2000 * (lineProgress + 0.1);
+      this.gridGraphics.moveTo(vanishingPointX - widthAtY / 2, y);
+      this.gridGraphics.lineTo(vanishingPointX + widthAtY / 2, y);
+    }
+
+    this.gridGraphics.strokePath();
+
+    // 지평선 강조
+    this.gridGraphics.lineStyle(4, COLORS.CYAN, 0.2);
+    this.gridGraphics.moveTo(0, horizonY);
+    this.gridGraphics.lineTo(GAME_WIDTH, horizonY);
+    this.gridGraphics.strokePath();
   }
 
   private async startGame(): Promise<void> {

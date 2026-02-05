@@ -20,8 +20,10 @@ export class SoundSystem {
   }
 
   public async init(): Promise<void> {
-    if (!this.audioContext && (window.AudioContext || (window as any).webkitAudioContext)) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!this.audioContext && AudioContextClass) {
+      this.audioContext = new AudioContextClass();
       this.masterGain = this.audioContext.createGain();
       this.masterGain.gain.value = 0.3; // 마스터 볼륨
       this.masterGain.connect(this.audioContext.destination);

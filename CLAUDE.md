@@ -29,6 +29,11 @@ Vibeshooter - Phaser 3 기반 웹 슈팅 게임
 - 분석/디버깅을 마친 후에는 **반드시 모든 console.log를 제거**할 것
 - 프로덕션 코드에 console.log가 남아있으면 안 됨
 
+### 타입 시스템 (TypeScript)
+- `any` 타입의 사용을 엄격히 금지함
+- 구체적인 인터페이스나 타입을 명시하거나, 불가피한 경우 `unknown`을 사용할 것
+- 외부 라이브러리(Phaser 등)와의 호환성 문제로 `any` 캐스팅이 반드시 필요한 경우에만 `eslint-disable-next-line`과 함께 예외적으로 허용함
+
 ## 코드 구조
 ```
 data/             # 게임 밸런스 데이터 (JSON 전용)

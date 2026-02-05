@@ -86,6 +86,7 @@ export class ParticleManager {
     const angle = Phaser.Math.Angle.Between(dishX, dishY, cursorX, cursorY);
 
     emitter.setParticleTint(COLORS.MAGENTA);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (emitter as any).setAngle({
       min: Phaser.Math.RadToDeg(angle) - 20,
       max: Phaser.Math.RadToDeg(angle) + 20,

@@ -43,7 +43,7 @@ export class Boss extends Phaser.GameObjects.Container {
   }
 
   private setupEventListeners(): void {
-    EventBus.getInstance().on(GameEvents.MONSTER_HP_CHANGED, (...args: any[]) => {
+    EventBus.getInstance().on(GameEvents.MONSTER_HP_CHANGED, (...args: unknown[]) => {
       const data = args[0] as { ratio: number };
       const oldArmorCount = this.currentArmorCount;
       this.hpRatio = data.ratio;
