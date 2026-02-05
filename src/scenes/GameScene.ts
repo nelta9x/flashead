@@ -1063,12 +1063,43 @@ export class GameScene extends Phaser.Scene {
         this.laserGraphics.fillStyle(color, config.fireAlpha * 0.6);
         this.laserGraphics.fillRect(laser.x - config.width / 2, 0, config.width, GAME_HEIGHT);
         
+        // ===== 전기 스파크 연출 추가 =====
+        this.drawElectricSparks(laser.x, config.width, color);
+        
         // 파티클 효과 (레이저 경로를 따라 스파크)
         if (Math.random() < 0.3) {
           const py = Math.random() * GAME_HEIGHT;
           this.particleManager.createSparkBurst(laser.x, py, color);
         }
       }
+    }
+  }
+
+  private drawElectricSparks(laserX: number, laserWidth: number, color: number): void {
+    const segments = 8;
+    const segmentHeight = GAME_HEIGHT / segments;
+    const sparkCount = 2; // 한 번에 그릴 스파크 줄 수
+
+    for (let i = 0; i < sparkCount; i++) {
+        this.laserGraphics.lineStyle(2, 0xffffff, 0.8); // 중심은 흰색
+        this.laserGraphics.beginPath();
+        
+        let lastX = laserX + (Math.random() - 0.5) * laserWidth;
+        let lastY = 0;
+        this.laserGraphics.moveTo(lastX, lastY);
+
+        for (let j = 1; j <= segments; j++) {
+            const nextX = laserX + (Math.random() - 0.5) * (laserWidth * 1.5);
+            const nextY = j * segmentHeight;
+            this.laserGraphics.lineTo(nextX, nextY);
+            lastX = nextX;
+            lastY = nextY;
+        }
+        this.laserGraphics.strokePath();
+
+        // 바깥쪽 후광 효과
+        this.laserGraphics.lineStyle(4, color, 0.3);
+        this.laserGraphics.strokePath();
     }
   }
 
