@@ -84,6 +84,11 @@ export class UpgradeSystem {
       return UPGRADES.slice(0, count); // 폴백
     }
 
+    // 요청 개수가 가용 개수 이상이면 전체 반환 (셔플)
+    if (count >= availableUpgrades.length) {
+      return this.shuffleArray([...availableUpgrades]);
+    }
+
     // 가중치 기반 선택
     const selected: Upgrade[] = [];
     const pool = [...availableUpgrades];
@@ -92,17 +97,29 @@ export class UpgradeSystem {
       const totalWeight = pool.reduce((sum, u) => sum + rarityWeights[u.rarity], 0);
       let random = Math.random() * totalWeight;
 
+      let selectedIndex = pool.length - 1; // 기본값: 마지막 항목 (부동소수점 오차 안전장치)
+
       for (let i = 0; i < pool.length; i++) {
         random -= rarityWeights[pool[i].rarity];
         if (random <= 0) {
-          selected.push(pool[i]);
-          pool.splice(i, 1);
+          selectedIndex = i;
           break;
         }
       }
+
+      selected.push(pool[selectedIndex]);
+      pool.splice(selectedIndex, 1);
     }
 
     return selected;
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
   }
 
   private getRarityWeights(): Record<string, number> {

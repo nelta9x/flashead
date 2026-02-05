@@ -55,13 +55,17 @@ export class InGameUpgradeUI {
   hide(): void {
     if (!this.visible) return;
 
+    this.visible = false;
+    this.hideWithAnimation();
+  }
+
+  private hideWithAnimation(): void {
     this.scene.tweens.add({
       targets: this.mainContainer,
       alpha: 0,
       duration: 150,
       ease: 'Power2',
       onComplete: () => {
-        this.visible = false;
         this.mainContainer.setVisible(false);
         this.clearBoxes();
       },
@@ -260,11 +264,17 @@ export class InGameUpgradeUI {
   }
 
   private selectUpgrade(upgrade: Upgrade): void {
+    // 이미 숨김 처리 중이면 무시 (중복 호출 방지)
+    if (!this.visible) return;
+
+    // 즉시 visible을 false로 설정하여 중복 호출 방지
+    this.visible = false;
+
     // 업그레이드 적용
     this.upgradeSystem.applyUpgrade(upgrade);
 
-    // UI 숨김 후 이벤트 발행
-    this.hide();
+    // UI 숨김 애니메이션
+    this.hideWithAnimation();
 
     this.scene.time.delayedCall(150, () => {
       EventBus.getInstance().emit(GameEvents.UPGRADE_SELECTED, upgrade);

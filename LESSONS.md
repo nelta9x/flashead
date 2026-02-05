@@ -242,3 +242,85 @@ const activeDishes = this.getDishPool().getActiveObjects();
 - **즉시 비활성화 원칙**: 객체를 비활성화할 때는 비동기 애니메이션에 의존하지 말고 즉시 상태를 변경해야 함. 시각적 효과는 별도 객체로 처리하는 것이 안전함.
 
 ---
+
+## 2024-02-05: 업그레이드 UI - 애니메이션 중 중복 호출
+
+### 증상
+- 웨이브 1: 업그레이드 선택지 3개 표시
+- 웨이브 2: 2개만 표시 (1개 선택했는데 stack=5가 됨)
+- 웨이브 3: 1개만 표시
+- 웨이브 4: 3개로 복구 (새 게임 시작?)
+
+### 원인
+**`hide()` 애니메이션 duration 동안 `selectUpgrade`가 여러 번 호출됨**
+
+```typescript
+// 문제 코드
+selectUpgrade(upgrade: Upgrade): void {
+  this.upgradeSystem.applyUpgrade(upgrade);
+  this.hide();  // 애니메이션 시작만 하고 리턴
+}
+
+hide(): void {
+  this.scene.tweens.add({
+    duration: 150,
+    onComplete: () => {
+      this.visible = false;  // 150ms 후에야 false!
+    },
+  });
+}
+
+update(delta: number): void {
+  if (!this.visible) return;  // 150ms 동안은 여전히 true
+  // ... hover 체크 계속 실행 ...
+  if (box.hoverProgress >= HOVER_DURATION) {
+    this.selectUpgrade(box.upgrade);  // 매 프레임마다 호출됨!
+  }
+}
+```
+
+시나리오:
+1. 업그레이드 호버 완료 → `selectUpgrade` 호출 → `applyUpgrade` (stack=1)
+2. `hide()` 호출 → 애니메이션 시작 (150ms)
+3. 다음 프레임 (16ms 후) → `visible`은 아직 true
+4. `update()`에서 같은 박스가 여전히 호버 상태 → `selectUpgrade` 다시 호출 (stack=2)
+5. 150ms 동안 약 9번 호출 → stack=5 (maxStack 도달)
+6. 다음 웨이브에서 해당 업그레이드가 필터링되어 선택지에서 제외
+
+### 해결
+```typescript
+selectUpgrade(upgrade: Upgrade): void {
+  // 중복 호출 방지: 이미 처리 중이면 무시
+  if (!this.visible) return;
+
+  // 즉시 visible을 false로 설정
+  this.visible = false;
+
+  this.upgradeSystem.applyUpgrade(upgrade);
+  this.hideWithAnimation();  // 애니메이션은 별도 메서드로
+}
+
+hide(): void {
+  if (!this.visible) return;
+  this.visible = false;  // 즉시 상태 변경
+  this.hideWithAnimation();
+}
+
+private hideWithAnimation(): void {
+  this.scene.tweens.add({
+    duration: 150,
+    onComplete: () => {
+      this.mainContainer.setVisible(false);
+      this.clearBoxes();
+    },
+  });
+}
+```
+
+### 교훈
+- **상태 변경은 애니메이션보다 먼저**: UI 상태(`visible`)는 애니메이션 시작 전에 즉시 변경해야 함. 애니메이션 `onComplete`에서 상태를 변경하면 그 사이에 여러 번 호출될 수 있음.
+- **게임 루프와 애니메이션의 타이밍**: `update()`는 매 프레임(~60fps, 16ms)마다 호출되지만 tween 애니메이션은 수백 ms가 걸림. 이 시간 차이로 인해 같은 조건이 여러 번 만족될 수 있음.
+- **guard clause의 위치**: 중복 실행을 막는 체크는 함수의 최상단에 있어야 하며, 상태 변경도 최상단에서 즉시 이루어져야 함.
+- **비동기 UI 패턴**: `visible` 상태와 시각적 표시를 분리. 논리적 상태는 즉시 변경하고, 시각적 애니메이션은 별도로 처리.
+
+---
