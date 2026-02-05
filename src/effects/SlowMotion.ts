@@ -12,8 +12,6 @@ export class SlowMotion {
   }
 
   trigger(timeScale: number = 0.3, duration: number = 500): void {
-    if (this.isActive) return;
-
     this.isActive = true;
     this.targetTimeScale = timeScale;
     this.duration = duration;
