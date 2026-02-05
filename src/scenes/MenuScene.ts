@@ -29,6 +29,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.isTransitioning = false;
     this.starBackground = new StarBackground(this, Data.mainMenu.stars);
     this.createBoss();
     this.createGrid();
@@ -313,16 +314,6 @@ export class MenuScene extends Phaser.Scene {
         const color = parseInt(config.color.replace('#', ''), 16);
         this.particleManager.createExplosion(dish.x, dish.y, color, 'basic', 0.5);
         this.particleManager.createHitEffect(dish.x, dish.y, COLORS.WHITE);
-
-        // 사운드 재생 시도 (사용자 상호작용 전이라 재생 안 될 수 있음)
-        const ss = SoundSystem.getInstance();
-        if (ss) {
-          try {
-            ss.playHitSound();
-          } catch (e) {
-            /* ignore */
-          }
-        }
 
         dish.destroy();
       }
