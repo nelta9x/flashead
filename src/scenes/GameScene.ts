@@ -448,23 +448,8 @@ export class GameScene extends Phaser.Scene {
                     
                     // 3. Impact Phase (타격!)
                     
-                    // 사운드 재생: 적중 (폭발)
-                    this.soundSystem.playBossImpactSound();
-
-                    // 화면 흔들림 (약한 강도로 조금 더 길게 유지)
-                    this.cameras.main.shake(config.impact.shakeDuration, config.impact.shakeIntensity);
-                    
-                    // 카메라 줌 인 펀치 효과
-                    this.cameras.main.zoomTo(config.impact.zoomIntensity, config.impact.zoomDurationIn, 'Power2', true, (_cam, progress) => {
-                        if (progress === 1) {
-                            this.time.delayedCall(config.impact.zoomHold, () => {
-                                this.cameras.main.zoomTo(1.0, config.impact.zoomDurationOut, 'Elastic.Out');
-                            });
-                        }
-                    });
-
-                    this.particleManager.createExplosion(endX, endY, COLORS.RED, 'bomb', config.impact.particleMultiplier);
-                    this.particleManager.createRainbowExplosion(endX, endY, config.impact.rainbowParticleMultiplier);
+                    // 보스 데미지 피드백 (대미지 넘버 포함)
+                    this.feedbackSystem.onBossDamaged(endX, endY, totalDamage);
                 }
             });
         }

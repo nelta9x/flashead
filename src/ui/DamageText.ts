@@ -221,6 +221,62 @@ export class DamageText {
     this.activeComboTexts.delete(text);
   }
 
+  showBossDamage(x: number, y: number, damage: number): void {
+    // 풀에서 텍스트 가져오기
+    let text = this.pool.find((t) => !this.activeTexts.has(t));
+
+    if (!text) {
+      text = this.scene.add.text(0, 0, '', {
+        fontFamily: FONTS.MAIN,
+        fontSize: '48px',
+        color: '#ffcc00',
+        stroke: '#000000',
+        strokeThickness: 6,
+        fontStyle: 'bold',
+      });
+      text.setOrigin(0.5);
+      this.pool.push(text);
+    }
+
+    // 보스용 특별 스타일 설정
+    text.setText(`-${damage}`);
+    text.setPosition(x + Phaser.Math.Between(-20, 20), y - 40);
+    text.setColor('#ff3300'); // 강렬한 빨강-주황
+    text.setFontSize(64);
+    text.setVisible(true);
+    text.setAlpha(1);
+    text.setScale(0.2); // 아주 작게 시작해서 커지는 효과
+    text.setRotation(Phaser.Math.DegToRad(Phaser.Math.Between(-15, 15)));
+
+    this.activeTexts.add(text);
+
+    // 보스 데미지 애니메이션: 쾅! 하고 커졌다가 서서히 사라짐
+    this.scene.tweens.add({
+      targets: text,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      y: text.y - 60,
+      duration: 150,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // 반짝이는 효과를 위해 색상 살짝 변경
+        text!.setColor('#ffff00');
+        
+        this.scene.tweens.add({
+          targets: text,
+          y: text!.y - 40,
+          alpha: 0,
+          scaleX: 1.0,
+          scaleY: 1.0,
+          duration: 600,
+          delay: 100,
+          ease: 'Power2',
+          onComplete: () => this.releaseText(text!),
+        });
+      },
+    });
+  }
+
   showText(x: number, y: number, text: string, color: number): void {
     const hexColor = '#' + color.toString(16).padStart(6, '0');
     this.createDamageText({
