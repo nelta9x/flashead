@@ -58,6 +58,69 @@ export interface MonsterAttackConfig {
   laser: LaserAttackConfig;
 }
 
+export interface GridConfig {
+  size: number;
+  speed: number;
+  alpha: number;
+  color: string;
+}
+
+export interface MenuConfig {
+  boss: {
+    posYRatio: number;
+    baseRadius: number;
+    coreRadius: number;
+    innerLightRadius: number;
+    armor: {
+      innerRadius: number;
+      outerRadius: number;
+      pieceCount: number;
+      gap: number;
+      rotationSpeed: number;
+    };
+    aura: {
+      count: number;
+      pulseSpeed: number;
+      spacing: number;
+    };
+    core: {
+      pulseSpeed: number;
+    };
+  };
+  grid: GridConfig & {
+    horizonRatio: number;
+    verticalLines: number;
+    horizontalLines: number;
+  };
+  cursor: {
+    yOffset: number;
+    radius: number;
+    crossSize: number;
+    floatRangeX: number;
+    floatRangeY: number;
+    floatSpeed: number;
+    lerpTracking: number;
+    lerpIdle: number;
+    trackingYThreshold: number;
+  };
+  dishSpawn: {
+    interval: number;
+    radius: number;
+    color: string;
+    spawnYOffset: number;
+    spawnRangeX: number;
+    speedMultiplier: number;
+  };
+  title: {
+    yOffset: number;
+    fontSize: string;
+    shadowBlur: number;
+    moveDuration: number;
+    moveY: number;
+    padding: number;
+  };
+}
+
 export interface GameConfig {
   screen: ScreenConfig;
   player: PlayerConfig;
@@ -68,6 +131,9 @@ export interface GameConfig {
     main: string;
     korean: string;
   };
+  magnet: MagnetConfig;
+  gameGrid: GridConfig;
+  menu: MenuConfig;
 }
 
 // ========== 스폰 시스템 ==========

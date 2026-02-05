@@ -55,6 +55,12 @@
     "forcePerLevel": 20,
     "minPullDistance": 30
   },
+  "gameGrid": {
+    "size": 60,
+    "speed": 0.1,
+    "alpha": 0.05,
+    "color": "#00ffff"
+  },
   "menu": {
     "boss": {
       "posYRatio": 0.42,

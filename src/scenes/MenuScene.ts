@@ -199,7 +199,7 @@ export class MenuScene extends Phaser.Scene {
     let nearestDish: Phaser.GameObjects.Graphics | null = null;
     let minDist = Infinity;
 
-    this.menuDishes.getChildren().forEach((child: Phaser.GameObjects.GameObject) => {
+    for (const child of this.menuDishes.getChildren()) {
       const dish = child as Phaser.GameObjects.Graphics;
       const dist = Phaser.Math.Distance.Between(this.cursorPos.x, this.cursorPos.y, dish.x, dish.y);
       // 너무 멀리 있는(지평선 근처) 접시는 무시하고 어느 정도 다가온 것부터 추적
@@ -207,7 +207,7 @@ export class MenuScene extends Phaser.Scene {
         minDist = dist;
         nearestDish = dish;
       }
-    });
+    }
 
     if (nearestDish) {
       // 접시가 있으면 접시 위치를 타겟으로 (추적 속도 향상)
@@ -403,7 +403,7 @@ export class MenuScene extends Phaser.Scene {
     window.addEventListener('keydown', onNativeInput);
   }
 
-  update(time: number, delta: number): void {
+  update(_time: number, delta: number): void {
     this.updateGrid(delta);
     this.updateBoss(delta);
     this.updateMenuCursor(delta);

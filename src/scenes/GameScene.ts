@@ -70,6 +70,10 @@ export class GameScene extends Phaser.Scene {
   // 공격 범위 표시
   private attackRangeIndicator!: Phaser.GameObjects.Graphics;
 
+  // 그리드 배경
+  private gridGraphics!: Phaser.GameObjects.Graphics;
+  private gridOffset: number = 0;
+
   // 보스 레이저 공격 관련
   private laserNextTime: number = 0;
   private laserGraphics!: Phaser.GameObjects.Graphics;
@@ -129,20 +133,35 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    const graphics = this.add.graphics();
+    this.gridGraphics = this.add.graphics();
+    this.gridGraphics.setDepth(-1); // 배경이므로 가장 뒤에 배치
+  }
 
-    // 그리드 배경
-    graphics.lineStyle(1, COLORS.CYAN, 0.05);
-    const gridSize = 50;
-    for (let x = 0; x < GAME_WIDTH; x += gridSize) {
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, GAME_HEIGHT);
+  private updateGrid(delta: number): void {
+    const config = Data.gameConfig.gameGrid;
+    this.gridGraphics.clear();
+
+    const color = Phaser.Display.Color.HexStringToColor(config.color).color;
+    this.gridGraphics.lineStyle(1, color, config.alpha);
+
+    // 수직선
+    for (let x = 0; x <= GAME_WIDTH; x += config.size) {
+      this.gridGraphics.moveTo(x, 0);
+      this.gridGraphics.lineTo(x, GAME_HEIGHT);
     }
-    for (let y = 0; y < GAME_HEIGHT; y += gridSize) {
-      graphics.moveTo(0, y);
-      graphics.lineTo(GAME_WIDTH, y);
+
+    // 수평선 (상하로 흐름)
+    this.gridOffset += delta * config.speed;
+    if (this.gridOffset >= config.size) {
+      this.gridOffset -= config.size;
     }
-    graphics.strokePath();
+
+    for (let y = this.gridOffset - config.size; y <= GAME_HEIGHT; y += config.size) {
+      this.gridGraphics.moveTo(0, y);
+      this.gridGraphics.lineTo(GAME_WIDTH, y);
+    }
+
+    this.gridGraphics.strokePath();
   }
 
   private initializeSystems(): void {
@@ -902,6 +921,9 @@ export class GameScene extends Phaser.Scene {
 
     // 인게임 업그레이드 UI 업데이트
     this.inGameUpgradeUI.update(scaledDelta);
+
+    // 그리드 배경 업데이트
+    this.updateGrid(scaledDelta);
 
     // 자기장 효과 업데이트
     this.updateMagnetEffect(scaledDelta);
