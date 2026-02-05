@@ -10,6 +10,7 @@ type WavePhase = 'waiting' | 'countdown' | 'spawning';
 interface WaveConfig {
   spawnInterval: number;
   dishTypes: { type: string; weight: number }[];
+  laser?: { maxCount: number; minInterval: number; maxInterval: number };
 }
 
 export class WaveSystem {
@@ -51,11 +52,17 @@ export class WaveSystem {
       return {
         spawnInterval: waveData.spawnInterval,
         dishTypes: waveData.dishTypes,
+        laser: waveData.laser,
       };
     }
 
     const scaling = wavesData.infiniteScaling;
     const wavesBeyond = waveNumber - wavesData.waves.length;
+
+    // 무한 웨이브 레이저 스케일링: 4개 고정, 간격은 더 짧아짐
+    const laserCount = 4;
+    const minInterval = Math.max(800, 1000 - wavesBeyond * 50);
+    const maxInterval = Math.max(2000, 3500 - wavesBeyond * 100);
 
     return {
       spawnInterval: Math.max(
@@ -63,6 +70,7 @@ export class WaveSystem {
         waveData.spawnInterval - wavesBeyond * scaling.spawnIntervalReduction
       ),
       dishTypes: this.getScaledDishTypes(waveNumber),
+      laser: { maxCount: laserCount, minInterval, maxInterval }
     };
   }
 
@@ -214,6 +222,10 @@ export class WaveSystem {
 
   getCurrentWave(): number {
     return this.currentWave;
+  }
+
+  getCurrentWaveLaserConfig(): { maxCount: number; minInterval: number; maxInterval: number } | undefined {
+    return this.waveConfig?.laser;
   }
 
   isFever(): boolean {

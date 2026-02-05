@@ -286,6 +286,12 @@ export interface DishTypeWeight {
   weight: number;
 }
 
+export interface WaveLaserConfig {
+  maxCount: number;
+  minInterval: number;
+  maxInterval: number;
+}
+
 export interface WaveData {
   number: number;
   name: string;
@@ -293,6 +299,7 @@ export interface WaveData {
   spawnInterval: number;
   dishTypes: DishTypeWeight[];
   bossHp: number;
+  laser?: WaveLaserConfig;
 }
 
 export interface InfiniteScalingConfig {

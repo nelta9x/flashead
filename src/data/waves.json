@@ -8,7 +8,8 @@
       "dishTypes": [
         { "type": "basic", "weight": 1 }
       ],
-      "bossHp": 5
+      "bossHp": 5,
+      "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
     },
     {
       "number": 2,
@@ -19,7 +20,8 @@
         { "type": "basic", "weight": 0.9 },
         { "type": "bomb", "weight": 0.1 }
       ],
-      "bossHp": 10
+      "bossHp": 10,
+      "laser": { "maxCount": 1, "minInterval": 7000, "maxInterval": 12000 }
     },
     {
       "number": 3,
@@ -31,7 +33,8 @@
         { "type": "golden", "weight": 0.1 },
         { "type": "bomb", "weight": 0.1 }
       ],
-      "bossHp": 15
+      "bossHp": 15,
+      "laser": { "maxCount": 1, "minInterval": 6000, "maxInterval": 10000 }
     },
     {
       "number": 4,
@@ -44,7 +47,8 @@
         { "type": "crystal", "weight": 0.1 },
         { "type": "bomb", "weight": 0.1 }
       ],
-      "bossHp": 20
+      "bossHp": 20,
+      "laser": { "maxCount": 1, "minInterval": 5000, "maxInterval": 8000 }
     },
     {
       "number": 5,
@@ -57,7 +61,8 @@
         { "type": "crystal", "weight": 0.15 },
         { "type": "bomb", "weight": 0.15 }
       ],
-      "bossHp": 30
+      "bossHp": 30,
+      "laser": { "maxCount": 2, "minInterval": 4500, "maxInterval": 7500 }
     },
     {
       "number": 6,
@@ -70,7 +75,8 @@
         { "type": "crystal", "weight": 0.2 },
         { "type": "bomb", "weight": 0.15 }
       ],
-      "bossHp": 40
+      "bossHp": 40,
+      "laser": { "maxCount": 2, "minInterval": 4000, "maxInterval": 7000 }
     },
     {
       "number": 7,
@@ -83,7 +89,8 @@
         { "type": "crystal", "weight": 0.2 },
         { "type": "bomb", "weight": 0.2 }
       ],
-      "bossHp": 50
+      "bossHp": 50,
+      "laser": { "maxCount": 2, "minInterval": 3500, "maxInterval": 6000 }
     },
     {
       "number": 8,
@@ -96,7 +103,8 @@
         { "type": "crystal", "weight": 0.25 },
         { "type": "bomb", "weight": 0.2 }
       ],
-      "bossHp": 65
+      "bossHp": 65,
+      "laser": { "maxCount": 3, "minInterval": 3000, "maxInterval": 5500 }
     },
     {
       "number": 9,
@@ -109,7 +117,8 @@
         { "type": "crystal", "weight": 0.25 },
         { "type": "bomb", "weight": 0.25 }
       ],
-      "bossHp": 80
+      "bossHp": 80,
+      "laser": { "maxCount": 3, "minInterval": 2500, "maxInterval": 5000 }
     },
     {
       "number": 10,
@@ -122,7 +131,8 @@
         { "type": "crystal", "weight": 0.3 },
         { "type": "bomb", "weight": 0.25 }
       ],
-      "bossHp": 100
+      "bossHp": 100,
+      "laser": { "maxCount": 3, "minInterval": 2000, "maxInterval": 4500 }
     },
     {
       "number": 11,
@@ -135,7 +145,8 @@
         { "type": "crystal", "weight": 0.3 },
         { "type": "bomb", "weight": 0.25 }
       ],
-      "bossHp": 125
+      "bossHp": 125,
+      "laser": { "maxCount": 4, "minInterval": 1500, "maxInterval": 4000 }
     },
     {
       "number": 12,
@@ -148,7 +159,8 @@
         { "type": "crystal", "weight": 0.3 },
         { "type": "bomb", "weight": 0.25 }
       ],
-      "bossHp": 150
+      "bossHp": 150,
+      "laser": { "maxCount": 4, "minInterval": 1000, "maxInterval": 3500 }
     }
   ],
   "fever": {
