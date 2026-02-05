@@ -478,7 +478,7 @@ export class SoundSystem {
 
   /**
    * 보스 공격 기 모으기 사운드
-   * 상승하는 피치와 떨림으로 긴장감 조성
+   * 신비롭고 강렬한 에너지가 응집되는 사운드
    */
   playBossChargeSound(): void {
     if (!this.ensureContext()) return;
@@ -486,41 +486,51 @@ export class SoundSystem {
     const now = ctx.currentTime;
     const duration = 0.6;
 
-    // 메인 상승 톤
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(200, now);
-    osc.frequency.exponentialRampToValueAtTime(800, now + duration);
+    // 1. 신비로운 사인파 하모닉스 (여러 층의 상승음)
+    const freqs = [200, 400, 600];
+    freqs.forEach((baseFreq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'sine' : 'triangle';
+      
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 3, now + duration);
 
-    // LFO로 떨림 효과 추가
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.type = 'sine';
-    lfo.frequency.value = 15; // 15Hz 떨림
-    lfoGain.gain.value = 50; // 떨림 강도
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc.frequency);
-    lfo.start(now);
-    lfo.stop(now + duration);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.1, now + duration * 0.5);
+      gain.gain.linearRampToValueAtTime(0, now + duration);
 
-    // 필터 (로우패스 -> 하이패스 스윕)
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(400, now);
-    filter.frequency.exponentialRampToValueAtTime(3000, now + duration);
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(now);
+      osc.stop(now + duration);
+    });
 
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.3, now + duration * 0.8);
-    gain.gain.linearRampToValueAtTime(0, now + duration);
+    // 2. 에너지 소용돌이 소리 (Rising Bandpass Noise)
+    const bufferSize = ctx.sampleRate * duration;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.masterGain!);
+    const bpf = ctx.createBiquadFilter();
+    bpf.type = 'bandpass';
+    bpf.Q.value = 5;
+    bpf.frequency.setValueAtTime(400, now);
+    bpf.frequency.exponentialRampToValueAtTime(3000, now + duration);
 
-    osc.start(now);
-    osc.stop(now + duration);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(0.2, now + duration * 0.8);
+    noiseGain.gain.linearRampToValueAtTime(0, now + duration);
+
+    noise.connect(bpf);
+    bpf.connect(noiseGain);
+    noiseGain.connect(this.masterGain!);
+    noise.start(now);
   }
 
   /**
