@@ -525,30 +525,71 @@ export class SoundSystem {
 
   /**
    * 보스 공격 발사 사운드
-   * 강력한 레이저 발사 느낌
+   * 묵직한 타격감과 에너지가 실린 레이저 발사음
    */
   playBossFireSound(): void {
     if (!this.ensureContext()) return;
     const ctx = this.audioContext!;
     const now = ctx.currentTime;
 
-    // 1. 강한 어택음 (Square Wave Drop)
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(1000, now);
-    osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+    // 1. 초기 어택 "퍽" 소리 (Low Thump)
+    const thumpOsc = ctx.createOscillator();
+    const thumpGain = ctx.createGain();
+    thumpOsc.type = 'sine';
+    thumpOsc.frequency.setValueAtTime(150, now);
+    thumpOsc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
+    thumpGain.gain.setValueAtTime(0.6, now);
+    thumpGain.gain.linearRampToValueAtTime(0, now + 0.08);
+    thumpOsc.connect(thumpGain);
+    thumpGain.connect(this.masterGain!);
+    thumpOsc.start(now);
+    thumpOsc.stop(now + 0.08);
+
+    // 2. 메인 에너지 레이저 (Resonant Filter Sweep)
+    const laserOsc = ctx.createOscillator();
+    const laserGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
     
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    laserOsc.type = 'sawtooth';
+    laserOsc.frequency.setValueAtTime(400, now);
+    laserOsc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
 
-    osc.connect(gain);
-    gain.connect(this.masterGain!);
-    osc.start(now);
-    osc.stop(now + 0.2);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(4000, now);
+    filter.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+    filter.Q.value = 10; // 레조넌스로 "쀼웅" 하는 느낌 강조
 
-    // 2. 화이트 노이즈 버스트 (공기 찢는 소리)
-    this.playNoiseShort(0.3, 0.15);
+    laserGain.gain.setValueAtTime(0.4, now);
+    laserGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+    laserOsc.connect(filter);
+    filter.connect(laserGain);
+    laserGain.connect(this.masterGain!);
+    laserOsc.start(now);
+    laserOsc.stop(now + 0.25);
+
+    // 3. 고주파 스파크 노이즈 (High-freq Sizzle)
+    const noiseSize = ctx.sampleRate * 0.15;
+    const noiseBuffer = ctx.createBuffer(1, noiseSize, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseSize; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * (1 - i / noiseSize);
+    }
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+    
+    const hpf = ctx.createBiquadFilter();
+    hpf.type = 'highpass';
+    hpf.frequency.value = 2000;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.2, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+    noiseSrc.connect(hpf);
+    hpf.connect(noiseGain);
+    noiseGain.connect(this.masterGain!);
+    noiseSrc.start(now);
   }
 
   /**
