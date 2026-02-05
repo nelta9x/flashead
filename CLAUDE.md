@@ -12,7 +12,10 @@ Vibeshooter - Phaser 3 기반 웹 슈팅 게임
 ## 주요 명령어
 - `npm run dev` - 개발 서버 실행
 - `npm run build` - 프로덕션 빌드
-- `npm test` - 테스트 실행
+- `npm test` - 테스트 실행 (Watch 모드)
+- `npm run test:run` - 테스트 1회 실행 (CI/검증용)
+- `npm run lint` - 코드 린팅 (ESLint)
+- `npm run format` - 코드 포맷팅 (Prettier)
 
 ## 참고 문서
 - **CODEMAP.md** - 프로젝트 전체 구조, 시스템 간의 상호작용 및 이벤트 흐름(EventBus) 정의. **새로운 기능을 구현하거나 시스템 간 연동이 필요할 때 반드시 가장 먼저 참조할 것.**
