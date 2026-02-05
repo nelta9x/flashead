@@ -27,6 +27,9 @@ function createSystemUpgrades(): Upgrade[] {
         case 'electricShockLevel':
           us.addElectricShockLevel(data.value);
           break;
+        case 'staticDischargeLevel':
+          us.addStaticDischargeLevel(data.value);
+          break;
         case 'magnetLevel':
           us.addMagnetLevel(data.value);
           break;
@@ -57,6 +60,9 @@ export class UpgradeSystem {
   // 전기 충격
   private electricShockLevel: number = 0;
 
+  // 정전기 방출
+  private staticDischargeLevel: number = 0;
+
   // 자기장
   private magnetLevel: number = 0;
 
@@ -75,6 +81,9 @@ export class UpgradeSystem {
 
     // 전기 충격
     this.electricShockLevel = 0;
+
+    // 정전기 방출
+    this.staticDischargeLevel = 0;
 
     // 자기장
     this.magnetLevel = 0;
@@ -211,6 +220,42 @@ export class UpgradeSystem {
     return (meta.baseDamage || 0) + this.electricShockLevel * (meta.damagePerLevel || 1);
   }
 
+  // ========== 정전기 방출 ==========
+  addStaticDischargeLevel(level: number): void {
+    this.staticDischargeLevel += level;
+  }
+
+  getStaticDischargeLevel(): number {
+    return this.staticDischargeLevel;
+  }
+
+  getStaticDischargeChance(): number {
+    if (this.staticDischargeLevel <= 0) return 0;
+    const upgradeData = Data.upgrades.system.find((u) => u.id === 'static_discharge');
+    if (!upgradeData || !upgradeData.meta) return 0.25;
+    
+    const meta = upgradeData.meta;
+    return (meta.baseChance || 0.25) + this.staticDischargeLevel * (meta.chancePerLevel || 0.05);
+  }
+
+  getStaticDischargeDamage(): number {
+    if (this.staticDischargeLevel <= 0) return 0;
+    const upgradeData = Data.upgrades.system.find((u) => u.id === 'static_discharge');
+    if (!upgradeData || !upgradeData.meta) return 3;
+    
+    const meta = upgradeData.meta;
+    return (meta.baseDamage || 3) + this.staticDischargeLevel * (meta.damagePerLevel || 2);
+  }
+
+  getStaticDischargeRange(): number {
+    if (this.staticDischargeLevel <= 0) return 0;
+    const upgradeData = Data.upgrades.system.find((u) => u.id === 'static_discharge');
+    if (!upgradeData || !upgradeData.meta) return 250;
+    
+    const meta = upgradeData.meta;
+    return (meta.baseRange || 250) + this.staticDischargeLevel * (meta.rangePerLevel || 50);
+  }
+
   // ========== 자기장 ==========
   addMagnetLevel(level: number): void {
     this.magnetLevel += level;
@@ -272,6 +317,17 @@ export class UpgradeSystem {
           .replace('{damage}', damage.toString());
       }
 
+      case 'staticDischargeLevel': {
+        const meta = upgradeData.meta!;
+        const chance = Math.round(((meta.baseChance || 0.25) + stack * (meta.chancePerLevel || 0.05)) * 100);
+        const damage = (meta.baseDamage || 3) + stack * (meta.damagePerLevel || 2);
+        const radius = (meta.baseRange || 250) + stack * (meta.rangePerLevel || 50);
+        return template
+          .replace('{chance}', chance.toString())
+          .replace('{radius}', radius.toString())
+          .replace('{damage}', damage.toString());
+      }
+
       case 'magnetLevel': {
         const meta = upgradeData.meta!;
         const radius = meta.baseRadius! + stack * meta.radiusPerLevel!;
@@ -317,6 +373,20 @@ export class UpgradeSystem {
           return `반경 ${nextRadius}px, ${nextDamage} 데미지`;
         }
         return `반경 ${curRadius}→${nextRadius}px, 데미지 ${curDamage}→${nextDamage}`;
+      }
+
+      case 'staticDischargeLevel': {
+        const meta = upgradeData.meta!;
+        const curChance = Math.round(((meta.baseChance || 0.25) + currentStack * (meta.chancePerLevel || 0.05)) * 100);
+        const nextChance = Math.round(((meta.baseChance || 0.25) + nextStack * (meta.chancePerLevel || 0.05)) * 100);
+        const nextDamage = (meta.baseDamage || 3) + nextStack * (meta.damagePerLevel || 2);
+        const curRadius = (meta.baseRange || 250) + currentStack * (meta.rangePerLevel || 50);
+        const nextRadius = (meta.baseRange || 250) + nextStack * (meta.rangePerLevel || 50);
+        
+        if (currentStack === 0) {
+          return `${nextChance}% 확률로 ${nextRadius}px 내 적 타격 (${nextDamage} 데미지)`;
+        }
+        return `확률 ${curChance}%→${nextChance}%, 사거리 ${curRadius}→${nextRadius}px`;
       }
 
       case 'magnetLevel': {

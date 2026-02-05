@@ -400,6 +400,10 @@ export interface SystemUpgradeData {
     radiusPerLevel?: number;
     baseDamage?: number;
     damagePerLevel?: number;
+    baseChance?: number;
+    chancePerLevel?: number;
+    baseRange?: number;
+    rangePerLevel?: number;
   };
 }
 

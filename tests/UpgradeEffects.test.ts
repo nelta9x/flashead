@@ -78,6 +78,19 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
     });
   });
 
+  describe('정전기 방출', () => {
+    it('정전기 방출 레벨 추적', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      expect(upgrade.getStaticDischargeLevel()).toBe(0);
+      upgrade.addStaticDischargeLevel(1);
+      expect(upgrade.getStaticDischargeLevel()).toBe(1);
+      upgrade.addStaticDischargeLevel(1);
+      expect(upgrade.getStaticDischargeLevel()).toBe(2);
+    });
+  });
+
   describe('자기장', () => {
     it('자기장 레벨 추적', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
@@ -114,6 +127,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       // 값 설정
       upgrade.addCursorSizeBonus(0.4);
       upgrade.addElectricShockLevel(2);
+      upgrade.addStaticDischargeLevel(1);
       upgrade.addMagnetLevel(3);
       upgrade.addMissileLevel(1);
 
@@ -123,6 +137,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       // 확인
       expect(upgrade.getCursorSizeBonus()).toBe(0);
       expect(upgrade.getElectricShockLevel()).toBe(0);
+      expect(upgrade.getStaticDischargeLevel()).toBe(0);
       expect(upgrade.getMagnetLevel()).toBe(0);
       expect(upgrade.getMissileLevel()).toBe(0);
     });
@@ -159,6 +174,23 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
         }
         expect(upgrade.getUpgradeStack('electric_shock')).toBe(5);
         expect(upgrade.getElectricShockLevel()).toBe(5);
+      }
+    });
+
+    it('정전기 방출 스택 (maxStack=5)', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      const upgrades = upgrade.getRandomUpgrades(10);
+      const staticUpgrade = upgrades.find(u => u.id === 'static_discharge');
+
+      if (staticUpgrade) {
+        // maxStack은 5
+        for (let i = 0; i < 7; i++) {
+          upgrade.applyUpgrade(staticUpgrade);
+        }
+        expect(upgrade.getUpgradeStack('static_discharge')).toBe(5);
+        expect(upgrade.getStaticDischargeLevel()).toBe(5);
       }
     });
 

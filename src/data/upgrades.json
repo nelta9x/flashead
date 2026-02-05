@@ -238,6 +238,24 @@
       }
     },
     {
+      "id": "static_discharge",
+      "name": "정전기 방출",
+      "description": "접시 파괴 시 주변 적에게 번개 발사",
+      "descriptionTemplate": "접시 파괴 시 {chance}% 확률로 {radius}px 내 적에게 {damage} 데미지의 번개를 발사합니다.",
+      "rarity": "common",
+      "effectType": "staticDischargeLevel",
+      "value": 1,
+      "maxStack": 5,
+      "meta": {
+        "baseChance": 0.25,
+        "chancePerLevel": 0.05,
+        "baseDamage": 3,
+        "damagePerLevel": 2,
+        "baseRange": 250,
+        "rangePerLevel": 50
+      }
+    },
+    {
       "id": "magnet",
       "name": "자기장",
       "description": "커서 주변 접시 끌어당김",
