@@ -204,6 +204,7 @@ export class InGameUpgradeUI {
       bomb_shield: '🛡',
       lifesteal: '♡',
       combo_heal: '❤',
+      health_pack: '✚',
       cursor_size: '◯',
       critical_chance: '✦',
       aoe_destroy_enhanced: '◉',

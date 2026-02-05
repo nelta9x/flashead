@@ -32,6 +32,14 @@ function createSystemUpgrades(): Upgrade[] {
         case 'missileLevel':
           us.addMissileLevel(data.value);
           break;
+        case 'fullHeal':
+          EventBus.getInstance().emit(GameEvents.HP_CHANGED, {
+            hp: 999, // 특별한 값으로 전달하거나 HealthSystem에서 처리
+            maxHp: 999,
+            delta: 999,
+            isFullHeal: true
+          });
+          break;
       }
     },
   }));
@@ -85,6 +93,9 @@ export class UpgradeSystem {
 
     // 사용 가능한 업그레이드 필터링 (최대 스택 미달성)
     const availableUpgrades = UPGRADES.filter((upgrade) => {
+      // id가 'health_pack'이면 항상 표시 가능 (일회성 소모품)
+      if (upgrade.id === 'health_pack') return true;
+      
       const currentStack = this.upgradeStacks.get(upgrade.id) || 0;
       return currentStack < upgrade.maxStack;
     });
@@ -139,8 +150,11 @@ export class UpgradeSystem {
 
   private getTotalUpgradeCount(): number {
     let total = 0;
-    this.upgradeStacks.forEach((stack) => {
-      total += stack;
+    this.upgradeStacks.forEach((stack, id) => {
+      // 헬스팩은 스택 카운트에서 제외 (영구 강화가 아니므로)
+      if (id !== 'health_pack') {
+        total += stack;
+      }
     });
     return total;
   }
@@ -148,11 +162,12 @@ export class UpgradeSystem {
   applyUpgrade(upgrade: Upgrade): void {
     const currentStack = this.upgradeStacks.get(upgrade.id) || 0;
 
-    if (currentStack >= upgrade.maxStack) {
+    // 영구 업그레이드인 경우만 스택 체크
+    if (upgrade.id !== 'health_pack' && currentStack >= upgrade.maxStack) {
       return;
     }
 
-    // 스택 증가
+    // 스택 증가 (헬스팩은 로직상 무시되지만 기록은 남음)
     this.upgradeStacks.set(upgrade.id, currentStack + 1);
 
     // 효과 적용

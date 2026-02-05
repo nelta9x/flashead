@@ -251,7 +251,14 @@ export class GameScene extends Phaser.Scene {
 
     // HP 변경 이벤트
     EventBus.getInstance().on(GameEvents.HP_CHANGED, (...args: unknown[]) => {
-      const data = args[0] as { hp: number; maxHp: number; delta: number };
+      const data = args[0] as { hp: number; maxHp: number; delta: number; isFullHeal?: boolean };
+      
+      if (data.isFullHeal) {
+        this.healthSystem.reset();
+        this.feedbackSystem.onHealthPackCollected(GAME_WIDTH / 2, GAME_HEIGHT / 2);
+        return;
+      }
+
       if (data.delta < 0) {
         this.hud.showHpLoss();
         this.feedbackSystem.onHpLost();

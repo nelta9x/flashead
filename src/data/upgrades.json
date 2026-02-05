@@ -264,6 +264,16 @@
         "baseDamage": 0,
         "damagePerLevel": 1
       }
+    },
+    {
+      "id": "health_pack",
+      "name": "강화 헬스팩",
+      "description": "모든 체력을 즉시 회복",
+      "descriptionTemplate": "모든 체력을 즉시 회복합니다.",
+      "rarity": "common",
+      "effectType": "fullHeal",
+      "value": 1,
+      "maxStack": 999
     }
   ]
 }
