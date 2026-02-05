@@ -136,7 +136,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private createPrompt(): void {
-    const prompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, 'CLICK ANYWHERE TO MENU', {
+    const prompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, 'CLICK TO MENU', {
       fontFamily: FONTS.MAIN,
       fontSize: '24px',
       color: COLORS_HEX.CYAN,
