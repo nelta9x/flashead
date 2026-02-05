@@ -1,6 +1,6 @@
 # 게임 데이터 가이드
 
-이 디렉토리의 JSON 파일을 수정하여 게임 밸런스를 조절할 수 있습니다.
+이 디렉토리는 프로젝트 루트의 `/data`에 위치하며, 게임의 모든 밸런스 데이터, 기술 설정, 상수를 집중 관리합니다. 이곳의 JSON 파일을 수정하여 소스 코드 수정 없이 게임의 거의 모든 요소를 조절할 수 있습니다.
 
 ---
 
@@ -33,7 +33,7 @@
 | **업그레이드 출현율** | `upgrades.json` | `rarityWeights` |
 | **업그레이드 효과** | `upgrades.json` | `weapon`, `system` |
 | **힐팩 스폰 확률** | `health-pack.json` | `spawnChanceByHp` |
-| **플레이어 초기 HP** | `game-config.json` | `player.initialHp` |
+| **플레이어 초기 HP** | `game-config.json" | `player.initialHp` |
 | **폰트 설정** | `game-config.json` | `fonts` |
 | **커서 크기** | `game-config.json` | `player.cursorHitbox.baseRadius` |
 | **웨이브 지속 시간** | `waves.json` | `duration` |
@@ -41,15 +41,29 @@
 
 ---
 
-## 파일 목록
+## 디렉토리 구조
 
-이 디렉토리에는 다음과 같은 파일들이 포함되어 있습니다:
+- **`*.json`**: 실제 밸런스 수치들이 들어있는 데이터 파일 (가장 자주 수정하게 될 파일들)
+- **`DataManager.ts`**: 모든 JSON 데이터를 로드하여 타입 안전하게 제공하는 싱글톤 관리자
+- **`constants.ts`**: JSON 기반 데이터 중 코드에서 자주 쓰이는 물리/기하학적 상수들을 정의
+- **`game.config.ts`**: Phaser 엔진의 기술적 설정 (물리, 렌더링 방식 등)
+- **`types.ts`**: 데이터 파일들의 인터페이스 정의 (TypeScript 타입)
 
-- **JSON 데이터**: 실제 밸런스 수치들이 들어있는 파일 (가장 자주 수정하게 될 파일들)
-- **DataManager.ts**: JSON 데이터를 불러와 게임 시스템에 공급하는 관리자 코드
-- **constants.ts**: 데이터 기반 상수들을 코드에서 쓰기 편하게 정의한 파일
-- **game.config.ts**: Phaser 게임 엔진의 기술적 설정 파일
-- **types.ts**: 데이터의 구조를 정의한 타입 파일
+---
+
+## 코드에서의 사용법
+
+```typescript
+// DataManager 사용 (권장)
+import { Data } from '../data/DataManager'; 
+// (파일 위치에 따라 ../data 또는 ../../data 사용)
+
+const playerHp = Data.gameConfig.player.initialHp;
+const dishHp = Data.getDishData('basic').hp;
+
+// 상수 사용
+import { COLORS, FONTS } from '../data/constants';
+```
 
 ---
 
