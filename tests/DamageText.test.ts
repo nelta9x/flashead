@@ -128,6 +128,7 @@ interface MockText {
   setScale: (s: number) => MockText;
   setRotation: (r: number) => MockText;
   setOrigin: (x: number, y?: number) => MockText;
+  setDepth: (d: number) => MockText;
 }
 
 function createMockText(): MockText {
@@ -177,6 +178,9 @@ function createMockText(): MockText {
       return this;
     }),
     setOrigin: vi.fn(function (this: MockText) {
+      return this;
+    }),
+    setDepth: vi.fn(function (this: MockText) {
       return this;
     }),
   };

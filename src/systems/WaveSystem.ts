@@ -1,5 +1,10 @@
 import Phaser from 'phaser';
-import { SPAWN_AREA, MIN_DISH_DISTANCE, WAVE_TRANSITION } from '../data/constants';
+import {
+  SPAWN_AREA,
+  MIN_DISH_DISTANCE,
+  MIN_BOSS_DISTANCE,
+  WAVE_TRANSITION,
+} from '../data/constants';
 import { Data } from '../data/DataManager';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
@@ -22,6 +27,7 @@ export class WaveSystem {
   private totalGameTime: number = 0;
   private getDishPool: () => ObjectPool<Dish>;
   private getMaxSpawnY: () => number;
+  private getBoss: () => { x: number; y: number; visible: boolean } | null;
 
   private wavePhase: WavePhase = 'waiting';
   private countdownTimer: number = 0;
@@ -30,11 +36,13 @@ export class WaveSystem {
   constructor(
     scene: Phaser.Scene,
     getDishPool: () => ObjectPool<Dish>,
-    getMaxSpawnY?: () => number
+    getMaxSpawnY?: () => number,
+    getBoss?: () => { x: number; y: number; visible: boolean } | null
   ) {
     this.scene = scene;
     this.getDishPool = getDishPool;
     this.getMaxSpawnY = getMaxSpawnY || (() => SPAWN_AREA.maxY);
+    this.getBoss = getBoss || (() => null);
   }
 
   startWave(waveNumber: number): void {
@@ -185,6 +193,7 @@ export class WaveSystem {
 
   private findValidSpawnPosition(): { x: number; y: number } | null {
     const activeDishes = this.getDishPool().getActiveObjects();
+    const boss = this.getBoss();
     const maxAttempts = 20;
     const maxY = this.getMaxSpawnY();
 
@@ -193,11 +202,23 @@ export class WaveSystem {
       const y = Phaser.Math.Between(SPAWN_AREA.minY, maxY);
 
       let isValid = true;
-      for (const dish of activeDishes) {
-        const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
-        if (distance < MIN_DISH_DISTANCE) {
+
+      // 보스와의 거리 체크 (보스가 활성화된 경우만)
+      if (boss && boss.visible) {
+        const distanceToBoss = Phaser.Math.Distance.Between(x, y, boss.x, boss.y);
+        if (distanceToBoss < MIN_BOSS_DISTANCE) {
           isValid = false;
-          break;
+        }
+      }
+
+      // 다른 접시들과의 거리 체크
+      if (isValid) {
+        for (const dish of activeDishes) {
+          const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
+          if (distance < MIN_DISH_DISTANCE) {
+            isValid = false;
+            break;
+          }
         }
       }
 

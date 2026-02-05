@@ -6,6 +6,7 @@
     "maxY": 640
   },
   "minDishDistance": 100,
+  "minBossDistance": 150,
   "dynamicSpawn": {
     "minActiveDishes": 2,
     "emergencyInterval": 300,

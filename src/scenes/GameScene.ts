@@ -159,7 +159,8 @@ export class GameScene extends Phaser.Scene {
       this,
       () => this.dishPool,
       () =>
-        this.inGameUpgradeUI.isVisible() ? this.inGameUpgradeUI.getBlockedYArea() : SPAWN_AREA.maxY
+        this.inGameUpgradeUI.isVisible() ? this.inGameUpgradeUI.getBlockedYArea() : SPAWN_AREA.maxY,
+      () => this.boss
     );
     this.healthSystem = new HealthSystem();
     this.healthPackSystem = new HealthPackSystem(this);

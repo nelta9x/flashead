@@ -1,0 +1,4 @@
+description = "현재 프로젝트 디렉토리를 탐색기(Finder)에서 엽니다."
+prompt = """
+!{open .}
+"""

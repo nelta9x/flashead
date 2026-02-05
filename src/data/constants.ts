@@ -82,6 +82,7 @@ export const SPAWN_AREA = {
 
 // 접시 간 최소 거리
 export const MIN_DISH_DISTANCE = Data.spawn.minDishDistance;
+export const MIN_BOSS_DISTANCE = Data.spawn.minBossDistance;
 
 // 접시 데미지 시스템
 export const DISH_DAMAGE = {

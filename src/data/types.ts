@@ -87,6 +87,7 @@ export interface DynamicSpawnConfig {
 export interface SpawnConfig {
   area: SpawnAreaConfig;
   minDishDistance: number;
+  minBossDistance: number;
   dynamicSpawn: DynamicSpawnConfig;
 }
 
