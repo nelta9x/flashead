@@ -17,6 +17,7 @@ import { FeedbackSystem } from '../systems/FeedbackSystem';
 import { SoundSystem } from '../systems/SoundSystem';
 import { InGameUpgradeUI } from '../ui/InGameUpgradeUI';
 import { WaveCountdownUI } from '../ui/WaveCountdownUI';
+import { AbilityPanel } from '../ui/AbilityPanel';
 
 export class GameScene extends Phaser.Scene {
   private dishPool!: ObjectPool<Dish>;
@@ -35,6 +36,7 @@ export class GameScene extends Phaser.Scene {
   private hud!: HUD;
   private inGameUpgradeUI!: InGameUpgradeUI;
   private waveCountdownUI!: WaveCountdownUI;
+  private abilityPanel!: AbilityPanel;
   private particleManager!: ParticleManager;
   private screenShake!: ScreenShake;
   private slowMotion!: SlowMotion;
@@ -149,6 +151,9 @@ export class GameScene extends Phaser.Scene {
 
     // 웨이브 카운트다운 UI
     this.waveCountdownUI = new WaveCountdownUI(this);
+
+    // 어빌리티 패널 (DOM 기반)
+    this.abilityPanel = new AbilityPanel();
   }
 
   private initializeEntities(): void {
@@ -201,9 +206,13 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // 업그레이드 선택 완료 (현재는 특별한 처리 없음)
+    // 업그레이드 선택 완료
     EventBus.getInstance().on(GameEvents.UPGRADE_SELECTED, () => {
-      // 업그레이드 선택 완료
+      // 어빌리티 패널 업데이트
+      EventBus.getInstance().emit(
+        GameEvents.UPGRADES_CHANGED,
+        this.upgradeSystem.getAllUpgradeStacks()
+      );
     });
 
     // 카운트다운 틱
@@ -322,8 +331,6 @@ export class GameScene extends Phaser.Scene {
     this.feedbackSystem.onDishDestroyed(x, y, dish.getColor(), dish.getDishType());
 
     // ===== 업그레이드 효과 적용 =====
-    const aoeRadius = 150;
-
     // 전기 충격 (주변 접시에 데미지)
     const electricLevel = this.upgradeSystem.getElectricShockLevel();
     if (electricLevel > 0) {
@@ -480,6 +487,7 @@ export class GameScene extends Phaser.Scene {
     this.healthPackSystem.clear();
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
+    this.abilityPanel.destroy();
   }
 
   update(_time: number, delta: number): void {

@@ -14,20 +14,117 @@
       body {
         background-color: #0a0a0f;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
         overflow: hidden;
+        gap: 0;
       }
 
       #game-container {
         border: 2px solid #00ffff;
         box-shadow: 0 0 20px #00ffff40, inset 0 0 20px #00ffff20;
       }
+
+      /* 어빌리티 패널 */
+      #ability-panel {
+        width: 1280px;
+        min-height: 60px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px 16px;
+        background: linear-gradient(180deg, #0a0a0f 0%, #12121a 100%);
+        border: 2px solid #00ffff;
+        border-top: none;
+        box-shadow: 0 4px 20px #00ffff30;
+        box-sizing: border-box;
+      }
+
+      #ability-panel:empty::after {
+        content: '아직 획득한 어빌리티가 없습니다';
+        color: #666;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 14px;
+        width: 100%;
+        text-align: center;
+        padding: 8px 0;
+      }
+
+      .ability-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border: 1px solid #00ffff60;
+        border-radius: 8px;
+        box-shadow: 0 0 10px #00ffff20, inset 0 0 10px #00ffff10;
+        transition: all 0.2s ease;
+      }
+
+      .ability-card:hover {
+        border-color: #00ffff;
+        box-shadow: 0 0 15px #00ffff40, inset 0 0 15px #00ffff20;
+        transform: translateY(-2px);
+      }
+
+      .ability-icon {
+        font-size: 24px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ability-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .ability-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .ability-name {
+        color: #fff;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .ability-level {
+        color: #00ffff;
+        font-family: 'Orbitron', monospace;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 2px 6px;
+        background: #00ffff20;
+        border-radius: 4px;
+      }
+
+      .ability-level.max-level {
+        color: #ff00ff;
+        background: #ff00ff20;
+        box-shadow: 0 0 8px #ff00ff40;
+      }
+
+      .ability-desc {
+        color: #888;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 11px;
+      }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="game-container"></div>
+    <div id="ability-panel"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

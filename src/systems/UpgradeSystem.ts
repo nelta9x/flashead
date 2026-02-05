@@ -9,7 +9,7 @@ export interface Upgrade {
   effect: (upgradeSystem: UpgradeSystem, stack: number) => void;
 }
 
-const UPGRADES: Upgrade[] = [
+export const UPGRADES: Upgrade[] = [
   {
     id: 'cursor_size',
     name: '넓은 타격',
