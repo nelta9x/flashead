@@ -1,0 +1,51 @@
+{
+  "visual": {
+    "core": {
+      "radius": 30,
+      "color": "red",
+      "initialAlpha": 0.8,
+      "pulseSpeed": 0.01,
+      "pulseIntensity": 0.2
+    },
+    "armor": {
+      "maxPieces": 10,
+      "radius": 55,
+      "innerRadius": 40,
+      "rotationSpeed": 0.0005,
+      "gap": 0.1,
+      "bodyColor": "0x440000",
+      "bodyAlpha": 0.9,
+      "borderColor": "red"
+    },
+    "shockwave": {
+      "initialRadius": 40,
+      "maxRadius": 120,
+      "initialAlpha": 0.8,
+      "duration": 400
+    },
+    "breakParticles": {
+      "count": 10,
+      "radius": 5,
+      "spawnDistance": 50,
+      "travelDistance": 150,
+      "duration": 600
+    }
+  },
+  "feedback": {
+    "damageShake": {
+      "intensity": 3,
+      "duration": 50
+    },
+    "armorBreakShake": {
+      "intensity": 0.01,
+      "duration": 200
+    },
+    "vibrationThreshold": 0.6,
+    "vibrationIntensity": 2
+  },
+  "spawn": {
+    "y": 100,
+    "duration": 1000,
+    "initialScale": 0.5
+  }
+}

@@ -487,6 +487,33 @@ import { COLORS, FONTS } from '../data/constants';
 
 ---
 
+### boss.json
+
+보스의 시각적 외형과 피드백 설정을 관리합니다. 보스의 아머 파편은 현재 체력의 척도(HP Bar) 역할을 합니다.
+
+```json
+{
+  "visual": {
+    "core": {
+      "radius": 30,          // 중앙 코어 반지름
+      "pulseSpeed": 0.01     // 코어 깜빡임 속도
+    },
+    "armor": {
+      "maxPieces": 10,       // 총 아머 파편 개수 (HP 100% 일 때)
+      "radius": 55,          // 아머 외곽 반지름
+      "innerRadius": 40,     // 아머 안쪽 반지름
+      "rotationSpeed": 0.0005 // 아머 회전 속도
+    },
+    "shockwave": {
+      "maxRadius": 120,      // 아머 파괴 시 충격파 최대 크기
+      "duration": 400        // 충격파 지속 시간
+    }
+  }
+}
+```
+
+---
+
 ## 밸런스 팁
 
 1. **난이도 곡선**: `waves.json`의 `spawnInterval`을 조절. 웨이브 1은 1000ms, 웨이브 12는 200ms가 기본값.

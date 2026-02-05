@@ -472,6 +472,59 @@ export interface MagnetConfig {
   minPullDistance: number;
 }
 
+// ========== 보스 설정 ==========
+export interface BossConfig {
+  visual: {
+    core: {
+      radius: number;
+      color: string;
+      initialAlpha: number;
+      pulseSpeed: number;
+      pulseIntensity: number;
+    };
+    armor: {
+      maxPieces: number;
+      radius: number;
+      innerRadius: number;
+      rotationSpeed: number;
+      gap: number;
+      bodyColor: string;
+      bodyAlpha: number;
+      borderColor: string;
+    };
+    shockwave: {
+      initialRadius: number;
+      maxRadius: number;
+      initialAlpha: number;
+      duration: number;
+    };
+    breakParticles: {
+      count: number;
+      radius: number;
+      spawnDistance: number;
+      travelDistance: number;
+      duration: number;
+    };
+  };
+  feedback: {
+    damageShake: {
+      intensity: number;
+      duration: number;
+    };
+    armorBreakShake: {
+      intensity: number;
+      duration: number;
+    };
+    vibrationThreshold: number;
+    vibrationIntensity: number;
+  };
+  spawn: {
+    y: number;
+    duration: number;
+    initialScale: number;
+  };
+}
+
 // ========== 전체 데이터 구조 ==========
 export interface GameDataConfig {
   gameConfig: GameConfig;
@@ -485,4 +538,5 @@ export interface GameDataConfig {
   upgrades: UpgradesConfig;
   weapons: WeaponsConfig;
   magnet: MagnetConfig;
+  boss: BossConfig;
 }

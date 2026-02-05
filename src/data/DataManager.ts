@@ -16,6 +16,7 @@ import type {
   UpgradesConfig,
   WeaponsConfig,
   MagnetConfig,
+  BossConfig,
 } from './types';
 
 // JSON 파일 직접 import
@@ -29,6 +30,7 @@ import wavesJson from '../../data/waves.json';
 import dishesJson from '../../data/dishes.json';
 import upgradesJson from '../../data/upgrades.json';
 import weaponsJson from '../../data/weapons.json';
+import bossJson from '../../data/boss.json';
 
 class DataManager {
   private static instance: DataManager;
@@ -45,6 +47,7 @@ class DataManager {
   public readonly upgrades: UpgradesConfig;
   public readonly weapons: WeaponsConfig;
   public readonly magnet: MagnetConfig;
+  public readonly boss: BossConfig;
 
   private constructor() {
     this.gameConfig = gameConfigJson as GameConfig;
@@ -58,6 +61,7 @@ class DataManager {
     this.upgrades = upgradesJson as UpgradesConfig;
     this.weapons = weaponsJson as WeaponsConfig;
     this.magnet = gameConfigJson.magnet as MagnetConfig;
+    this.boss = bossJson as BossConfig;
   }
 
   public static getInstance(): DataManager {
