@@ -419,7 +419,7 @@ export class GameScene extends Phaser.Scene {
                     this.cameras.main.shake(300, 0.005);
                     
                     // 카메라 줌 인 펀치 효과
-                    this.cameras.main.zoomTo(1.1, 50, 'Power2', true, (_cam, progress) => {
+                    this.cameras.main.zoomTo(1.05, 50, 'Power2', true, (_cam, progress) => {
                         if (progress === 1) {
                             this.time.delayedCall(100, () => {
                                 this.cameras.main.zoomTo(1.0, 300, 'Elastic.Out');
