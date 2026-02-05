@@ -21,11 +21,51 @@ vi.mock('../src/utils/EventBus', () => ({
 vi.mock('../data/dishes.json', () => ({
   default: {
     dishes: {
-      basic: { hp: 30, points: 100, color: '#00ffff', chainReaction: false, dangerous: false, lifetime: 2000, size: 30 },
-      golden: { hp: 20, points: 400, color: '#ffff00', chainReaction: false, dangerous: false, lifetime: 1500, size: 35 },
-      crystal: { hp: 40, points: 250, color: '#ff00ff', chainReaction: true, dangerous: false, lifetime: 1800, size: 25 },
-      bomb: { hp: 1, points: 0, color: '#ff0044', chainReaction: false, dangerous: true, lifetime: 1200, size: 40 },
-      mini: { hp: 15, points: 50, color: '#00ff88', chainReaction: false, dangerous: false, lifetime: 1500, size: 20 },
+      basic: {
+        hp: 30,
+        points: 100,
+        color: '#00ffff',
+        chainReaction: false,
+        dangerous: false,
+        lifetime: 2000,
+        size: 30,
+      },
+      golden: {
+        hp: 20,
+        points: 400,
+        color: '#ffff00',
+        chainReaction: false,
+        dangerous: false,
+        lifetime: 1500,
+        size: 35,
+      },
+      crystal: {
+        hp: 40,
+        points: 250,
+        color: '#ff00ff',
+        chainReaction: true,
+        dangerous: false,
+        lifetime: 1800,
+        size: 25,
+      },
+      bomb: {
+        hp: 1,
+        points: 0,
+        color: '#ff0044',
+        chainReaction: false,
+        dangerous: true,
+        lifetime: 1200,
+        size: 40,
+      },
+      mini: {
+        hp: 15,
+        points: 50,
+        color: '#00ff88',
+        chainReaction: false,
+        dangerous: false,
+        lifetime: 1500,
+        size: 20,
+      },
     },
     damage: {
       playerDamage: 10,
@@ -47,10 +87,18 @@ vi.mock('../data/game-config.json', () => ({
 vi.mock('../data/spawn.json', () => ({ default: { area: {}, dynamicSpawn: {} } }));
 vi.mock('../data/combo.json', () => ({ default: { timeout: {}, milestones: [], multiplier: {} } }));
 vi.mock('../data/health-pack.json', () => ({ default: { spawnChanceByHp: {} } }));
-vi.mock('../data/feedback.json', () => ({ default: { comboMilestones: {}, particles: {}, damageText: { normal: {}, critical: {}, combo: { colors: {}, thresholds: {} }, animation: {} } } }));
+vi.mock('../data/feedback.json', () => ({
+  default: {
+    comboMilestones: {},
+    particles: {},
+    damageText: { normal: {}, critical: {}, combo: { colors: {}, thresholds: {} }, animation: {} },
+  },
+}));
 vi.mock('../data/colors.json', () => ({ default: { hex: {}, numeric: {} } }));
 vi.mock('../data/waves.json', () => ({ default: { waves: [], duration: 20000 } }));
-vi.mock('../data/upgrades.json', () => ({ default: { timing: {}, rarityWeights: {}, rarityThresholds: {}, weapon: {}, system: [] } }));
+vi.mock('../data/upgrades.json', () => ({
+  default: { timing: {}, rarityWeights: {}, rarityThresholds: {}, weapon: {}, system: [] },
+}));
 vi.mock('../data/weapons.json', () => ({ default: {} }));
 
 // Mock constants
@@ -81,26 +129,58 @@ vi.mock('../src/data/constants', () => ({
 // Mock Phaser with proper Container and body
 vi.mock('phaser', () => {
   class MockGraphics {
-    clear() { return this; }
-    fillStyle() { return this; }
-    fillCircle() { return this; }
-    fillRect() { return this; }
-    lineStyle() { return this; }
-    strokeCircle() { return this; }
-    strokeRect() { return this; }
-    beginPath() { return this; }
-    moveTo() { return this; }
-    lineTo() { return this; }
-    closePath() { return this; }
-    fillPath() { return this; }
-    strokePath() { return this; }
+    clear() {
+      return this;
+    }
+    fillStyle() {
+      return this;
+    }
+    fillCircle() {
+      return this;
+    }
+    fillRect() {
+      return this;
+    }
+    lineStyle() {
+      return this;
+    }
+    strokeCircle() {
+      return this;
+    }
+    strokeRect() {
+      return this;
+    }
+    beginPath() {
+      return this;
+    }
+    moveTo() {
+      return this;
+    }
+    lineTo() {
+      return this;
+    }
+    closePath() {
+      return this;
+    }
+    fillPath() {
+      return this;
+    }
+    strokePath() {
+      return this;
+    }
   }
 
   class MockBody {
     enable = true;
-    setCircle() { return this; }
-    setOffset() { return this; }
-    setVelocity() { return this; }
+    setCircle() {
+      return this;
+    }
+    setOffset() {
+      return this;
+    }
+    setVelocity() {
+      return this;
+    }
   }
 
   class MockContainer {
@@ -121,16 +201,43 @@ vi.mock('phaser', () => {
       this.body = new MockBody();
     }
 
-    setVisible(v: boolean) { this.visible = v; return this; }
-    setActive(v: boolean) { this.active = v; return this; }
-    setAlpha(a: number) { this.alpha = a; return this; }
-    setScale(s: number) { this.scaleX = s; this.scaleY = s; return this; }
-    setPosition(x: number, y: number) { this.x = x; this.y = y; return this; }
-    setInteractive() { return this; }
-    disableInteractive() { return this; }
-    removeAllListeners() { return this; }
-    on() { return this; }
-    add() { return this; }
+    setVisible(v: boolean) {
+      this.visible = v;
+      return this;
+    }
+    setActive(v: boolean) {
+      this.active = v;
+      return this;
+    }
+    setAlpha(a: number) {
+      this.alpha = a;
+      return this;
+    }
+    setScale(s: number) {
+      this.scaleX = s;
+      this.scaleY = s;
+      return this;
+    }
+    setPosition(x: number, y: number) {
+      this.x = x;
+      this.y = y;
+      return this;
+    }
+    setInteractive() {
+      return this;
+    }
+    disableInteractive() {
+      return this;
+    }
+    removeAllListeners() {
+      return this;
+    }
+    on() {
+      return this;
+    }
+    add() {
+      return this;
+    }
   }
 
   return {
@@ -147,8 +254,14 @@ vi.mock('phaser', () => {
       },
       Geom: {
         Circle: class MockCircle {
-          constructor(public x: number, public y: number, public radius: number) {}
-          static Contains() { return true; }
+          constructor(
+            public x: number,
+            public y: number,
+            public radius: number
+          ) {}
+          static Contains() {
+            return true;
+          }
         },
       },
       Time: {

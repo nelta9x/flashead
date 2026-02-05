@@ -9,7 +9,7 @@ export class Boss extends Phaser.GameObjects.Container {
   private hpRatio: number = 1;
   private timeElapsed: number = 0;
   private isDead: boolean = false;
-  
+
   // 아머 설정 (HP바 역할)
   private readonly maxArmorPieces: number;
   private currentArmorCount: number;
@@ -23,10 +23,13 @@ export class Boss extends Phaser.GameObjects.Container {
 
     // 중앙 코어 생성
     this.core = scene.add.arc(
-      0, 0, 
-      config.core.radius, 
-      0, 360, false, 
-      COLORS.RED, 
+      0,
+      0,
+      config.core.radius,
+      0,
+      360,
+      false,
+      COLORS.RED,
       config.core.initialAlpha
     );
     this.add(this.core);
@@ -47,15 +50,15 @@ export class Boss extends Phaser.GameObjects.Container {
       const data = args[0] as { ratio: number };
       const oldArmorCount = this.currentArmorCount;
       this.hpRatio = data.ratio;
-      
+
       // HP 비율에 따른 아머 개수 계산
       this.currentArmorCount = Math.ceil(this.hpRatio * this.maxArmorPieces);
-      
+
       // 아머가 부서질 때 효과
       if (this.currentArmorCount < oldArmorCount) {
         this.onArmorBreak();
       }
-      
+
       this.onDamage();
     });
 
@@ -74,13 +77,13 @@ export class Boss extends Phaser.GameObjects.Container {
     this.hpRatio = 1;
     this.currentArmorCount = this.maxArmorPieces;
     this.setVisible(true);
-    
+
     this.scene.tweens.add({
       targets: this,
       alpha: 1,
       scale: { from: config.initialScale, to: 1 },
       duration: config.duration,
-      ease: 'Back.easeOut'
+      ease: 'Back.easeOut',
     });
   }
 
@@ -98,7 +101,7 @@ export class Boss extends Phaser.GameObjects.Container {
       },
       onComplete: () => {
         this.core.setFillStyle(COLORS.RED, Data.boss.visual.core.initialAlpha);
-      }
+      },
     });
 
     this.scene.tweens.add({
@@ -107,7 +110,7 @@ export class Boss extends Phaser.GameObjects.Container {
       y: this.y + Phaser.Math.Between(-config.intensity, config.intensity),
       duration: config.duration,
       yoyo: true,
-      repeat: 1
+      repeat: 1,
     });
   }
 
@@ -117,12 +120,12 @@ export class Boss extends Phaser.GameObjects.Container {
 
     // 1. 화면 효과: 강한 흔들림
     this.scene.cameras.main.shake(feedback.duration, feedback.intensity);
-    
+
     // 2. 사운드 효과: 묵직한 폭발음
-    import('../systems/SoundSystem').then(m => {
+    import('../systems/SoundSystem').then((m) => {
       m.SoundSystem.getInstance().playBossImpactSound();
     });
-    
+
     // 3. 충격파 연출 (Expanding Ring)
     const sw = config.shockwave;
     const shockwave = this.scene.add.graphics();
@@ -138,19 +141,28 @@ export class Boss extends Phaser.GameObjects.Container {
         shockwave.lineStyle(4, 0xffffff, target.alpha);
         shockwave.strokeCircle(this.x, this.y, target.radius);
       },
-      onComplete: () => shockwave.destroy()
+      onComplete: () => shockwave.destroy(),
     });
-    
+
     // 4. 파편 비산 효과 강화
     const bp = config.breakParticles;
     for (let i = 0; i < bp.count; i++) {
-      const angle = (Math.PI * 2 / bp.count) * i + (Math.random() - 0.5);
+      const angle = ((Math.PI * 2) / bp.count) * i + (Math.random() - 0.5);
       const px = Math.cos(angle) * bp.spawnDistance;
       const py = Math.sin(angle) * bp.spawnDistance;
-      
-      const chunk = this.scene.add.arc(this.x + px, this.y + py, bp.radius, 0, 360, false, COLORS.RED, 1);
+
+      const chunk = this.scene.add.arc(
+        this.x + px,
+        this.y + py,
+        bp.radius,
+        0,
+        360,
+        false,
+        COLORS.RED,
+        1
+      );
       chunk.setDepth(1999);
-      
+
       this.scene.tweens.add({
         targets: chunk,
         x: chunk.x + Math.cos(angle) * bp.travelDistance,
@@ -160,7 +172,7 @@ export class Boss extends Phaser.GameObjects.Container {
         rotation: 720,
         duration: bp.duration,
         ease: 'Cubic.easeOut',
-        onComplete: () => chunk.destroy()
+        onComplete: () => chunk.destroy(),
       });
     }
   }
@@ -175,7 +187,7 @@ export class Boss extends Phaser.GameObjects.Container {
       ease: 'Power2.In',
       onComplete: () => {
         this.setVisible(false);
-      }
+      },
     });
   }
 
@@ -185,17 +197,19 @@ export class Boss extends Phaser.GameObjects.Container {
     const config = Data.boss;
     this.timeElapsed += delta;
     const dangerLevel = 1 - this.hpRatio;
-    
+
     // 코어 연출
-    const corePulse = config.visual.core.initialAlpha + 
-      Math.sin(this.timeElapsed * config.visual.core.pulseSpeed * (1 + dangerLevel)) * config.visual.core.pulseIntensity;
+    const corePulse =
+      config.visual.core.initialAlpha +
+      Math.sin(this.timeElapsed * config.visual.core.pulseSpeed * (1 + dangerLevel)) *
+        config.visual.core.pulseIntensity;
     this.core.setAlpha(corePulse);
     this.core.setScale(1 + dangerLevel * 0.1);
 
     // 아머 그리기
     this.armorGraphics.clear();
     this.drawArmor();
-    
+
     // 위기 시 제자리 진동 (상시)
     if (dangerLevel > config.feedback.vibrationThreshold) {
       const intensity = config.feedback.vibrationIntensity * dangerLevel;
@@ -207,13 +221,13 @@ export class Boss extends Phaser.GameObjects.Container {
   private drawArmor(): void {
     const config = Data.boss.visual.armor;
     const rotation = this.timeElapsed * config.rotationSpeed;
-    
+
     const pieceAngle = (Math.PI * 2) / this.maxArmorPieces;
-    
+
     for (let i = 0; i < this.currentArmorCount; i++) {
       const startAngle = rotation + i * pieceAngle + config.gap;
       const endAngle = rotation + (i + 1) * pieceAngle - config.gap;
-      
+
       const p1x = Math.cos(startAngle) * config.innerRadius;
       const p1y = Math.sin(startAngle) * config.innerRadius;
       const p2x = Math.cos(endAngle) * config.innerRadius;
@@ -225,27 +239,39 @@ export class Boss extends Phaser.GameObjects.Container {
 
       // 아머 본체
       this.armorGraphics.fillStyle(parseInt(config.bodyColor), config.bodyAlpha);
-      this.armorGraphics.fillPoints([
-        { x: p1x, y: p1y },
-        { x: p2x, y: p2y },
-        { x: p3x, y: p3y },
-        { x: p4x, y: p4y }
-      ], true);
+      this.armorGraphics.fillPoints(
+        [
+          { x: p1x, y: p1y },
+          { x: p2x, y: p2y },
+          { x: p3x, y: p3y },
+          { x: p4x, y: p4y },
+        ],
+        true
+      );
 
       // 아머 테두리
       this.armorGraphics.lineStyle(2, COLORS.RED, 1);
-      this.armorGraphics.strokePoints([
-        { x: p1x, y: p1y },
-        { x: p2x, y: p2y },
-        { x: p3x, y: p3y },
-        { x: p4x, y: p4y }
-      ], true);
-      
+      this.armorGraphics.strokePoints(
+        [
+          { x: p1x, y: p1y },
+          { x: p2x, y: p2y },
+          { x: p3x, y: p3y },
+          { x: p4x, y: p4y },
+        ],
+        true
+      );
+
       // 아머 내부 글로우 라인
       this.armorGraphics.lineStyle(1, COLORS.RED, 0.3);
       const midRadius = (config.radius + config.innerRadius) / 2;
       this.armorGraphics.beginPath();
-      this.armorGraphics.arc(0, 0, midRadius, Phaser.Math.RadToDeg(startAngle), Phaser.Math.RadToDeg(endAngle));
+      this.armorGraphics.arc(
+        0,
+        0,
+        midRadius,
+        Phaser.Math.RadToDeg(startAngle),
+        Phaser.Math.RadToDeg(endAngle)
+      );
       this.armorGraphics.strokePath();
     }
   }

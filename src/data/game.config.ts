@@ -1,10 +1,5 @@
 import Phaser from 'phaser';
-export {
-  GAME_WIDTH,
-  GAME_HEIGHT,
-  COLORS,
-  COLORS_HEX,
-} from './constants';
+export { GAME_WIDTH, GAME_HEIGHT, COLORS, COLORS_HEX } from './constants';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './constants';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {

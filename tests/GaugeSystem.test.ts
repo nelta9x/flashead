@@ -26,11 +26,13 @@ describe('GaugeSystem', () => {
 
     eventBus.emit(GameEvents.DISH_DESTROYED, { x: 0, y: 0 });
 
-    expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-      current: 10,
-      max: 100,
-      ratio: 0.1
-    }));
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current: 10,
+        max: 100,
+        ratio: 0.1,
+      })
+    );
   });
 
   it('콤보가 있을 때 게이지가 더 많이 증가해야 함', () => {
@@ -38,18 +40,20 @@ describe('GaugeSystem', () => {
     for (let i = 0; i < 10; i++) {
       comboSystem.increment();
     }
-    
+
     // gaugeBonusPerCombo가 0.01일 때, 10 콤보 보너스는 10%
     // 기본 10 * (1 + 10 * 0.01) = 11
-    
+
     const callback = vi.fn();
     eventBus.on(GameEvents.GAUGE_UPDATED, callback);
 
     eventBus.emit(GameEvents.DISH_DESTROYED, { x: 0, y: 0 });
 
-    expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-      current: 11
-    }));
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current: 11,
+      })
+    );
   });
 
   it('게이지가 100에 도달하면 PLAYER_ATTACK 이벤트를 발생시켜야 함', () => {
@@ -72,14 +76,16 @@ describe('GaugeSystem', () => {
 
     const callback = vi.fn();
     eventBus.on(GameEvents.GAUGE_UPDATED, callback);
-    
+
     // 다음 파괴 시 0에서 10으로 (또는 콤보에 따라 그 이상으로)
     eventBus.emit(GameEvents.DISH_DESTROYED, { x: 0, y: 0 });
-    
-    expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-      current: expect.any(Number)
-    }));
-    
+
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current: expect.any(Number),
+      })
+    );
+
     // 11번 파괴 후 (콤보가 11이 됨)
     // 10번까지는 콤보가 0, 1, 2...9 인 상태에서 파괴됨.
     // 10번째 파괴 때 콤보가 10이 되고 게이지가 100을 넘어서 리셋됨.

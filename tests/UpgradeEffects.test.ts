@@ -146,7 +146,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       const upgrade = new UpgradeSystem();
 
       const upgrades = upgrade.getRandomUpgrades(5);
-      const cursorUpgrade = upgrades.find(u => u.id === 'cursor_size');
+      const cursorUpgrade = upgrades.find((u) => u.id === 'cursor_size');
 
       if (cursorUpgrade) {
         // maxStack이 5이므로 5번까지 중첩 가능
@@ -163,7 +163,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       const upgrade = new UpgradeSystem();
 
       const upgrades = upgrade.getRandomUpgrades(5);
-      const electricUpgrade = upgrades.find(u => u.id === 'electric_shock');
+      const electricUpgrade = upgrades.find((u) => u.id === 'electric_shock');
 
       if (electricUpgrade) {
         // maxStack은 5
@@ -180,7 +180,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       const upgrade = new UpgradeSystem();
 
       const upgrades = upgrade.getRandomUpgrades(10);
-      const staticUpgrade = upgrades.find(u => u.id === 'static_discharge');
+      const staticUpgrade = upgrades.find((u) => u.id === 'static_discharge');
 
       if (staticUpgrade) {
         // maxStack은 5
@@ -197,7 +197,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       const upgrade = new UpgradeSystem();
 
       const upgrades = upgrade.getRandomUpgrades(5);
-      const magnetUpgrade = upgrades.find(u => u.id === 'magnet');
+      const magnetUpgrade = upgrades.find((u) => u.id === 'magnet');
 
       if (magnetUpgrade) {
         // maxStack은 5
@@ -214,7 +214,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       const upgrade = new UpgradeSystem();
 
       const upgrades = upgrade.getRandomUpgrades(5);
-      const missileUpgrade = upgrades.find(u => u.id === 'missile');
+      const missileUpgrade = upgrades.find((u) => u.id === 'missile');
 
       if (missileUpgrade) {
         // maxStack은 5

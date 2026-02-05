@@ -18,7 +18,7 @@ export class MenuScene extends Phaser.Scene {
   private particleManager!: ParticleManager;
   private menuDishes!: Phaser.GameObjects.Group;
   private cursorPos = { x: 0, y: 0 };
-  
+
   private gridOffset: number = 0;
   private bossTime: number = 0;
   private cursorTime: number = 0;
@@ -33,10 +33,10 @@ export class MenuScene extends Phaser.Scene {
     this.createBoss();
     this.createMountains();
     this.createGrid();
-    
+
     this.particleManager = new ParticleManager(this);
     this.menuDishes = this.add.group();
-    
+
     this.cursorTrail = new CursorTrail(this);
     this.createMenuCursor();
     this.createTitle();
@@ -63,15 +63,15 @@ export class MenuScene extends Phaser.Scene {
     // 보스 위치: 이전 태양 위치와 비슷하게
     this.updateBoss(0);
   }
-  
+
   private updateBoss(delta: number): void {
     const config = Data.gameConfig.menu.boss;
     this.bossGraphics.clear();
     this.bossTime += delta;
-    
+
     const bossX = GAME_WIDTH / 2;
     const bossY = GAME_HEIGHT * config.posYRatio;
-    
+
     // 1. 배경 아우라 (붉은빛)
     const auraPulse = 0.2 + Math.sin(this.bossTime * config.aura.pulseSpeed) * 0.1;
     for (let i = 0; i < config.aura.count; i++) {
@@ -84,7 +84,7 @@ export class MenuScene extends Phaser.Scene {
     const corePulse = 0.6 + Math.sin(this.bossTime * config.core.pulseSpeed) * 0.2;
     this.bossGraphics.fillStyle(COLORS.RED, corePulse);
     this.bossGraphics.fillCircle(bossX, bossY, config.coreRadius);
-    
+
     // 코어 내부 흰색 광원
     this.bossGraphics.fillStyle(0xffffff, 0.8);
     this.bossGraphics.fillCircle(bossX, bossY, config.innerLightRadius);
@@ -96,7 +96,7 @@ export class MenuScene extends Phaser.Scene {
     for (let i = 0; i < config.armor.pieceCount; i++) {
       const startAngle = rotation + i * pieceAngle + config.armor.gap;
       const endAngle = rotation + (i + 1) * pieceAngle - config.armor.gap;
-      
+
       const p1x = bossX + Math.cos(startAngle) * config.armor.innerRadius;
       const p1y = bossY + Math.sin(startAngle) * config.armor.innerRadius;
       const p2x = bossX + Math.cos(endAngle) * config.armor.innerRadius;
@@ -108,22 +108,28 @@ export class MenuScene extends Phaser.Scene {
 
       // 아머 본체 (어두운 색)
       this.bossGraphics.fillStyle(0x1a0505, 0.9);
-      this.bossGraphics.fillPoints([
-        { x: p1x, y: p1y },
-        { x: p2x, y: p2y },
-        { x: p3x, y: p3y },
-        { x: p4x, y: p4y }
-      ], true);
+      this.bossGraphics.fillPoints(
+        [
+          { x: p1x, y: p1y },
+          { x: p2x, y: p2y },
+          { x: p3x, y: p3y },
+          { x: p4x, y: p4y },
+        ],
+        true
+      );
 
       // 아머 테두리 (네온 레드)
       this.bossGraphics.lineStyle(3, COLORS.RED, 0.8);
-      this.bossGraphics.strokePoints([
-        { x: p1x, y: p1y },
-        { x: p2x, y: p2y },
-        { x: p3x, y: p3y },
-        { x: p4x, y: p4y }
-      ], true);
-      
+      this.bossGraphics.strokePoints(
+        [
+          { x: p1x, y: p1y },
+          { x: p2x, y: p2y },
+          { x: p3x, y: p3y },
+          { x: p4x, y: p4y },
+        ],
+        true
+      );
+
       // 아머 내부 디테일 라인
       this.bossGraphics.lineStyle(1, COLORS.RED, 0.4);
       const midR = (config.armor.innerRadius + config.armor.outerRadius) / 2;
@@ -131,7 +137,7 @@ export class MenuScene extends Phaser.Scene {
       this.bossGraphics.arc(bossX, bossY, midR, startAngle, endAngle);
       this.bossGraphics.strokePath();
     }
-    
+
     // 보스 미세 진동 효과
     const shakeX = (Math.random() - 0.5) * 2;
     const shakeY = (Math.random() - 0.5) * 2;
@@ -153,7 +159,14 @@ export class MenuScene extends Phaser.Scene {
     this.drawMountain(GAME_WIDTH - 250, horizonY, 350, 80, COLORS.DARK_BG, COLORS.CYAN);
   }
 
-  private drawMountain(x: number, y: number, w: number, h: number, fillColor: number, strokeColor: number): void {
+  private drawMountain(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    fillColor: number,
+    strokeColor: number
+  ): void {
     const points = [
       { x: x, y: y },
       { x: x + w * 0.3, y: y - h * 0.6 },
@@ -233,7 +246,7 @@ export class MenuScene extends Phaser.Scene {
     const horizonY = GAME_HEIGHT * Data.gameConfig.menu.grid.horizonRatio;
     const verticalRange = GAME_HEIGHT - horizonY;
     const perspectiveFactor = Phaser.Math.Clamp((y - horizonY) / verticalRange, 0, 1);
-    
+
     // 멀어질수록 작아지고(0.4x ~ 1.0x), 가까울수록 커짐
     const currentRadius = config.radius * (0.4 + perspectiveFactor * 0.6);
 
@@ -241,9 +254,13 @@ export class MenuScene extends Phaser.Scene {
     this.cursorTrail.update(delta, currentRadius, x, y);
 
     // 1. 외곽 원 (원근감이 적용된 두께와 크기)
-    this.menuCursorGraphics.lineStyle(1 + perspectiveFactor * 2, COLORS.CYAN, 0.2 + perspectiveFactor * 0.4);
+    this.menuCursorGraphics.lineStyle(
+      1 + perspectiveFactor * 2,
+      COLORS.CYAN,
+      0.2 + perspectiveFactor * 0.4
+    );
     this.menuCursorGraphics.strokeCircle(x, y, currentRadius);
-    
+
     // 2. 내부 채우기
     this.menuCursorGraphics.fillStyle(COLORS.CYAN, 0.05 + perspectiveFactor * 0.1);
     this.menuCursorGraphics.fillCircle(x, y, currentRadius);
@@ -256,12 +273,17 @@ export class MenuScene extends Phaser.Scene {
   private createTitle(): void {
     const config = Data.gameConfig.menu.title;
     // 메인 타이틀 (크롬 느낌의 네온 텍스트)
-    this.titleText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - config.yOffset, 'VIBESHOOTER', {
-      fontFamily: FONTS.MAIN,
-      fontSize: config.fontSize,
-      color: COLORS_HEX.CYAN,
-      fontStyle: 'italic bold',
-    });
+    this.titleText = this.add.text(
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 - config.yOffset,
+      'VIBESHOOTER',
+      {
+        fontFamily: FONTS.MAIN,
+        fontSize: config.fontSize,
+        color: COLORS_HEX.CYAN,
+        fontStyle: 'italic bold',
+      }
+    );
     this.titleText.setOrigin(0.5);
     // 그림자와 이탤릭체로 인해 글자가 잘리는 것을 방지하기 위해 패딩 추가
     this.titleText.setPadding(config.padding, config.padding, config.padding, config.padding);
@@ -304,7 +326,7 @@ export class MenuScene extends Phaser.Scene {
     const gridConfig = Data.gameConfig.menu.grid;
     const cursorConfig = Data.gameConfig.menu.cursor;
     const horizonY = GAME_HEIGHT * gridConfig.horizonRatio;
-    
+
     // 1. 스폰
     if (this.time.now - this.lastDishSpawnTime > config.interval) {
       this.spawnMenuDish(horizonY, config);
@@ -313,66 +335,73 @@ export class MenuScene extends Phaser.Scene {
 
     // 2. 이동 및 충돌
     const cursorRadius = cursorConfig.radius;
-    
+
     this.menuDishes.getChildren().forEach((child: Phaser.GameObjects.GameObject) => {
       const dish = child as Phaser.GameObjects.Graphics;
-      
+
       // 원근감 이동 (아래로 갈수록 빨라짐)
       const verticalRange = GAME_HEIGHT - horizonY;
       const perspectiveFactor = (dish.y - horizonY) / verticalRange;
       const speed = gridConfig.speed * delta * (1 + perspectiveFactor * config.speedMultiplier);
-      
+
       dish.y += speed;
-      
+
       // X축 이동 (중앙에서 퍼져나가는 효과 등은 제외하고 직선 이동)
-      
+
       // 원근감 스케일링
       const scale = 0.2 + perspectiveFactor * 0.8;
       dish.setScale(scale);
-      
+
       // 화면 밖 제거
       if (dish.y > GAME_HEIGHT + 50) {
         dish.destroy();
         return;
       }
-      
+
       // 충돌 체크 (커서와 접시)
       // 원근감이 적용된 실제 화면상 거리와 반지름 비교
       const dist = Phaser.Math.Distance.Between(dish.x, dish.y, this.cursorPos.x, this.cursorPos.y);
-      const hitDist = (config.radius * scale) + (cursorRadius * (0.4 + perspectiveFactor * 0.6));
-      
+      const hitDist = config.radius * scale + cursorRadius * (0.4 + perspectiveFactor * 0.6);
+
       if (dist < hitDist) {
         // 파괴 이펙트
         const color = parseInt(config.color.replace('#', ''), 16);
         this.particleManager.createExplosion(dish.x, dish.y, color, 'basic', 0.5);
         this.particleManager.createHitEffect(dish.x, dish.y, COLORS.WHITE);
-        
+
         // 사운드 재생 시도 (사용자 상호작용 전이라 재생 안 될 수 있음)
         const ss = SoundSystem.getInstance();
         if (ss) {
-             try { ss.playHitSound(); } catch (e) { /* ignore */ }
+          try {
+            ss.playHitSound();
+          } catch (e) {
+            /* ignore */
+          }
         }
-        
+
         dish.destroy();
       }
     });
   }
 
-  private spawnMenuDish(horizonY: number, config: { spawnRangeX: number, color: string, radius: number }): void {
+  private spawnMenuDish(
+    horizonY: number,
+    config: { spawnRangeX: number; color: string; radius: number }
+  ): void {
     // 커서가 움직이는 X 범위 내에서 스폰하여 충돌 확률 높임
     const spawnXRange = config.spawnRangeX || 300;
     const x = GAME_WIDTH / 2 + (Math.random() - 0.5) * spawnXRange;
     const y = horizonY;
-    
+
     const dish = this.add.graphics();
     dish.x = x;
     dish.y = y;
-    
+
     // 네온 팔각형 그리기
     const color = parseInt(config.color.replace('#', ''), 16);
     dish.lineStyle(2, color, 1);
     dish.fillStyle(color, 0.3);
-    
+
     const radius = config.radius;
     dish.beginPath();
     for (let i = 0; i < 8; i++) {
@@ -439,7 +468,7 @@ export class MenuScene extends Phaser.Scene {
       // 거리에 따른 간격 조절 (원근법)
       // i * config.size + gridOffset을 통해 연속적인 위치 계산
       const lineProgress = ((i * config.size + this.gridOffset) % 400) / 400;
-      
+
       // 화면 밖으로 나가는 선 처리 방지 (선택사항, 안전장치)
       if (lineProgress < 0) continue;
 

@@ -5,9 +5,7 @@
       "name": "시작",
       "dishCount": 3,
       "spawnInterval": 1000,
-      "dishTypes": [
-        { "type": "basic", "weight": 1 }
-      ],
+      "dishTypes": [{ "type": "basic", "weight": 1 }],
       "bossHp": 5,
       "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
     },
