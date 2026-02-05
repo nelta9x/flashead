@@ -54,7 +54,7 @@
     "radius": 20,
     "color": "0x00ffff",
     "spawnYOffset": 180,
-    "spawnRangeX": 300,
+    "spawnRangeX": 700,
     "speedMultiplier": 4
   },
   "title": {
