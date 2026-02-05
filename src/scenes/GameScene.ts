@@ -311,9 +311,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     // 몬스터 HP 변경
-    EventBus.getInstance().on(GameEvents.MONSTER_HP_CHANGED, (...args: unknown[]) => {
-      const data = args[0] as { current: number; max: number };
-      this.hud.updateMonsterHp(data.current, data.max);
+    EventBus.getInstance().on(GameEvents.MONSTER_HP_CHANGED, () => {
+      // 보스 엔티티가 내부적으로 이 이벤트를 구독하여 원형 게이지를 업데이트함
     });
 
     // 플레이어 게이지 업데이트

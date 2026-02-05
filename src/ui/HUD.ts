@@ -18,10 +18,6 @@ export class HUD {
   private hpHearts: Phaser.GameObjects.Graphics[] = [];
   private hpBlinkTween: Phaser.Tweens.Tween | null = null;
 
-  // Monster HP UI
-  private monsterHpBar!: Phaser.GameObjects.Graphics;
-  private monsterHpText!: Phaser.GameObjects.Text;
-
   constructor(scene: Phaser.Scene, waveSystem: WaveSystem, healthSystem?: HealthSystem) {
     this.scene = scene;
     this.waveSystem = waveSystem;
@@ -51,17 +47,6 @@ export class HUD {
     });
     this.waveText.setOrigin(0.5, 0);
 
-    // 몬스터 HP 바 (웨이브 텍스트 아래)
-    this.monsterHpBar = this.scene.add.graphics();
-    this.monsterHpText = this.scene.add.text(GAME_WIDTH / 2, 60, 'BOSS HP', {
-      fontFamily: FONTS.MAIN,
-      fontSize: '16px',
-      color: COLORS_HEX.RED,
-      stroke: '#000000',
-      strokeThickness: 2,
-    });
-    this.monsterHpText.setOrigin(0.5, 0);
-
     // 피버 타임 텍스트 (숨김)
     this.feverText = this.scene.add.text(GAME_WIDTH / 2, 100, 'FEVER TIME!', {
       fontFamily: FONTS.MAIN,
@@ -75,33 +60,6 @@ export class HUD {
 
     // HP 표시 생성
     this.createHpDisplay();
-
-    // 초기 바 그리기
-    this.updateMonsterHp(1, 1);
-  }
-
-  updateMonsterHp(current: number, max: number): void {
-    const width = 300;
-    const height = 20;
-    const x = (GAME_WIDTH - width) / 2;
-    const y = 60;
-
-    this.monsterHpBar.clear();
-
-    // 배경
-    this.monsterHpBar.fillStyle(0x000000, 0.5);
-    this.monsterHpBar.fillRect(x, y, width, height);
-
-    // 체력
-    const ratio = Math.max(0, current / max);
-    this.monsterHpBar.fillStyle(COLORS.RED, 1);
-    this.monsterHpBar.fillRect(x, y, width * ratio, height);
-
-    // 테두리
-    this.monsterHpBar.lineStyle(2, 0xffffff, 0.8);
-    this.monsterHpBar.strokeRect(x, y, width, height);
-
-    this.monsterHpText.setText(`BOSS HP: ${current}/${max}`);
   }
 
   private createHpDisplay(): void {
