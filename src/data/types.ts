@@ -40,6 +40,18 @@ export interface LaserAttackConfig {
   color: string;
   warningAlpha: number;
   fireAlpha: number;
+  trajectory: {
+    minDistanceRatio: number;
+    spawnPadding: number;
+  };
+  bonus: {
+    comboAmount: number;
+    invincibilityDuration: number;
+  };
+  visual: {
+    sparkSegments: number;
+    sparkCount: number;
+  };
 }
 
 export interface MonsterAttackConfig {

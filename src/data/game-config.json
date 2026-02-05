@@ -29,7 +29,19 @@
       "damage": 1,
       "color": "#ff0000",
       "warningAlpha": 0.3,
-      "fireAlpha": 0.8
+      "fireAlpha": 0.8,
+      "trajectory": {
+        "minDistanceRatio": 0.7,
+        "spawnPadding": -100
+      },
+      "bonus": {
+        "comboAmount": 1,
+        "invincibilityDuration": 500
+      },
+      "visual": {
+        "sparkSegments": 8,
+        "sparkCount": 2
+      }
     }
   },
   "fonts": {

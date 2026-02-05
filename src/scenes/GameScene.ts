@@ -580,8 +580,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     // ===== 레이저 보너스 체크 =====
+    const laserConfig = Data.gameConfig.monsterAttack.laser;
     const isLaserFiring = this.activeLasers.some(l => l.isFiring);
-    const comboBonus = isLaserFiring ? 1 : 0; // 레이저 발사 중이면 +1 (총 2배)
+    const comboBonus = isLaserFiring ? laserConfig.bonus.comboAmount : 0; // 레이저 발사 중 보너스
 
     // 콤보 증가
     this.comboSystem.increment(comboBonus);
@@ -1005,7 +1006,7 @@ export class GameScene extends Phaser.Scene {
     let p1 = { x: 0, y: 0 };
     let p2 = { x: 0, y: 0 };
     let distance = 0;
-    const minDistance = Math.min(GAME_WIDTH, GAME_HEIGHT) * 0.7; // 최소 거리 보장 (화면 짧은 변의 70%)
+    const minDistance = Math.min(GAME_WIDTH, GAME_HEIGHT) * config.trajectory.minDistanceRatio;
 
     let attempts = 0;
     while (distance < minDistance && attempts < 10) {
@@ -1014,7 +1015,7 @@ export class GameScene extends Phaser.Scene {
         while (side1 === side2) side2 = Phaser.Math.Between(0, 3);
 
         const getPointOnSide = (side: number) => {
-            const padding = -100; // 화면 바깥에서 시작하게 하여 끝부분이 잘리지 않게 함
+            const padding = config.trajectory.spawnPadding;
             switch(side) {
                 case 0: return { x: Phaser.Math.Between(0, GAME_WIDTH), y: padding };
                 case 1: return { x: Phaser.Math.Between(0, GAME_WIDTH), y: GAME_HEIGHT - padding };
@@ -1110,8 +1111,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawElectricSparks(x1: number, y1: number, x2: number, y2: number, laserWidth: number, color: number): void {
-    const segments = 8;
-    const sparkCount = 2;
+    const laserConfig = Data.gameConfig.monsterAttack.laser;
+    const segments = laserConfig.visual.sparkSegments;
+    const sparkCount = laserConfig.visual.sparkCount;
 
     const dx = x2 - x1;
     const dy = y2 - y1;
@@ -1176,8 +1178,9 @@ export class GameScene extends Phaser.Scene {
 
   private lastLaserHitTime: number = 0;
   private handleLaserHit(): void {
+    const config = Data.gameConfig.monsterAttack.laser;
     const now = this.gameTime;
-    if (now - this.lastLaserHitTime < 500) return; // 0.5초 무적
+    if (now - this.lastLaserHitTime < config.bonus.invincibilityDuration) return;
 
     this.lastLaserHitTime = now;
     this.healthSystem.takeDamage(1);
