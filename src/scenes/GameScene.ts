@@ -384,7 +384,6 @@ export class GameScene extends Phaser.Scene {
             
             // 발사 순간 연출
             this.cameras.main.shake(150, 0.01);
-            this.cameras.main.flash(50, 255, 255, 255, true);
             this.particleManager.createSparkBurst(fireX, fireY, COLORS.YELLOW);
             this.particleManager.createHitEffect(fireX, fireY, COLORS.WHITE);
 
@@ -415,7 +414,6 @@ export class GameScene extends Phaser.Scene {
                     this.cameras.main.shake(300, 0.03);
                     this.particleManager.createExplosion(endX, endY, COLORS.RED, 'bomb', 4);
                     this.particleManager.createRainbowExplosion(endX, endY, 2); // 도파민 폭발!
-                    this.cameras.main.flash(200, 255, 255, 255);
                 }
             });
         }
