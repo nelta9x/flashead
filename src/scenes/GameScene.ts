@@ -15,6 +15,8 @@ import { SlowMotion } from '../effects/SlowMotion';
 import { DamageText } from '../ui/DamageText';
 import { FeedbackSystem } from '../systems/FeedbackSystem';
 import { SoundSystem } from '../systems/SoundSystem';
+import { MonsterSystem } from '../systems/MonsterSystem';
+import { GaugeSystem } from '../systems/GaugeSystem';
 import { InGameUpgradeUI } from '../ui/InGameUpgradeUI';
 import { WaveCountdownUI } from '../ui/WaveCountdownUI';
 import { AbilityPanel } from '../ui/AbilityPanel';
@@ -31,6 +33,8 @@ export class GameScene extends Phaser.Scene {
   private healthPackSystem!: HealthPackSystem;
   private feedbackSystem!: FeedbackSystem;
   private soundSystem!: SoundSystem;
+  private monsterSystem!: MonsterSystem;
+  private gaugeSystem!: GaugeSystem;
 
   // UI & 이펙트
   private hud!: HUD;
@@ -130,6 +134,8 @@ export class GameScene extends Phaser.Scene {
     );
     this.healthSystem = new HealthSystem();
     this.healthPackSystem = new HealthPackSystem(this);
+    this.monsterSystem = new MonsterSystem();
+    this.gaugeSystem = new GaugeSystem();
 
     // 이펙트 시스템
     this.particleManager = new ParticleManager(this);
@@ -253,6 +259,28 @@ export class GameScene extends Phaser.Scene {
       this.onHealthPackCollected(data.x, data.y);
     });
 
+    // 몬스터 HP 변경
+    EventBus.getInstance().on(GameEvents.MONSTER_HP_CHANGED, (...args: unknown[]) => {
+      const data = args[0] as { current: number; max: number };
+      this.hud.updateMonsterHp(data.current, data.max);
+    });
+
+    // 플레이어 게이지 업데이트
+    EventBus.getInstance().on(GameEvents.GAUGE_UPDATED, (...args: unknown[]) => {
+      const data = args[0] as { current: number; max: number };
+      this.hud.updateGauge(data.current, data.max);
+    });
+
+    // 플레이어 공격 트리거
+    EventBus.getInstance().on(GameEvents.PLAYER_ATTACK, () => {
+      this.performPlayerAttack();
+    });
+
+    // 몬스터 사망 -> 웨이브 클리어
+    EventBus.getInstance().on(GameEvents.MONSTER_DIED, () => {
+      this.waveSystem.forceCompleteWave();
+    });
+
   }
 
   private onHealthPackCollected(x: number, y: number): void {
@@ -260,6 +288,35 @@ export class GameScene extends Phaser.Scene {
     this.healthSystem.heal(1);
     // 피드백 효과
     this.feedbackSystem.onHealthPackCollected(x, y);
+  }
+
+  private performPlayerAttack(): void {
+    const startX = GAME_WIDTH / 2;
+    const startY = GAME_HEIGHT;
+    const endX = GAME_WIDTH / 2;
+    const endY = 80; // Approximate boss pos
+
+    // 발사체 생성
+    const projectile = this.add.circle(startX, startY, 15, COLORS.YELLOW);
+    this.physics.add.existing(projectile);
+    
+    // 트윈 애니메이션
+    this.tweens.add({
+        targets: projectile,
+        y: endY,
+        duration: 300,
+        ease: 'Power2',
+        onComplete: () => {
+            projectile.destroy();
+            this.monsterSystem.takeDamage(1);
+            
+            // 피드백
+            this.cameras.main.shake(100, 0.01);
+            
+            // 타격 이펙트 (파티클 매니저 사용)
+            this.particleManager.createExplosion(endX, endY, COLORS.RED, 'bomb', 2);
+        }
+    });
   }
 
   private onDishDamaged(data: {
@@ -490,6 +547,7 @@ export class GameScene extends Phaser.Scene {
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
     this.abilityPanel.destroy();
+    if (this.gaugeSystem) this.gaugeSystem.destroy();
   }
 
   update(_time: number, delta: number): void {

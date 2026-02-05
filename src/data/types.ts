@@ -220,7 +220,6 @@ export interface FeverConfig {
 }
 
 export interface WavesConfig {
-  duration: number;
   waves: WaveData[];
   fever: FeverConfig;
   infiniteScaling: InfiniteScalingConfig;

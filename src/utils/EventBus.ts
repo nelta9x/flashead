@@ -137,4 +137,10 @@ export const GameEvents = {
   HEALTH_PACK_SPAWNED: 'healthPack:spawned',
   HEALTH_PACK_COLLECTED: 'healthPack:collected',
   HEALTH_PACK_MISSED: 'healthPack:missed',
+
+  // 몬스터 & 게이지 관련
+  MONSTER_HP_CHANGED: 'monster:hpChanged',
+  MONSTER_DIED: 'monster:died',
+  GAUGE_UPDATED: 'gauge:updated',
+  PLAYER_ATTACK: 'player:attack',
 } as const;

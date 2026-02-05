@@ -8,7 +8,6 @@ import { Dish } from '../entities/Dish';
 type WavePhase = 'waiting' | 'countdown' | 'spawning';
 
 interface WaveConfig {
-  duration: number;
   spawnInterval: number;
   dishTypes: { type: string; weight: number }[];
 }
@@ -17,7 +16,6 @@ export class WaveSystem {
   private scene: Phaser.Scene;
   private currentWave: number = 0;
   private timeSinceLastSpawn: number = 0;
-  private waveElapsedTime: number = 0;
   private waveConfig: WaveConfig | null = null;
   private isFeverTime: boolean = false;
   private totalGameTime: number = 0;
@@ -37,7 +35,6 @@ export class WaveSystem {
   startWave(waveNumber: number): void {
     this.currentWave = waveNumber;
     this.timeSinceLastSpawn = 0;
-    this.waveElapsedTime = 0;
     this.wavePhase = 'spawning';
 
     this.waveConfig = this.getScaledWaveConfig(waveNumber);
@@ -52,7 +49,6 @@ export class WaveSystem {
 
     if (waveNumber <= wavesData.waves.length) {
       return {
-        duration: wavesData.duration,
         spawnInterval: waveData.spawnInterval,
         dishTypes: waveData.dishTypes,
       };
@@ -62,7 +58,6 @@ export class WaveSystem {
     const wavesBeyond = waveNumber - wavesData.waves.length;
 
     return {
-      duration: wavesData.duration,
       spawnInterval: Math.max(
         scaling.minSpawnInterval,
         waveData.spawnInterval - wavesBeyond * scaling.spawnIntervalReduction
@@ -100,12 +95,10 @@ export class WaveSystem {
     this.isFeverTime = true;
     const feverData = Data.waves.fever;
     this.waveConfig = {
-      duration: Infinity,
       spawnInterval: feverData.spawnInterval,
       dishTypes: feverData.dishTypes,
     };
     this.timeSinceLastSpawn = 0;
-    this.waveElapsedTime = 0;
   }
 
   getWavePhase(): WavePhase {
@@ -135,13 +128,6 @@ export class WaveSystem {
     if (this.wavePhase !== 'spawning') return;
 
     if (!this.waveConfig) return;
-
-    this.waveElapsedTime += delta;
-
-    if (!this.isFeverTime && this.waveElapsedTime >= this.waveConfig.duration) {
-      this.checkWaveComplete();
-      return;
-    }
 
     this.timeSinceLastSpawn += delta;
 
@@ -221,13 +207,9 @@ export class WaveSystem {
     return types[0].type;
   }
 
-  private checkWaveComplete(): void {
-    if (this.isFeverTime) return;
-
-    if (this.waveConfig && this.waveElapsedTime >= this.waveConfig.duration) {
-      this.wavePhase = 'waiting';
-      EventBus.getInstance().emit(GameEvents.WAVE_COMPLETED, this.currentWave);
-    }
+  forceCompleteWave(): void {
+    this.wavePhase = 'waiting';
+    EventBus.getInstance().emit(GameEvents.WAVE_COMPLETED, this.currentWave);
   }
 
   getCurrentWave(): number {
@@ -236,11 +218,6 @@ export class WaveSystem {
 
   isFever(): boolean {
     return this.isFeverTime;
-  }
-
-  getProgress(): number {
-    if (!this.waveConfig || this.isFeverTime) return 0;
-    return Math.min(1, this.waveElapsedTime / this.waveConfig.duration);
   }
 
   getTotalTime(): number {
