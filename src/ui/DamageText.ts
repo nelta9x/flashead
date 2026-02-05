@@ -239,7 +239,7 @@ export class DamageText {
     }
 
     // 보스용 특별 스타일 설정
-    text.setText(`-${damage}`);
+    text.setText(damage.toString());
     // 보스가 상단(y=80)에 있으므로, 숫자가 위로 올라가면 화면 밖으로 나감
     // 타격 지점보다 약간 아래에서 시작해서 아래로 떨어지거나 제자리에서 팝업되도록 수정
     text.setPosition(x + Phaser.Math.Between(-30, 30), y + 40);
