@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH, GAME_HEIGHT, FONTS } from '../config/constants';
+import { SoundSystem } from '../systems/SoundSystem';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -111,6 +112,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    // 사운드 시스템 사전 초기화
+    SoundSystem.getInstance();
     this.scene.start('MenuScene');
   }
 }

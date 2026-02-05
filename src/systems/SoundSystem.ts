@@ -3,6 +3,7 @@
  * 외부 오디오 파일 없이 코드로 사운드 생성
  */
 export class SoundSystem {
+  private static instance: SoundSystem | null = null;
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private initialized: boolean = false;
@@ -12,15 +13,26 @@ export class SoundSystem {
     this.initOnUserInteraction();
   }
 
+  public static getInstance(): SoundSystem {
+    if (!SoundSystem.instance) {
+      SoundSystem.instance = new SoundSystem();
+    }
+    return SoundSystem.instance;
+  }
+
+  public init(): void {
+    if (!this.initialized && (window.AudioContext || (window as any).webkitAudioContext)) {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.masterGain = this.audioContext.createGain();
+      this.masterGain.gain.value = 0.3; // 마스터 볼륨
+      this.masterGain.connect(this.audioContext.destination);
+      this.initialized = true;
+    }
+  }
+
   private initOnUserInteraction(): void {
     const initAudio = () => {
-      if (!this.initialized) {
-        this.audioContext = new AudioContext();
-        this.masterGain = this.audioContext.createGain();
-        this.masterGain.gain.value = 0.3; // 마스터 볼륨
-        this.masterGain.connect(this.audioContext.destination);
-        this.initialized = true;
-      }
+      this.init();
       // 리스너 제거
       document.removeEventListener('click', initAudio);
       document.removeEventListener('keydown', initAudio);

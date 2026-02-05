@@ -136,7 +136,7 @@ export class GameScene extends Phaser.Scene {
     this.screenShake = new ScreenShake(this);
     this.slowMotion = new SlowMotion(this);
     this.damageText = new DamageText(this);
-    this.soundSystem = new SoundSystem();
+    this.soundSystem = SoundSystem.getInstance();
     this.feedbackSystem = new FeedbackSystem(
       this,
       this.particleManager,
