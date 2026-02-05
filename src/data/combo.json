@@ -9,5 +9,6 @@
   "multiplier": {
     "factor": 0.1,
     "softcapFactor": 0.01
-  }
+  },
+  "gaugeBonusPerCombo": 0.01
 }

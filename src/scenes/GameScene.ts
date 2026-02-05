@@ -135,7 +135,7 @@ export class GameScene extends Phaser.Scene {
     this.healthSystem = new HealthSystem();
     this.healthPackSystem = new HealthPackSystem(this);
     this.monsterSystem = new MonsterSystem();
-    this.gaugeSystem = new GaugeSystem();
+    this.gaugeSystem = new GaugeSystem(this.comboSystem);
 
     // 이펙트 시스템
     this.particleManager = new ParticleManager(this);
@@ -388,8 +388,19 @@ export class GameScene extends Phaser.Scene {
     // 콤보 증가
     this.comboSystem.increment();
 
+    // 현재 커서 반경 계산
+    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+    const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
+
     // 피드백 효과
-    this.feedbackSystem.onDishDestroyed(x, y, dish.getColor(), dish.getDishType());
+    this.feedbackSystem.onDishDestroyed(
+      x, 
+      y, 
+      dish.getColor(), 
+      dish.getDishType(), 
+      this.comboSystem.getCombo(),
+      cursorRadius
+    );
 
     // ===== 업그레이드 효과 적용 =====
     // 전기 충격 (주변 접시에 데미지)

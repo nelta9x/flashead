@@ -29,9 +29,15 @@ export class FeedbackSystem {
     this.soundSystem = soundSystem;
   }
 
-  onDishDestroyed(x: number, y: number, color: number, dishType: string): void {
+  onDishDestroyed(x: number, y: number, color: number, dishType: string, combo: number = 0, cursorRadius: number = 0): void {
     // 파티클 폭발
     this.particleManager.createExplosion(x, y, color, dishType);
+
+    // 에너지 획득 연출 (게이지로 날아가는 효과)
+    // 지뢰가 아닐 때만 발생
+    if (dishType !== 'bomb') {
+      this.particleManager.createEnergyEffect(x, y, combo, cursorRadius);
+    }
 
     // 화면 흔들림 (접시 타입에 따라 강도 조절)
     const baseShake = dishType === 'bomb' ? 10 : dishType === 'golden' ? 6 : 4;

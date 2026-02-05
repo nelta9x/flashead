@@ -78,6 +78,7 @@ export interface ComboConfig {
   timeout: ComboTimeoutConfig;
   milestones: number[];
   multiplier: ComboMultiplierConfig;
+  gaugeBonusPerCombo: number;
 }
 
 // ========== 힐팩 시스템 ==========
@@ -176,6 +177,19 @@ export interface DamageTextConfig {
   animation: DamageTextAnimationConfig;
 }
 
+export interface EnergyEffectConfig {
+  baseSize: number;
+  maxSizeBonus: number;
+  comboDivision: number;
+  duration: number;
+  glowScale: number;
+  alpha: number;
+  glowAlpha: number;
+  targetYOffset: number;
+  knockbackDistance: number; // 튕겨나가는 거리
+  trailLifespan: number;     // 꼬리 지속 시간
+}
+
 export interface FeedbackConfig {
   damageText: DamageTextConfig;
   comboMilestones: Record<string, ComboMilestoneEffect>;
@@ -185,6 +199,7 @@ export interface FeedbackConfig {
     crystal: ParticleConfig;
     bomb: ParticleConfig;
   };
+  energyEffect: EnergyEffectConfig;
 }
 
 // ========== 색상 설정 ==========

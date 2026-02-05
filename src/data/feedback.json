@@ -105,5 +105,17 @@
     "bomb": {
       "count": 40
     }
+  },
+  "energyEffect": {
+    "baseSize": 6,
+    "maxSizeBonus": 6,
+    "comboDivision": 10,
+    "duration": 600,
+    "glowScale": 2.5,
+    "alpha": 1.0,
+    "glowAlpha": 0.3,
+    "targetYOffset": -22.5,
+    "knockbackDistance": 120,
+    "trailLifespan": 200
   }
 }

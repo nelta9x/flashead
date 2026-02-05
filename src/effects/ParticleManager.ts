@@ -109,6 +109,122 @@ export class ParticleManager {
     }
   }
 
+  // 에너지 획득 연출: 접시에서 커서로 날아가는 파티클
+  createEnergyEffect(x: number, y: number, combo: number, cursorRadius: number): void {
+    const config = Data.feedback.energyEffect;
+    const pointer = this.scene.input.activePointer;
+
+    // 콤보 등급에 따른 색상 결정
+    const comboConfig = Data.feedback.damageText.combo;
+    const { thresholds, colors } = comboConfig;
+    let colorStr: string;
+
+    if (combo >= thresholds.ultra) colorStr = colors.ultra;
+    else if (combo >= thresholds.high) colorStr = colors.high;
+    else if (combo >= thresholds.mid) colorStr = colors.mid;
+    else colorStr = colors.low;
+
+    const color = parseInt(colorStr.replace('#', ''), 16);
+    const size = config.baseSize + Math.min(config.maxSizeBonus, combo / config.comboDivision);
+
+    // 1. 에너지 구슬 생성
+    const particle = this.scene.add.circle(x, y, size, color, config.alpha);
+    particle.setDepth(100);
+
+    // 2. 꼬리 효과 (트레일) 생성
+    const trail = this.scene.add.particles(0, 0, 'particle', {
+      follow: particle,
+      scale: { start: size / 10, end: 0 },
+      lifespan: config.trailLifespan,
+      blendMode: 'ADD',
+      tint: color,
+      frequency: 20,
+    });
+    trail.setDepth(99);
+
+    // 3. 글로우 효과
+    const glow = this.scene.add.graphics();
+    glow.setDepth(99);
+
+    // 4. 이동 로직 (2차 베지에 곡선)
+    const angle = Math.random() * Math.PI * 2;
+    const cpX = x + Math.cos(angle) * config.knockbackDistance;
+    const cpY = y + Math.sin(angle) * config.knockbackDistance;
+
+    const startX = x;
+    const startY = y;
+    
+    let isAbsorbed = false;
+
+    const tween = this.scene.tweens.add({
+      targets: { t: 0 },
+      t: 1,
+      duration: config.duration,
+      ease: 'Sine.easeIn',
+      onUpdate: (_tween, target) => {
+        if (isAbsorbed) return;
+
+        const t = target.t;
+        const oneMinusT = 1 - t;
+        const targetX = pointer.worldX;
+        const targetY = pointer.worldY;
+
+        particle.x = (oneMinusT * oneMinusT * startX) + 
+                     (2 * oneMinusT * t * cpX) + 
+                     (t * t * targetX);
+                     
+        particle.y = (oneMinusT * oneMinusT * startY) + 
+                     (2 * oneMinusT * t * cpY) + 
+                     (t * t * targetY);
+
+        // 실시간 거리 체크: 플레이어의 범위(cursorRadius)에 닿았는지 확인
+        const dist = Phaser.Math.Distance.Between(particle.x, particle.y, targetX, targetY);
+        
+        // 너무 초반(튕겨나가는 중)에 흡수되는 것을 방지하기 위해 t > 0.2 조건 추가
+        if (t > 0.2 && dist <= cursorRadius) {
+          isAbsorbed = true;
+          this.completeEnergyEffect(particle, glow, trail, color, config.trailLifespan);
+          tween.stop();
+          return;
+        }
+
+        if (glow.active) {
+          glow.clear();
+          glow.fillStyle(color, config.glowAlpha);
+          const currentGlowSize = size * config.glowScale * (0.5 + 0.5 * t);
+          glow.fillCircle(particle.x, particle.y, currentGlowSize);
+        }
+      },
+      onComplete: () => {
+        if (!isAbsorbed) {
+          this.completeEnergyEffect(particle, glow, trail, color, config.trailLifespan);
+        }
+      }
+    });
+  }
+
+  // 에너지 효과 종료 공통 로직
+  private completeEnergyEffect(
+    particle: Phaser.GameObjects.Arc, 
+    glow: Phaser.GameObjects.Graphics, 
+    trail: Phaser.GameObjects.Particles.ParticleEmitter,
+    color: number,
+    trailLifespan: number
+  ): void {
+    const x = particle.x;
+    const y = particle.y;
+    
+    particle.destroy();
+    glow.destroy();
+    
+    this.scene.time.delayedCall(trailLifespan, () => {
+      trail.destroy();
+    });
+
+    // 닿은 지점에 히트 이펙트
+    this.createHitEffect(x, y, color);
+  }
+
   // 무지개 폭발 이펙트
   createRainbowExplosion(x: number, y: number, particleMultiplier: number = 1): void {
     const emitter = this.emitters.get('explosion');
