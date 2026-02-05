@@ -5,6 +5,8 @@ import { SoundSystem } from '../systems/SoundSystem';
 export class MenuScene extends Phaser.Scene {
   private titleText!: Phaser.GameObjects.Text;
   private startPrompt!: Phaser.GameObjects.Text;
+  private gaugeOutline!: Phaser.GameObjects.Graphics;
+  private gaugeFill!: Phaser.GameObjects.Graphics;
   private isTransitioning: boolean = false;
   private totalMouseMoveDistance: number = 0;
   private readonly MOVE_THRESHOLD: number = 1000; // 1000픽셀 이상 움직여야 시작
@@ -17,6 +19,7 @@ export class MenuScene extends Phaser.Scene {
     this.totalMouseMoveDistance = 0;
     this.createBackground();
     this.createTitle();
+    this.createStartUI();
     
     // 입력을 감지하기 위한 이벤트 리스너 등록
     this.setupInputHandlers();
@@ -59,7 +62,9 @@ export class MenuScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
+  }
 
+  private createStartUI(): void {
     // 시작 안내 텍스트 (작고 희미하게)
     this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'PRESS ANY KEY OR SHAKE MOUSE', {
       fontFamily: FONTS.MAIN,
@@ -76,6 +81,19 @@ export class MenuScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1,
     });
+
+    // 게이지 외곽선
+    const gaugeWidth = 300;
+    const gaugeHeight = 8;
+    const gaugeX = GAME_WIDTH / 2 - gaugeWidth / 2;
+    const gaugeY = GAME_HEIGHT / 2 + 90;
+
+    this.gaugeOutline = this.add.graphics();
+    this.gaugeOutline.lineStyle(1, COLORS.CYAN, 0.2);
+    this.gaugeOutline.strokeRect(gaugeX, gaugeY, gaugeWidth, gaugeHeight);
+
+    // 게이지 채우기
+    this.gaugeFill = this.add.graphics();
   }
 
   private setupInputHandlers(): void {
@@ -111,6 +129,43 @@ export class MenuScene extends Phaser.Scene {
     if (this.totalMouseMoveDistance > 0) {
       this.totalMouseMoveDistance = Math.max(0, this.totalMouseMoveDistance - (400 * delta) / 1000);
     }
+
+    this.updateGauge();
+  }
+
+  private updateGauge(): void {
+    this.gaugeFill.clear();
+    
+    const progress = Math.min(this.totalMouseMoveDistance / this.MOVE_THRESHOLD, 1);
+    if (progress <= 0) return;
+
+    const gaugeWidth = 300;
+    const gaugeHeight = 8;
+    const gaugeX = GAME_WIDTH / 2 - gaugeWidth / 2;
+    const gaugeY = GAME_HEIGHT / 2 + 90;
+
+    // 진행률에 따른 색상/투명도 변화
+    const color = progress > 0.8 ? 0xffffff : COLORS.CYAN;
+    const alpha = 0.3 + progress * 0.7;
+
+    this.gaugeFill.fillStyle(color, alpha);
+    this.gaugeFill.fillRect(gaugeX, gaugeY, gaugeWidth * progress, gaugeHeight);
+
+    // 게이지 끝부분 빛나는 효과
+    if (progress > 0.1) {
+      this.gaugeFill.lineStyle(2, color, alpha * 0.5);
+      this.gaugeFill.strokeRect(gaugeX - 2, gaugeY - 2, (gaugeWidth * progress) + 4, gaugeHeight + 4);
+    }
+
+    // 텍스트 반응 (게이지가 찰수록 더 선명하고 커짐)
+    this.startPrompt.setAlpha(0.4 + progress * 0.6);
+    if (progress > 0.8) {
+      this.startPrompt.setScale(1 + (progress - 0.8) * 0.3);
+      this.startPrompt.setColor('#ffffff');
+    } else {
+      this.startPrompt.setScale(1);
+      this.startPrompt.setColor(COLORS_HEX.WHITE);
+    }
   }
 
   private startGame(): void {
@@ -131,7 +186,14 @@ export class MenuScene extends Phaser.Scene {
       scaleY: 1.5,
       alpha: 0,
       duration: 400,
-      ease: 'Power2',
+      ease: 'Power2'
+    });
+
+    // 게이지는 더 빠르게 사라짐
+    this.tweens.add({
+      targets: [this.gaugeFill, this.gaugeOutline],
+      alpha: 0,
+      duration: 200,
       onComplete: () => {
         // 이벤트 리스너 정리
         window.removeEventListener('mousedown', () => this.startGame());
