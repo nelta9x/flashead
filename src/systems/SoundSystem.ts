@@ -19,7 +19,7 @@ export class SoundSystem {
     return SoundSystem.instance;
   }
 
-  public init(): void {
+  public async init(): Promise<void> {
     if (!this.audioContext && (window.AudioContext || (window as any).webkitAudioContext)) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.masterGain = this.audioContext.createGain();
@@ -27,16 +27,21 @@ export class SoundSystem {
       this.masterGain.connect(this.audioContext.destination);
     }
     
-    // 이미 생성되었더라도 suspended 상태라면 resume 시도
+    // 이미 생성되었더라도 suspended 상태라면 resume 시도하고 완료될 때까지 대기
     if (this.audioContext && this.audioContext.state === 'suspended') {
-      this.audioContext.resume();
+      try {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed successfully');
+      } catch (e) {
+        console.error('Failed to resume AudioContext:', e);
+      }
     }
   }
 
   private initOnUserInteraction(): void {
-    const initAudio = () => {
-      this.init();
-      // 리스너 제거
+    const initAudio = async () => {
+      await this.init();
+      // 리스너 제거 (한 번만 실행)
       document.removeEventListener('click', initAudio);
       document.removeEventListener('keydown', initAudio);
       document.removeEventListener('touchstart', initAudio);

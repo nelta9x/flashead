@@ -65,8 +65,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createStartUI(): void {
-    // 시작 안내 텍스트 (작고 희미하게)
-    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'PRESS ANY KEY OR SHAKE MOUSE', {
+    // 시작 안내 텍스트
+    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'SHAKE MOUSE TO CHARGE', {
       fontFamily: FONTS.MAIN,
       fontSize: '18px',
       color: COLORS_HEX.WHITE,
@@ -81,6 +81,8 @@ export class MenuScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1,
     });
+    
+    // ... (게이지 생성 로직 생략)
 
     // 게이지 외곽선
     const gaugeWidth = 300;
@@ -103,22 +105,26 @@ export class MenuScene extends Phaser.Scene {
     // 마우스 클릭
     this.input.on('pointerdown', () => this.startGame());
     
-    // 마우스 움직임 감지 (누적 거리가 임계값을 넘어야 시작)
+    // 마우스 움직임 감지 (누적 거리만 업데이트)
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (this.isTransitioning) return;
       
       // 이동 거리 누적 (이전 위치와의 차이 계산)
       const dist = Phaser.Math.Distance.Between(pointer.x, pointer.y, pointer.prevPosition.x, pointer.prevPosition.y);
       this.totalMouseMoveDistance += dist;
-
-      if (this.totalMouseMoveDistance > this.MOVE_THRESHOLD) {
-        this.startGame();
-      }
+      
+      // 이제 startGame()을 여기서 호출하지 않습니다.
+      // 사용자가 100% 충전 후 클릭하거나 키를 누를 때까지 기다립니다.
     });
 
-    // 화면 어디든 클릭 시 시작 (안전장치)
-    window.addEventListener('mousedown', () => this.startGame(), { once: true });
-    window.addEventListener('keydown', () => this.startGame(), { once: true });
+    // 화면 어디든 클릭 시 시작 (안전장치 - 브라우저 네이티브 이벤트)
+    const onNativeInput = () => {
+      this.startGame();
+      window.removeEventListener('mousedown', onNativeInput);
+      window.removeEventListener('keydown', onNativeInput);
+    };
+    window.addEventListener('mousedown', onNativeInput);
+    window.addEventListener('keydown', onNativeInput);
   }
 
   update(_time: number, delta: number): void {
@@ -137,46 +143,53 @@ export class MenuScene extends Phaser.Scene {
     this.gaugeFill.clear();
     
     const progress = Math.min(this.totalMouseMoveDistance / this.MOVE_THRESHOLD, 1);
-    if (progress <= 0) return;
-
+    
     const gaugeWidth = 300;
     const gaugeHeight = 8;
     const gaugeX = GAME_WIDTH / 2 - gaugeWidth / 2;
     const gaugeY = GAME_HEIGHT / 2 + 90;
 
     // 진행률에 따른 색상/투명도 변화
-    const color = progress > 0.8 ? 0xffffff : COLORS.CYAN;
+    const color = progress >= 1 ? 0xffffff : COLORS.CYAN;
     const alpha = 0.3 + progress * 0.7;
 
-    this.gaugeFill.fillStyle(color, alpha);
-    this.gaugeFill.fillRect(gaugeX, gaugeY, gaugeWidth * progress, gaugeHeight);
+    if (progress > 0) {
+      this.gaugeFill.fillStyle(color, alpha);
+      this.gaugeFill.fillRect(gaugeX, gaugeY, gaugeWidth * progress, gaugeHeight);
 
-    // 게이지 끝부분 빛나는 효과
-    if (progress > 0.1) {
+      // 게이지 끝부분 빛나는 효과
       this.gaugeFill.lineStyle(2, color, alpha * 0.5);
       this.gaugeFill.strokeRect(gaugeX - 2, gaugeY - 2, (gaugeWidth * progress) + 4, gaugeHeight + 4);
     }
 
-    // 텍스트 반응 (게이지가 찰수록 더 선명하고 커짐)
-    this.startPrompt.setAlpha(0.4 + progress * 0.6);
-    if (progress > 0.8) {
-      this.startPrompt.setScale(1 + (progress - 0.8) * 0.3);
-      this.startPrompt.setColor('#ffffff');
+    // 텍스트 반응
+    if (progress >= 1) {
+      this.startPrompt.setText('CLICK TO START!');
+      this.startPrompt.setScale(1.2);
+      this.startPrompt.setColor('#00ffff');
+      this.startPrompt.setAlpha(1);
     } else {
-      this.startPrompt.setScale(1);
+      this.startPrompt.setText('SHAKE MOUSE TO CHARGE');
+      this.startPrompt.setAlpha(0.4 + progress * 0.6);
+      this.startPrompt.setScale(1 + progress * 0.2);
       this.startPrompt.setColor(COLORS_HEX.WHITE);
     }
   }
 
-  private startGame(): void {
+  private async startGame(): Promise<void> {
     if (this.isTransitioning) return;
+
+    // 마우스 흔들기 게이지가 다 찼거나, 키보드/클릭 입력인 경우에만 시작
+    const isCharged = this.totalMouseMoveDistance >= this.MOVE_THRESHOLD;
+    // 키보드나 직접 클릭은 게이지 상관없이 즉시 시작 가능하도록 허용 (접근성)
+    
     this.isTransitioning = true;
 
-    // 사운드 시스템 활성화
+    // 사운드 시스템 활성화 및 대기
     const ss = SoundSystem.getInstance();
-    ss.init();
+    await ss.init();
     
-    // 시작음 즉시 재생 (성공 여부 확인용)
+    // 시작음 재생
     ss.playSafeSound();
 
     // 시작 시 강렬한 효과
@@ -195,9 +208,6 @@ export class MenuScene extends Phaser.Scene {
       alpha: 0,
       duration: 200,
       onComplete: () => {
-        // 이벤트 리스너 정리
-        window.removeEventListener('mousedown', () => this.startGame());
-        window.removeEventListener('keydown', () => this.startGame());
         this.scene.start('GameScene');
       }
     });
