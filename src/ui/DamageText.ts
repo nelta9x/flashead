@@ -240,36 +240,37 @@ export class DamageText {
 
     // 보스용 특별 스타일 설정
     text.setText(`-${damage}`);
-    text.setPosition(x + Phaser.Math.Between(-20, 20), y - 40);
+    // 보스가 상단(y=80)에 있으므로, 숫자가 위로 올라가면 화면 밖으로 나감
+    // 타격 지점보다 약간 아래에서 시작해서 아래로 떨어지거나 제자리에서 팝업되도록 수정
+    text.setPosition(x + Phaser.Math.Between(-30, 30), y + 40);
     text.setColor('#ff3300'); // 강렬한 빨강-주황
     text.setFontSize(64);
     text.setVisible(true);
     text.setAlpha(1);
     text.setScale(0.2); // 아주 작게 시작해서 커지는 효과
-    text.setRotation(Phaser.Math.DegToRad(Phaser.Math.Between(-15, 15)));
+    text.setRotation(Phaser.Math.DegToRad(Phaser.Math.Between(-10, 10)));
 
     this.activeTexts.add(text);
 
-    // 보스 데미지 애니메이션: 쾅! 하고 커졌다가 서서히 사라짐
+    // 보스 데미지 애니메이션: 쾅! 하고 커지면서 약간 아래로 내려옴
     this.scene.tweens.add({
       targets: text,
-      scaleX: 1.5,
-      scaleY: 1.5,
-      y: text.y - 60,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      y: text.y + 30, // 아래로 이동
       duration: 150,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // 반짝이는 효과를 위해 색상 살짝 변경
         text!.setColor('#ffff00');
         
         this.scene.tweens.add({
           targets: text,
-          y: text!.y - 40,
+          y: text!.y + 20, // 더 아래로 이동
           alpha: 0,
-          scaleX: 1.0,
-          scaleY: 1.0,
-          duration: 600,
-          delay: 100,
+          scaleX: 0.8,
+          scaleY: 0.8,
+          duration: 800,
+          delay: 200,
           ease: 'Power2',
           onComplete: () => this.releaseText(text!),
         });
