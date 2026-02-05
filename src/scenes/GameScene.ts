@@ -441,7 +441,10 @@ export class GameScene extends Phaser.Scene {
                 },
                 onComplete: () => {
                     projectile.destroy();
-                    this.monsterSystem.takeDamage(1);
+
+                    // 데미지 계산: 기본 1 + 강화 미사일 어빌리티 레벨
+                    const totalDamage = 1 + this.upgradeSystem.getMissileLevel();
+                    this.monsterSystem.takeDamage(totalDamage);
                     
                     // 3. Impact Phase (타격!)
                     

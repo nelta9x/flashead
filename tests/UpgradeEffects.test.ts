@@ -93,6 +93,19 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
     });
   });
 
+  describe('미사일', () => {
+    it('미사일 레벨 추적', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      expect(upgrade.getMissileLevel()).toBe(0);
+      upgrade.addMissileLevel(1);
+      expect(upgrade.getMissileLevel()).toBe(1);
+      upgrade.addMissileLevel(1);
+      expect(upgrade.getMissileLevel()).toBe(2);
+    });
+  });
+
   describe('리셋', () => {
     it('모든 값이 리셋되어야 함', async () => {
       const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
@@ -102,6 +115,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       upgrade.addCursorSizeBonus(0.4);
       upgrade.addElectricShockLevel(2);
       upgrade.addMagnetLevel(3);
+      upgrade.addMissileLevel(1);
 
       // 리셋
       upgrade.reset();
@@ -110,6 +124,7 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
       expect(upgrade.getCursorSizeBonus()).toBe(0);
       expect(upgrade.getElectricShockLevel()).toBe(0);
       expect(upgrade.getMagnetLevel()).toBe(0);
+      expect(upgrade.getMissileLevel()).toBe(0);
     });
   });
 
@@ -161,6 +176,23 @@ describe('UpgradeSystem - 간소화된 시스템', () => {
         }
         expect(upgrade.getUpgradeStack('magnet')).toBe(5);
         expect(upgrade.getMagnetLevel()).toBe(5);
+      }
+    });
+
+    it('미사일 스택 (maxStack=5)', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      const upgrades = upgrade.getRandomUpgrades(5);
+      const missileUpgrade = upgrades.find(u => u.id === 'missile');
+
+      if (missileUpgrade) {
+        // maxStack은 5
+        for (let i = 0; i < 7; i++) {
+          upgrade.applyUpgrade(missileUpgrade);
+        }
+        expect(upgrade.getUpgradeStack('missile')).toBe(5);
+        expect(upgrade.getMissileLevel()).toBe(5);
       }
     });
   });

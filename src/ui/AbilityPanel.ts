@@ -12,6 +12,7 @@ const UPGRADE_ICONS: Record<string, string> = {
   cursor_size: '◯',
   electric_shock: '⚡',
   magnet: '🧲',
+  missile: '🚀',
 };
 
 export class AbilityPanel {

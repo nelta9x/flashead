@@ -250,6 +250,20 @@
         "baseRadius": 80,
         "radiusPerLevel": 20
       }
+    },
+    {
+      "id": "missile",
+      "name": "강화 미사일",
+      "description": "풀 차지 공격 시 보스에게 추가 피해",
+      "descriptionTemplate": "풀 차지 공격 시 보스에게 {damage}의 추가 피해를 입힙니다.",
+      "rarity": "rare",
+      "effectType": "missileLevel",
+      "value": 1,
+      "maxStack": 5,
+      "meta": {
+        "baseDamage": 0,
+        "damagePerLevel": 1
+      }
     }
   ]
 }

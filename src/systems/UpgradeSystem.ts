@@ -29,6 +29,9 @@ function createSystemUpgrades(): Upgrade[] {
         case 'magnetLevel':
           us.addMagnetLevel(data.value);
           break;
+        case 'missileLevel':
+          us.addMissileLevel(data.value);
+          break;
       }
     },
   }));
@@ -48,6 +51,9 @@ export class UpgradeSystem {
   // 자기장
   private magnetLevel: number = 0;
 
+  // 미사일
+  private missileLevel: number = 0;
+
   constructor() {
     this.reset();
   }
@@ -63,6 +69,9 @@ export class UpgradeSystem {
 
     // 자기장
     this.magnetLevel = 0;
+
+    // 미사일
+    this.missileLevel = 0;
   }
 
   update(_delta: number, _gameTime: number): void {
@@ -177,6 +186,15 @@ export class UpgradeSystem {
     return this.magnetLevel;
   }
 
+  // ========== 미사일 ==========
+  addMissileLevel(level: number): void {
+    this.missileLevel += level;
+  }
+
+  getMissileLevel(): number {
+    return this.missileLevel;
+  }
+
   // ========== 유틸리티 ==========
   getUpgradeStack(upgradeId: string): number {
     return this.upgradeStacks.get(upgradeId) || 0;
@@ -219,6 +237,12 @@ export class UpgradeSystem {
         const meta = upgradeData.meta!;
         const radius = meta.baseRadius! + stack * meta.radiusPerLevel!;
         return template.replace('{radius}', radius.toString());
+      }
+
+      case 'missileLevel': {
+        const meta = upgradeData.meta!;
+        const damage = (meta.baseDamage || 0) + stack * (meta.damagePerLevel || 1);
+        return template.replace('{damage}', damage.toString());
       }
 
       default:
@@ -264,6 +288,16 @@ export class UpgradeSystem {
           return `끌어당김 반경 ${nextRadius}px`;
         }
         return `끌어당김 반경 ${curRadius}→${nextRadius}px`;
+      }
+
+      case 'missileLevel': {
+        const meta = upgradeData.meta!;
+        const curDamage = (meta.baseDamage || 0) + currentStack * (meta.damagePerLevel || 1);
+        const nextDamage = (meta.baseDamage || 0) + nextStack * (meta.damagePerLevel || 1);
+        if (currentStack === 0) {
+          return `보스에게 미사일 데미지 ${nextDamage}`;
+        }
+        return `미사일 데미지 ${curDamage} → ${nextDamage}`;
       }
 
       default:
