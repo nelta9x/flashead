@@ -76,6 +76,9 @@ export class GameScene extends Phaser.Scene {
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private gridOffset: number = 0;
 
+  // BGM
+  private bgm: Phaser.Sound.BaseSound | null = null;
+
   // 보스 레이저 공격 관련
   private laserNextTime: number = 0;
   private laserGraphics!: Phaser.GameObjects.Graphics;
@@ -128,6 +131,14 @@ export class GameScene extends Phaser.Scene {
 
     // 게임 커서 설정 (숨김 - 커스텀 인디케이터 사용)
     this.input.setDefaultCursor('none');
+
+    // BGM 재생
+    const bgmConfig = Data.gameConfig.audio.bgm;
+    this.bgm = this.sound.add(bgmConfig.key, {
+      loop: true,
+      volume: bgmConfig.volume,
+    });
+    this.bgm.play();
 
     // 공격 범위 인디케이터 생성
     this.attackRangeIndicator = this.add.graphics();
@@ -867,6 +878,11 @@ export class GameScene extends Phaser.Scene {
   private gameOver(): void {
     this.isGameOver = true;
     this.physics.pause();
+
+    // BGM 정지
+    if (this.bgm) {
+      this.bgm.stop();
+    }
 
     this.cameras.main.fadeOut(1000, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {

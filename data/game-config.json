@@ -70,5 +70,11 @@
     "twinkleSpeedMin": 0.0005,
     "twinkleSpeedMax": 0.0015,
     "verticalLimitRatio": 1.0
+  },
+  "audio": {
+    "bgm": {
+      "key": "bgm",
+      "volume": 0.1
+    }
   }
 }

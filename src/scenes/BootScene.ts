@@ -35,8 +35,15 @@ export class BootScene extends Phaser.Scene {
       loadingText.destroy();
     });
 
+    // 오디오 에셋 로드
+    this.loadAudioAssets();
+
     // 게임에서 사용할 기본 그래픽 생성 (프로시저럴)
     this.createProceduralAssets();
+  }
+
+  private loadAudioAssets(): void {
+    this.load.audio('bgm', 'assets/audio/guitar-sound.mp3');
   }
 
   private createProceduralAssets(): void {

@@ -133,6 +133,15 @@ export interface MenuConfig {
   };
 }
 
+export interface AudioBGMConfig {
+  key: string;
+  volume: number;
+}
+
+export interface AudioConfig {
+  bgm: AudioBGMConfig;
+}
+
 export interface GameConfig {
   screen: ScreenConfig;
   player: PlayerConfig;
@@ -146,6 +155,7 @@ export interface GameConfig {
   magnet: MagnetConfig;
   gameGrid: GridConfig;
   stars: StarsConfig;
+  audio: AudioConfig;
 }
 
 // ========== 스폰 시스템 ==========

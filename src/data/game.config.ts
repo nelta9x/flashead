@@ -24,6 +24,6 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     antialias: true,
   },
   audio: {
-    noAudio: true,
+    disableWebAudio: false,
   },
 };

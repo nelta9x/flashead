@@ -1,11 +1,15 @@
+import Phaser from 'phaser';
+
 /**
  * Web Audio API 기반 프로그래매틱 사운드 시스템
- * 외부 오디오 파일 없이 코드로 사운드 생성
+ * 외부 오디오 파일 없이 코드로 사운드 생성, BGM 재생 지원
  */
 export class SoundSystem {
   private static instance: SoundSystem | null = null;
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private scene: Phaser.Scene | null = null;
+  private bgm: Phaser.Sound.BaseSound | null = null;
 
   constructor() {
     // AudioContext는 사용자 인터랙션 후 초기화해야 함
@@ -672,5 +676,49 @@ export class SoundSystem {
     noiseFilter.connect(noiseGain);
     noiseGain.connect(this.masterGain!);
     noiseSrc.start(now);
+  }
+
+  /**
+   * Phaser 씬 설정 (BGM 재생에 필요)
+   */
+  setScene(scene: Phaser.Scene): void {
+    this.scene = scene;
+  }
+
+  /**
+   * BGM 재생
+   */
+  playBGM(key: string = 'bgm', volume: number = 0.3): void {
+    if (!this.scene) return;
+
+    // 기존 BGM이 있으면 정지
+    this.stopBGM();
+
+    // 새 BGM 재생
+    this.bgm = this.scene.sound.add(key, {
+      loop: true,
+      volume: volume,
+    });
+    this.bgm.play();
+  }
+
+  /**
+   * BGM 정지
+   */
+  stopBGM(): void {
+    if (this.bgm) {
+      this.bgm.stop();
+      this.bgm.destroy();
+      this.bgm = null;
+    }
+  }
+
+  /**
+   * BGM 볼륨 설정
+   */
+  setBGMVolume(volume: number): void {
+    if (this.bgm && 'setVolume' in this.bgm) {
+      (this.bgm as Phaser.Sound.WebAudioSound).setVolume(Math.max(0, Math.min(1, volume)));
+    }
   }
 }
