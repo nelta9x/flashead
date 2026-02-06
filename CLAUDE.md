@@ -34,6 +34,11 @@ FLASHHEAD - Phaser 3 기반 웹 슈팅 게임
 - 구체적인 인터페이스나 타입을 명시하거나, 불가피한 경우 `unknown`을 사용할 것
 - 외부 라이브러리(Phaser 등)와의 호환성 문제로 `any` 캐스팅이 반드시 필요한 경우에만 `eslint-disable-next-line`과 함께 예외적으로 허용함
 
+### 외형과 로직의 분리 (Separation of Concerns)
+- **로직(Logic)**: 게임 상태 관리, 수치 계산, 시스템 조율은 Scene이나 System 클래스에서 담당합니다.
+- **외형(Rendering)**: Graphics를 이용한 직접적인 드로잉, 애니메이션 연출 로직은 `src/effects/`의 전용 Renderer 클래스(예: `CursorRenderer`, `GridRenderer`)에서 담당합니다.
+- **규칙**: Scene에서 `Phaser.GameObjects.Graphics`를 직접 조작하여 복잡한 도형을 그리는 것을 지양하고, Renderer 클래스에 상태값을 전달하여 위임하는 구조를 유지하십시오.
+
 ## 코드 구조
 ```
 data/             # 게임 밸런스 데이터 및 로케일 (JSON 전용)
