@@ -137,6 +137,7 @@ export class MenuScene extends Phaser.Scene {
   private createGrid(): void {
     this.gridGraphics = this.add.graphics();
     this.gridGraphics.setDepth(Data.gameConfig.gameGrid.depth);
+    this.gridGraphics.setBlendMode(Phaser.BlendModes.ADD);
   }
 
   private createMenuCursor(): void {
@@ -409,7 +410,7 @@ export class MenuScene extends Phaser.Scene {
     const verticalSpread = 8; // 좌우로 퍼지는 강도
 
     // 1. 세로선 (원근법) - 화면 전체를 덮도록 시작점을 넓게 잡음
-    this.gridGraphics.lineStyle(1, COLORS.CYAN, globalConfig.alpha);
+    this.gridGraphics.lineStyle(globalConfig.lineWidth, COLORS.CYAN, globalConfig.alpha);
     
     for (let i = 0; i <= config.verticalLines; i++) {
       // 선 사이의 간격을 좁혀서 더 촘촘하게 배치 (나누는 값을 키움)

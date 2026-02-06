@@ -147,6 +147,7 @@ export class GameScene extends Phaser.Scene {
     const gridConfig = Data.gameConfig.gameGrid;
     this.gridGraphics = this.add.graphics();
     this.gridGraphics.setDepth(gridConfig.depth); // 배경이므로 가장 뒤에 배치
+    this.gridGraphics.setBlendMode(Phaser.BlendModes.ADD);
     
     // 별 배경 추가 (그리드보다 뒤에 배치)
     this.starBackground = new StarBackground(this, Data.gameConfig.stars);
@@ -157,7 +158,7 @@ export class GameScene extends Phaser.Scene {
     const config = Data.gameConfig.gameGrid;
     this.gridGraphics.clear();
 
-    this.gridGraphics.lineStyle(1, COLORS.CYAN, config.alpha);
+    this.gridGraphics.lineStyle(config.lineWidth, COLORS.CYAN, config.alpha);
 
     // 수직선
     for (let x = 0; x <= GAME_WIDTH; x += config.size) {
