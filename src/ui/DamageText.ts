@@ -72,7 +72,7 @@ export class DamageText {
     this.createDamageText({
       x,
       y,
-      text: `${damage}!`,
+      text: Data.t('damage.critical', damage),
       color: COLORS_HEX.YELLOW,
       fontSize: 32,
       isCritical: true,
@@ -158,7 +158,7 @@ export class DamageText {
       }
 
       const comboColor = this.getComboColor(combo, comboConfig);
-      comboText.setText(`x${combo}`);
+      comboText.setText(Data.t('damage.combo', combo));
       comboText.setPosition(posX + comboConfig.offsetX, y + comboConfig.offsetY);
       comboText.setColor(comboColor);
       comboText.setFontSize(comboConfig.fontSize);

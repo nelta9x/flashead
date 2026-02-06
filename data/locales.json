@@ -16,6 +16,9 @@
     "gameover.new_best": "NEW BEST",
     "gameover.click_menu": "CLICK TO MENU",
     
+    "damage.combo": "x{0}",
+    "damage.critical": "{0}!",
+    
     "upgrade.rapid_fire.name": "Rapid Fire",
     "upgrade.rapid_fire.desc": "Fire rate increases by 25%.",
     "upgrade.damage_up.name": "Damage Up",
@@ -102,6 +105,9 @@
     "gameover.max_combo": "최대 콤보",
     "gameover.new_best": "신기록 달성",
     "gameover.click_menu": "메뉴로 돌아가기",
+
+    "damage.combo": "x{0}",
+    "damage.critical": "{0}!",
 
     "upgrade.rapid_fire.name": "연사력 증가",
     "upgrade.rapid_fire.desc": "발사 속도가 25% 증가합니다.",

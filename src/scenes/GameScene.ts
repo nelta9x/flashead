@@ -25,6 +25,8 @@ import { SlowMotion } from '../effects/SlowMotion';
 import { DamageText } from '../ui/DamageText';
 import { CursorTrail } from '../effects/CursorTrail';
 import { StarBackground } from '../effects/StarBackground';
+import { GridRenderer } from '../effects/GridRenderer';
+import { LaserRenderer } from '../effects/LaserRenderer';
 import { CursorRenderer } from '../effects/CursorRenderer';
 import { FeedbackSystem } from '../systems/FeedbackSystem';
 import { SoundSystem } from '../systems/SoundSystem';
@@ -69,19 +71,16 @@ export class GameScene extends Phaser.Scene {
   // 웨이브 전환 상태
   private pendingWaveNumber: number = 1;
 
-  // 커서 렌더러
+  // 렌더러
+  private gridRenderer!: GridRenderer;
   private cursorRenderer!: CursorRenderer;
-
-  // 그리드 배경
-  private gridGraphics!: Phaser.GameObjects.Graphics;
-  private gridOffset: number = 0;
+  private laserRenderer!: LaserRenderer;
 
   // BGM
   private bgm: Phaser.Sound.BaseSound | null = null;
 
   // 보스 레이저 공격 관련
   private laserNextTime: number = 0;
-  private laserGraphics!: Phaser.GameObjects.Graphics;
   private activeLasers: Array<{
     x1: number;
     y1: number;
@@ -105,8 +104,8 @@ export class GameScene extends Phaser.Scene {
     // 배경색 채우기 (블렌딩 베이스)
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.DARK_BG).setOrigin(0, 0).setDepth(-10);
 
-    // 배경 생성
-    this.createBackground();
+    // 그리드 렌더러 초기화
+    this.gridRenderer = new GridRenderer(this);
 
     // Phaser 그룹 생성
     this.dishes = this.add.group();
@@ -146,6 +145,9 @@ export class GameScene extends Phaser.Scene {
     // 커서 렌더러 생성
     this.cursorRenderer = new CursorRenderer(this);
     this.cursorRenderer.setDepth(1000); // 최상위에 표시
+
+    // 레이저 렌더러 생성
+    this.laserRenderer = new LaserRenderer(this);
   }
 
   private createBackground(): void {
@@ -262,10 +264,6 @@ export class GameScene extends Phaser.Scene {
     // 보스 생성 (화면 상단 중앙)
     this.boss = new Boss(this, GAME_WIDTH / 2, 100);
     this.boss.setDepth(Data.boss.depth);
-
-    // 레이저 그래픽 초기화
-    this.laserGraphics = this.add.graphics();
-    this.laserGraphics.setDepth(1500);
   }
 
   private setupEventListeners(): void {
@@ -1146,7 +1144,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.activeLasers.length > 0) {
-      this.drawLasers();
+      // 레이저 렌더링용 데이터 준비
+      const laserData = this.activeLasers.map(l => ({
+        ...l,
+        progress: (this.gameTime - l.startTime) / Data.gameConfig.monsterAttack.laser.warningDuration
+      }));
+      
+      this.laserRenderer.render(laserData);
       this.checkLaserCollisions(delta);
     }
   }
@@ -1220,9 +1224,6 @@ export class GameScene extends Phaser.Scene {
         const index = this.activeLasers.indexOf(laser);
         if (index > -1) {
           this.activeLasers.splice(index, 1);
-          if (this.activeLasers.length === 0) {
-            this.laserGraphics.clear();
-          }
         }
       });
     });
@@ -1327,92 +1328,6 @@ export class GameScene extends Phaser.Scene {
       x: startX + dirX * tMin,
       y: startY + dirY * tMin,
     };
-  }
-
-  private drawLasers(): void {
-    const config = Data.gameConfig.monsterAttack.laser;
-    const color = Phaser.Display.Color.HexStringToColor(config.color).color;
-
-    this.laserGraphics.clear();
-
-    for (const laser of this.activeLasers) {
-      if (laser.isWarning) {
-        // 경고선 (반짝임 효과)
-        const alpha = config.warningAlpha * (0.5 + Math.sin(this.gameTime / 50) * 0.5);
-        this.laserGraphics.lineStyle(config.width, color, alpha);
-        this.laserGraphics.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
-
-        // 외곽선
-        this.laserGraphics.lineStyle(2, color, alpha * 2);
-        this.laserGraphics.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
-      } else if (laser.isFiring) {
-        // 실제 레이저
-        // 주변부
-        this.laserGraphics.lineStyle(config.width, color, config.fireAlpha * 0.6);
-        this.laserGraphics.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
-
-        // 중심부 (흰색 느낌)
-        this.laserGraphics.lineStyle(config.width / 2, 0xffffff, config.fireAlpha);
-        this.laserGraphics.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
-
-        // ===== 전기 스파크 연출 추가 =====
-        this.drawElectricSparks(laser.x1, laser.y1, laser.x2, laser.y2, config.width, color);
-
-        // 파티클 효과 (레이저 경로를 따라 스파크)
-        if (Math.random() < 0.3) {
-          const t = Math.random();
-          const px = laser.x1 + (laser.x2 - laser.x1) * t;
-          const py = laser.y1 + (laser.y2 - laser.y1) * t;
-          this.particleManager.createSparkBurst(px, py, color);
-        }
-      }
-    }
-  }
-
-  private drawElectricSparks(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    laserWidth: number,
-    color: number
-  ): void {
-    const laserConfig = Data.gameConfig.monsterAttack.laser;
-    const segments = laserConfig.visual.sparkSegments;
-    const sparkCount = laserConfig.visual.sparkCount;
-
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const angle = Math.atan2(dy, dx);
-    const perpAngle = angle + Math.PI / 2;
-
-    for (let i = 0; i < sparkCount; i++) {
-      this.laserGraphics.lineStyle(2, 0xffffff, 0.8);
-      this.laserGraphics.beginPath();
-
-      const startOffset = (Math.random() - 0.5) * laserWidth;
-      this.laserGraphics.moveTo(
-        x1 + Math.cos(perpAngle) * startOffset,
-        y1 + Math.sin(perpAngle) * startOffset
-      );
-
-      for (let j = 1; j <= segments; j++) {
-        const t = j / segments;
-        const midX = x1 + dx * t;
-        const midY = y1 + dy * t;
-        const offset = (Math.random() - 0.5) * (laserWidth * 1.5);
-
-        this.laserGraphics.lineTo(
-          midX + Math.cos(perpAngle) * offset,
-          midY + Math.sin(perpAngle) * offset
-        );
-      }
-      this.laserGraphics.strokePath();
-
-      // 바깥쪽 후광 효과
-      this.laserGraphics.lineStyle(4, color, 0.3);
-      this.laserGraphics.strokePath();
-    }
   }
 
   private checkLaserCollisions(_delta: number): void {

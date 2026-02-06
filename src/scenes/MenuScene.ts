@@ -8,6 +8,7 @@ import { StarBackground } from '../effects/StarBackground';
 import { GridRenderer } from '../effects/GridRenderer';
 import { MenuBossRenderer } from '../effects/MenuBossRenderer';
 import { CursorRenderer } from '../effects/CursorRenderer';
+import { MenuDishRenderer } from '../effects/MenuDishRenderer';
 
 export class MenuScene extends Phaser.Scene {
   private titleText!: Phaser.GameObjects.Text;
@@ -324,23 +325,8 @@ export class MenuScene extends Phaser.Scene {
     dish.x = x;
     dish.y = y;
 
-    // 네온 팔각형 그리기
     const color = parseInt(config.color.replace('#', ''), 16);
-    dish.lineStyle(2, color, 1);
-    dish.fillStyle(color, 0.3);
-
-    const radius = config.radius;
-    dish.beginPath();
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const px = Math.cos(angle) * radius;
-      const py = Math.sin(angle) * radius;
-      if (i === 0) dish.moveTo(px, py);
-      else dish.lineTo(px, py);
-    }
-    dish.closePath();
-    dish.fillPath();
-    dish.strokePath();
+    MenuDishRenderer.renderDish(dish, config.radius, color);
 
     this.menuDishes.add(dish);
   }
