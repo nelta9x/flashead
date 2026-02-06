@@ -23,6 +23,7 @@ export class MenuScene extends Phaser.Scene {
   private bossTime: number = 0;
   private cursorTime: number = 0;
   private lastDishSpawnTime: number = 0;
+  private bestWaveText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -41,6 +42,7 @@ export class MenuScene extends Phaser.Scene {
     this.createMenuCursor();
     this.createTitle();
     this.createStartUI();
+    this.createBestWave();
 
     this.setupInputHandlers();
   }
@@ -266,6 +268,27 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  private createBestWave(): void {
+    const config = Data.mainMenu.bestWave;
+    const bestWave = parseInt(localStorage.getItem(config.localStorageKey) || '0', 10);
+
+    if (bestWave <= 0) return;
+
+    this.bestWaveText = this.add.text(
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 + 150 - config.yOffset,
+      `BEST WAVE ${bestWave}`,
+      {
+        fontFamily: FONTS.MAIN,
+        fontSize: config.fontSize,
+        color: COLORS_HEX.WHITE,
+      }
+    );
+    this.bestWaveText.setOrigin(0.5);
+    this.bestWaveText.setAlpha(config.alpha);
+    this.bestWaveText.setShadow(0, 0, COLORS_HEX.CYAN, 6, true, true);
+  }
+
   private updateMenuDishes(delta: number): void {
     const config = Data.mainMenu.dishSpawn;
     const gridConfig = Data.mainMenu.grid;
@@ -438,7 +461,7 @@ export class MenuScene extends Phaser.Scene {
 
     // 시작 시 강렬한 효과
     this.tweens.add({
-      targets: [this.titleText, this.startPrompt],
+      targets: [this.titleText, this.startPrompt, this.bestWaveText].filter(Boolean),
       scaleX: 1.5,
       scaleY: 1.5,
       alpha: 0,

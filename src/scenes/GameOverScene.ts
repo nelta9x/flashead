@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, COLORS_HEX, FONTS } from '../data/constants';
+import { Data } from '../data/DataManager';
 
 interface GameStats {
   maxCombo: number;
@@ -9,6 +10,7 @@ interface GameStats {
 
 export class GameOverScene extends Phaser.Scene {
   private stats!: GameStats;
+  private isNewBestWave: boolean = false;
 
   constructor() {
     super({ key: 'GameOverScene' });
@@ -16,6 +18,17 @@ export class GameOverScene extends Phaser.Scene {
 
   init(data: GameStats): void {
     this.stats = data;
+    this.isNewBestWave = this.saveBestWave(data.wave);
+  }
+
+  private saveBestWave(wave: number): boolean {
+    const key = Data.mainMenu.bestWave.localStorageKey;
+    const prev = parseInt(localStorage.getItem(key) || '0', 10);
+    if (wave > prev) {
+      localStorage.setItem(key, String(wave));
+      return true;
+    }
+    return false;
   }
 
   create(): void {
@@ -66,17 +79,27 @@ export class GameOverScene extends Phaser.Scene {
     const title = this.add.text(GAME_WIDTH / 2, 120, 'PLAY RECORD', {
       fontFamily: FONTS.MAIN,
       fontSize: '72px',
-      color: COLORS_HEX.RED,
-      stroke: COLORS_HEX.WHITE,
-      strokeThickness: 2,
+      color: '#ff4444',
     });
     title.setOrigin(0.5);
+    title.setShadow(0, 0, COLORS_HEX.RED, 15, true, true);
+    title.setAlpha(0.75);
 
-    // 글리치 효과
+    // 은은한 펄스
     this.tweens.add({
       targets: title,
-      x: { from: GAME_WIDTH / 2 - 3, to: GAME_WIDTH / 2 + 3 },
-      duration: 50,
+      alpha: { from: 0.75, to: 0.55 },
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // 살짝 글리치
+    this.tweens.add({
+      targets: title,
+      x: { from: GAME_WIDTH / 2 - 2, to: GAME_WIDTH / 2 + 2 },
+      duration: 80,
       yoyo: true,
       repeat: -1,
       ease: 'Steps',
@@ -132,7 +155,29 @@ export class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(1, 0);
 
-    statsContainer.add([timeLabel, timeValue, waveLabel, waveValue, comboLabel, comboValue]);
+    const children = [timeLabel, timeValue, waveLabel, waveValue, comboLabel, comboValue];
+
+    if (this.isNewBestWave) {
+      const bestBadge = this.add.text(160, 0, 'NEW BEST', {
+        fontFamily: FONTS.MAIN,
+        fontSize: '14px',
+        color: COLORS_HEX.YELLOW,
+      });
+      bestBadge.setShadow(0, 0, COLORS_HEX.YELLOW, 8, true, true);
+
+      this.tweens.add({
+        targets: bestBadge,
+        alpha: { from: 1, to: 0.4 },
+        duration: 600,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+
+      children.push(bestBadge);
+    }
+
+    statsContainer.add(children);
 
     // 애니메이션
     statsContainer.setAlpha(0);
@@ -148,18 +193,20 @@ export class GameOverScene extends Phaser.Scene {
   private createPrompt(): void {
     const prompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, 'CLICK TO MENU', {
       fontFamily: FONTS.MAIN,
-      fontSize: '24px',
-      color: COLORS_HEX.CYAN,
+      fontSize: '28px',
+      color: COLORS_HEX.WHITE,
     });
     prompt.setOrigin(0.5);
+    prompt.setShadow(0, 0, COLORS_HEX.CYAN, 10, true, true);
 
     this.tweens.add({
       targets: prompt,
-      alpha: { from: 1, to: 0.3 },
+      alpha: 0.2,
+      scale: 1.1,
       duration: 800,
       yoyo: true,
       repeat: -1,
-      ease: 'Power2',
+      ease: 'Cubic.easeInOut',
     });
   }
 

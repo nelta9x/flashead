@@ -125,6 +125,12 @@ export interface MenuConfig {
     spawnRangeX: number;
     speedMultiplier: number;
   };
+  bestWave: {
+    yOffset: number;
+    fontSize: string;
+    alpha: number;
+    localStorageKey: string;
+  };
   title: {
     yOffset: number;
     fontSize: string;
