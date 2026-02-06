@@ -100,6 +100,9 @@ export class GameScene extends Phaser.Scene {
     this.gameTime = 0;
     this.activeLasers = [];
 
+    // 배경색 채우기 (블렌딩 베이스)
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.DARK_BG).setOrigin(0, 0).setDepth(-10);
+
     // 배경 생성
     this.createBackground();
 
@@ -147,7 +150,7 @@ export class GameScene extends Phaser.Scene {
     const gridConfig = Data.gameConfig.gameGrid;
     this.gridGraphics = this.add.graphics();
     this.gridGraphics.setDepth(gridConfig.depth); // 배경이므로 가장 뒤에 배치
-    this.gridGraphics.setBlendMode(Phaser.BlendModes.ADD);
+    this.gridGraphics.setBlendMode(Phaser.BlendModes.SCREEN);
     
     // 별 배경 추가 (그리드보다 뒤에 배치)
     this.starBackground = new StarBackground(this, Data.gameConfig.stars);

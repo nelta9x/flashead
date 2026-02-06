@@ -31,6 +31,9 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     this.isTransitioning = false;
+    // 배경색 채우기
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.DARK_BG).setOrigin(0, 0).setDepth(-10);
+    
     this.starBackground = new StarBackground(this, Data.mainMenu.stars);
     this.createBoss();
     this.createGrid();
@@ -137,7 +140,7 @@ export class MenuScene extends Phaser.Scene {
   private createGrid(): void {
     this.gridGraphics = this.add.graphics();
     this.gridGraphics.setDepth(Data.gameConfig.gameGrid.depth);
-    this.gridGraphics.setBlendMode(Phaser.BlendModes.ADD);
+    this.gridGraphics.setBlendMode(Phaser.BlendModes.SCREEN);
   }
 
   private createMenuCursor(): void {
