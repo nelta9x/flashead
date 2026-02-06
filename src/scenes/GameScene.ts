@@ -231,7 +231,7 @@ export class GameScene extends Phaser.Scene {
 
     // 보스 생성 (화면 상단 중앙)
     this.boss = new Boss(this, GAME_WIDTH / 2, 100);
-    this.boss.setDepth(1600);
+    this.boss.setDepth(Data.boss.depth);
 
     // 레이저 그래픽 초기화
     this.laserGraphics = this.add.graphics();

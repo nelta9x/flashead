@@ -595,6 +595,7 @@ export interface MagnetConfig {
 
 // ========== 보스 설정 ==========
 export interface BossConfig {
+  depth: number;
   visual: {
     core: {
       radius: number;
