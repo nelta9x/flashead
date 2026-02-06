@@ -271,6 +271,7 @@ export class GameScene extends Phaser.Scene {
     EventBus.getInstance().on(GameEvents.WAVE_COMPLETED, (...args: unknown[]) => {
       const waveNumber = args[0] as number;
       this.hud.showWaveComplete(waveNumber);
+      this.clearAllDishes();
 
       // 다음 웨이브 번호 저장 후 카운트다운과 업그레이드 UI 동시 표시
       this.pendingWaveNumber = waveNumber + 1;
@@ -1087,6 +1088,15 @@ export class GameScene extends Phaser.Scene {
     // 중앙 점
     this.attackRangeIndicator.fillStyle(COLORS.WHITE, 1);
     this.attackRangeIndicator.fillCircle(x, y, 2);
+  }
+
+  private clearAllDishes(): void {
+    const activeDishes = this.dishPool.getActiveObjects();
+    for (const dish of activeDishes) {
+      dish.deactivate();
+      this.dishes.remove(dish);
+      this.dishPool.release(dish);
+    }
   }
 
   getDishPool(): ObjectPool<Dish> {
