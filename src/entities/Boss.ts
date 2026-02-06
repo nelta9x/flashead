@@ -195,35 +195,96 @@ export class Boss extends Phaser.GameObjects.Container {
       onComplete: () => shockwave.destroy(),
     });
 
-    // 4. 파편 비산 효과 강화
-    const bp = config.breakParticles;
-    for (let i = 0; i < bp.count; i++) {
-      const angle = ((Math.PI * 2) / bp.count) * i + (Math.random() - 0.5);
-      const px = Math.cos(angle) * bp.spawnDistance;
-      const py = Math.sin(angle) * bp.spawnDistance;
+    // 4. 게이지 파편 shattering & falling 효과
+    const shardCount = 25;
+    const armor = config.armor;
+    const armorColor = parseInt(armor.bodyColor);
 
-      const chunk = this.scene.add.arc(
-        this.x + px,
-        this.y + py,
-        bp.radius,
-        0,
-        360,
-        false,
-        COLORS.RED,
-        1
-      );
-      chunk.setDepth(1999);
+    for (let i = 0; i < shardCount; i++) {
+      // 보스 주변(아머 위치)에서 랜덤하게 생성
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Phaser.Math.Between(armor.innerRadius, armor.radius);
+      const startX = this.x + Math.cos(angle) * radius;
+      const startY = this.y + Math.sin(angle) * radius;
+
+      // 파편 그래픽 (작은 삼각형/사각형)
+      const shard = this.scene.add.graphics();
+      shard.setDepth(1999);
+      
+      const size = Phaser.Math.Between(4, 12);
+      // 색상 다양화: 70%는 빨간색(에너지), 30%는 어두운 아머 색상
+      const isEnergy = Math.random() > 0.3;
+      const color = isEnergy ? COLORS.RED : armorColor;
+      const alpha = isEnergy ? 1 : 0.8;
+      
+      shard.fillStyle(color, alpha);
+      
+      // 랜덤한 다각형 파편 그리기 (3~5개 꼭짓점)
+      const points = [];
+      const numPoints = Phaser.Math.Between(3, 5);
+      for (let j = 0; j < numPoints; j++) {
+        const pAngle = (j / numPoints) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+        const pRadius = size / 2 * (0.5 + Math.random() * 0.5);
+        points.push({ x: Math.cos(pAngle) * pRadius, y: Math.sin(pAngle) * pRadius });
+      }
+      
+      shard.fillPoints(points, true);
+
+      // 테두리 추가 (에너지 파편인 경우)
+      if (isEnergy) {
+        shard.lineStyle(1, 0xffffff, 0.5);
+        shard.strokePoints(points, true);
+      }
+
+      shard.setPosition(startX, startY);
+      shard.setRotation(Math.random() * Math.PI * 2);
+
+      // 물리 효과 시뮬레이션 (초기 속도 + 중력)
+      const velocityX = (Math.cos(angle) * 0.5 + (Math.random() - 0.5)) * Phaser.Math.Between(100, 300);
+      const velocityY = (Math.sin(angle) * 0.5 + (Math.random() - 0.5)) * Phaser.Math.Between(100, 300) - 150; // 위로 더 튀게
+      const gravity = 800;
+      const rotationSpeed = (Math.random() - 0.5) * 15;
+      const duration = Phaser.Math.Between(1000, 2000);
 
       this.scene.tweens.add({
-        targets: chunk,
-        x: chunk.x + Math.cos(angle) * bp.travelDistance,
-        y: chunk.y + Math.sin(angle) * bp.travelDistance,
+        targets: shard,
+        alpha: 0,
+        duration: duration,
+        ease: 'Cubic.easeIn',
+        onUpdate: (_tween) => {
+          const t = _tween.elapsed / 1000;
+          // X: 등속도, Y: 중력 적용 (v0*t + 0.5*g*t^2)
+          const curX = startX + velocityX * t;
+          const curY = startY + velocityY * t + 0.5 * gravity * t * t;
+          shard.setPosition(curX, curY);
+          shard.setRotation(shard.rotation + rotationSpeed * 0.016);
+        },
+        onComplete: () => shard.destroy()
+      });
+    }
+
+    // 5. 추가 스파크/먼지 효과 (ParticleManager 활용 가능 시)
+    // GameScene에서 particleManager를 가져오거나 Boss에서 직접 생성
+    // 여기서는 간단히 아머 본체 색상의 작은 점들을 추가
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spark = this.scene.add.circle(
+        this.x + Math.cos(angle) * armor.radius,
+        this.y + Math.sin(angle) * armor.radius,
+        2,
+        0xffffff,
+        0.8
+      );
+      spark.setDepth(2001);
+
+      this.scene.tweens.add({
+        targets: spark,
+        x: spark.x + Math.cos(angle) * 100,
+        y: spark.y + Math.sin(angle) * 100,
         alpha: 0,
         scale: 0,
-        rotation: 720,
-        duration: bp.duration,
-        ease: 'Cubic.easeOut',
-        onComplete: () => chunk.destroy(),
+        duration: 500,
+        onComplete: () => spark.destroy()
       });
     }
   }
