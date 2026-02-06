@@ -365,8 +365,8 @@ export class GameScene extends Phaser.Scene {
 
   private performPlayerAttack(): void {
     const pointer = this.input.activePointer;
-    const endX = GAME_WIDTH / 2;
-    const endY = 80; // Approximate boss pos
+    const endX = this.boss.x;
+    const endY = this.boss.y;
     const config = Data.feedback.bossAttack;
 
     // 색상 변환

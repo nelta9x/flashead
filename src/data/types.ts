@@ -644,6 +644,20 @@ export interface BossConfig {
     duration: number;
     initialScale: number;
   };
+  movement: {
+    drift: {
+      xAmplitude: number;
+      xFrequency: number;
+      yAmplitude: number;
+      yFrequency: number;
+    };
+    bounds: {
+      minX: number;
+      maxX: number;
+      minY: number;
+      maxY: number;
+    };
+  };
 }
 
 // ========== 전체 데이터 구조 ==========

@@ -14,12 +14,26 @@ export class Boss extends Phaser.GameObjects.Container {
   private readonly maxArmorPieces: number;
   private currentArmorCount: number;
 
+  // 움직임 관련
+  private homeX: number;
+  private homeY: number;
+  private baseX: number;
+  private baseY: number;
+  private shakeOffsetX: number = 0;
+  private shakeOffsetY: number = 0;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
     const config = Data.boss.visual;
     this.maxArmorPieces = config.armor.maxPieces;
     this.currentArmorCount = this.maxArmorPieces;
+
+    // 초기 위치 저장
+    this.homeX = x;
+    this.homeY = y;
+    this.baseX = x;
+    this.baseY = y;
 
     // 중앙 코어 생성
     this.core = scene.add.arc(
@@ -76,6 +90,15 @@ export class Boss extends Phaser.GameObjects.Container {
     this.isDead = false;
     this.hpRatio = 1;
     this.currentArmorCount = this.maxArmorPieces;
+
+    // 움직임 초기화
+    this.baseX = this.homeX;
+    this.baseY = this.homeY;
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
+    this.x = this.homeX;
+    this.y = this.homeY;
+
     this.setVisible(true);
 
     this.scene.tweens.add({
@@ -104,13 +127,18 @@ export class Boss extends Phaser.GameObjects.Container {
       },
     });
 
+    // shakeOffset을 tween하여 updateMovement와 충돌하지 않도록 함
     this.scene.tweens.add({
       targets: this,
-      x: this.x + Phaser.Math.Between(-config.intensity, config.intensity),
-      y: this.y + Phaser.Math.Between(-config.intensity, config.intensity),
+      shakeOffsetX: Phaser.Math.Between(-config.intensity, config.intensity),
+      shakeOffsetY: Phaser.Math.Between(-config.intensity, config.intensity),
       duration: config.duration,
       yoyo: true,
       repeat: 1,
+      onComplete: () => {
+        this.shakeOffsetX = 0;
+        this.shakeOffsetY = 0;
+      },
     });
   }
 
@@ -191,12 +219,27 @@ export class Boss extends Phaser.GameObjects.Container {
     });
   }
 
+  private updateMovement(_delta: number): void {
+    const mov = Data.boss.movement;
+
+    // 사인파 드리프트 직접 적용
+    this.baseX = this.homeX + Math.sin(this.timeElapsed * mov.drift.xFrequency) * mov.drift.xAmplitude;
+    this.baseY = this.homeY + Math.sin(this.timeElapsed * mov.drift.yFrequency) * mov.drift.yAmplitude;
+
+    // bounds 클램프
+    this.baseX = Phaser.Math.Clamp(this.baseX, mov.bounds.minX, mov.bounds.maxX);
+    this.baseY = Phaser.Math.Clamp(this.baseY, mov.bounds.minY, mov.bounds.maxY);
+  }
+
   update(delta: number): void {
     if (!this.visible || this.isDead) return;
 
     const config = Data.boss;
     this.timeElapsed += delta;
     const dangerLevel = 1 - this.hpRatio;
+
+    // 움직임 계산 → baseX/Y 갱신
+    this.updateMovement(delta);
 
     // 코어 연출
     const corePulse =
@@ -209,6 +252,10 @@ export class Boss extends Phaser.GameObjects.Container {
     // 아머 그리기
     this.armorGraphics.clear();
     this.drawArmor();
+
+    // 최종 위치 = 기본 위치 + 피격 흔들림 오프셋
+    this.x = this.baseX + this.shakeOffsetX;
+    this.y = this.baseY + this.shakeOffsetY;
 
     // 위기 시 제자리 진동 (상시)
     if (dangerLevel > config.feedback.vibrationThreshold) {
