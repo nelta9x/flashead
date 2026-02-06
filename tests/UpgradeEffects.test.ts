@@ -37,6 +37,7 @@ vi.mock('../src/utils/EventBus', () => ({
     COMBO_MILESTONE: 'combo_milestone',
     WAVE_COMPLETED: 'wave_completed',
     UPGRADE_SELECTED: 'upgrade_selected',
+    HEALTH_PACK_UPGRADED: 'healthPack:upgraded',
   },
 }));
 
@@ -224,6 +225,34 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       upgrade.applyUpgrade(missileUpgrade);
       expect(upgrade.getMissileDamage()).toBe(200);
       expect(upgrade.getMissileCount()).toBe(6);
+    });
+  });
+
+  describe('헬스팩 (health_pack)', () => {
+    it('레벨 1 수치 확인 및 이벤트 발생', async () => {
+      const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+      const hpUpgrade = UPGRADES.find((u) => u.id === 'health_pack')!;
+
+      upgrade.applyUpgrade(hpUpgrade);
+      expect(upgrade.getHealthPackLevel()).toBe(1);
+      expect(upgrade.getHealthPackDropBonus()).toBeCloseTo(0.01);
+      
+      // 이벤트 발생 확인
+      expect(mockEmit).toHaveBeenCalledWith('healthPack:upgraded', { hpBonus: 1 });
+    });
+
+    it('레벨 3 수치 확인', async () => {
+      const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+      const hpUpgrade = UPGRADES.find((u) => u.id === 'health_pack')!;
+
+      for (let i = 0; i < 3; i++) upgrade.applyUpgrade(hpUpgrade);
+      expect(upgrade.getHealthPackLevel()).toBe(3);
+      expect(upgrade.getHealthPackDropBonus()).toBeCloseTo(0.03);
+      
+      // 마지막 호출 이벤트 확인
+      expect(mockEmit).toHaveBeenLastCalledWith('healthPack:upgraded', { hpBonus: 3 });
     });
   });
 

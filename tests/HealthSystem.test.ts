@@ -74,6 +74,17 @@ describe('HealthSystem Upgrade Effects', () => {
       expect(health.getHp()).toBe(10);
       expect(health.getMaxHp()).toBe(10);
     });
+
+    it('should correctly calculate new max HP with INITIAL_HP', async () => {
+      const { HealthSystem } = await import('../src/systems/HealthSystem');
+      const INITIAL_HP = 5;
+      const health = new HealthSystem(INITIAL_HP);
+
+      const hpBonus = 2;
+      health.setMaxHp(INITIAL_HP + hpBonus);
+      
+      expect(health.getMaxHp()).toBe(7);
+    });
   });
 
   describe('revive', () => {
