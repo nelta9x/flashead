@@ -53,39 +53,29 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createLanguageButton(): void {
+    const config = Data.mainMenu.languageUI;
     const currentLang = Data.getLanguage();
-    const x = GAME_WIDTH - 20;
-    const y = 25;
     
-    const container = this.add.container(x, y);
+    const container = this.add.container(config.x, config.y);
     
-    // 1. 지구본 아이콘 (간단한 그래픽)
-    const icon = this.add.graphics();
-    icon.lineStyle(1.5, COLORS.WHITE, 0.6);
-    icon.strokeCircle(-85, 10, 8);
-    icon.lineStyle(1, COLORS.WHITE, 0.4);
-    icon.moveTo(-85, 2); icon.lineTo(-85, 18); // 세로선
-    icon.moveTo(-93, 10); icon.lineTo(-77, 10); // 가로선
-    container.add(icon);
-
-    // 2. EN 텍스트
-    const enText = this.add.text(-60, 0, 'EN', {
+    // 1. EN 텍스트
+    const enText = this.add.text(-config.spacing * 2, 0, 'EN', {
       fontFamily: FONTS.MAIN,
-      fontSize: '18px',
+      fontSize: config.fontSize,
       color: currentLang === 'en' ? COLORS_HEX.CYAN : COLORS_HEX.WHITE,
     }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
 
-    // 3. 구분선
-    const separator = this.add.text(-40, 0, '|', {
+    // 2. 구분선
+    const separator = this.add.text(-config.spacing, 0, '|', {
       fontFamily: FONTS.MAIN,
       fontSize: '16px',
       color: COLORS_HEX.WHITE,
     }).setOrigin(0.5, 0).setAlpha(0.3);
 
-    // 4. KO 텍스트
-    const koText = this.add.text(-20, 0, 'KO', {
+    // 3. KO 텍스트
+    const koText = this.add.text(0, 0, 'KO', {
       fontFamily: FONTS.MAIN,
-      fontSize: '18px',
+      fontSize: config.fontSize,
       color: currentLang === 'ko' ? COLORS_HEX.CYAN : COLORS_HEX.WHITE,
     }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
 
@@ -96,11 +86,11 @@ export class MenuScene extends Phaser.Scene {
       if (isActive) {
         textObj.setColor(COLORS_HEX.CYAN);
         textObj.setAlpha(1);
-        textObj.setScale(1.1);
+        textObj.setScale(config.activeScale);
         textObj.setShadow(0, 0, COLORS_HEX.CYAN, 5, true, true);
       } else {
         textObj.setColor(COLORS_HEX.WHITE);
-        textObj.setAlpha(0.5);
+        textObj.setAlpha(config.inactiveAlpha);
         textObj.setScale(1);
         textObj.setShadow(0, 0, '', 0);
       }
@@ -132,7 +122,7 @@ export class MenuScene extends Phaser.Scene {
       });
       t.on('pointerout', () => {
         const isThisActive = (t === enText && Data.getLanguage() === 'en') || (t === koText && Data.getLanguage() === 'ko');
-        t.setAlpha(isThisActive ? 1 : 0.5);
+        t.setAlpha(isThisActive ? 1 : config.inactiveAlpha);
       });
     });
   }

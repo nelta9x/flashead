@@ -83,6 +83,15 @@ export interface StarsConfig {
   verticalLimitRatio: number;
 }
 
+export interface LanguageUIConfig {
+  x: number;
+  y: number;
+  fontSize: string;
+  spacing: number;
+  activeScale: number;
+  inactiveAlpha: number;
+}
+
 export interface MenuConfig {
   boss: {
     posYRatio: number;
@@ -144,6 +153,7 @@ export interface MenuConfig {
     moveY: number;
     padding: number;
   };
+  languageUI: LanguageUIConfig;
 }
 
 export interface AudioBGMConfig {
