@@ -179,6 +179,8 @@
     "maxBombWeight": 0.35,
     "goldenWeightDecrease": 0.01,
     "minGoldenWeight": 0.2,
-    "bossHpIncrease": 30
+    "bossHpIncrease": 30,
+    "minDishCountIncrease": 1,
+    "maxMinDishCount": 20
   }
 }

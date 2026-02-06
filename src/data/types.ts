@@ -143,6 +143,7 @@ export interface MenuConfig {
 
 export interface AudioBGMConfig {
   key: string;
+  path: string;
   volume: number;
 }
 
@@ -174,17 +175,16 @@ export interface SpawnAreaConfig {
   maxY: number;
 }
 
-export interface DynamicSpawnConfig {
-  minActiveDishes: number;
-  emergencyInterval: number;
-  lowActiveInterval: number;
+export interface FillSpawnConfig {
+  maxPerFrame: number;
+  cooldownMs: number;
 }
 
 export interface SpawnConfig {
   area: SpawnAreaConfig;
   minDishDistance: number;
   minBossDistance: number;
-  dynamicSpawn: DynamicSpawnConfig;
+  fillSpawn: FillSpawnConfig;
 }
 
 // ========== 콤보 시스템 ==========
@@ -419,6 +419,8 @@ export interface InfiniteScalingConfig {
   goldenWeightDecrease: number;
   minGoldenWeight: number;
   bossHpIncrease: number;
+  minDishCountIncrease: number;
+  maxMinDishCount: number;
 }
 
 export interface FeverConfig {

@@ -14,6 +14,7 @@ type WavePhase = 'waiting' | 'countdown' | 'spawning';
 
 interface WaveConfig {
   spawnInterval: number;
+  minDishCount: number;
   dishTypes: { type: string; weight: number }[];
   laser?: { maxCount: number; minInterval: number; maxInterval: number };
 }
@@ -22,6 +23,7 @@ export class WaveSystem {
   private scene: Phaser.Scene;
   private currentWave: number = 0;
   private timeSinceLastSpawn: number = 0;
+  private timeSinceLastFillSpawn: number = 0;
   private waveConfig: WaveConfig | null = null;
   private isFeverTime: boolean = false;
   private totalGameTime: number = 0;
@@ -48,6 +50,7 @@ export class WaveSystem {
   startWave(waveNumber: number): void {
     this.currentWave = waveNumber;
     this.timeSinceLastSpawn = 0;
+    this.timeSinceLastFillSpawn = 0;
     this.wavePhase = 'spawning';
 
     this.waveConfig = this.getScaledWaveConfig(waveNumber);
@@ -63,6 +66,7 @@ export class WaveSystem {
     if (waveNumber <= wavesData.waves.length) {
       return {
         spawnInterval: waveData.spawnInterval,
+        minDishCount: waveData.dishCount,
         dishTypes: waveData.dishTypes,
         laser: waveData.laser,
       };
@@ -76,11 +80,17 @@ export class WaveSystem {
     const minInterval = Math.max(1500, 1800 - wavesBeyond * 50);
     const maxInterval = Math.max(3000, 4000 - wavesBeyond * 100);
 
+    const minDishCount = Math.min(
+      scaling.maxMinDishCount,
+      waveData.dishCount + wavesBeyond * scaling.minDishCountIncrease
+    );
+
     return {
       spawnInterval: Math.max(
         scaling.minSpawnInterval,
         waveData.spawnInterval - wavesBeyond * scaling.spawnIntervalReduction
       ),
+      minDishCount,
       dishTypes: this.getScaledDishTypes(waveNumber),
       laser: { maxCount: laserCount, minInterval, maxInterval },
     };
@@ -122,9 +132,11 @@ export class WaveSystem {
     const feverData = Data.waves.fever;
     this.waveConfig = {
       spawnInterval: feverData.spawnInterval,
+      minDishCount: feverData.dishCount,
       dishTypes: feverData.dishTypes,
     };
     this.timeSinceLastSpawn = 0;
+    this.timeSinceLastFillSpawn = 0;
   }
 
   getWavePhase(): WavePhase {
@@ -156,18 +168,22 @@ export class WaveSystem {
     if (!this.waveConfig) return;
 
     this.timeSinceLastSpawn += delta;
+    this.timeSinceLastFillSpawn += delta;
 
     const activeCount = this.getDishPool().getActiveCount();
-    const dynamicSpawn = Data.spawn.dynamicSpawn;
-    let effectiveInterval = this.waveConfig.spawnInterval;
+    const fillSpawn = Data.spawn.fillSpawn;
 
-    if (activeCount < dynamicSpawn.minActiveDishes) {
-      effectiveInterval = Math.min(effectiveInterval, dynamicSpawn.emergencyInterval);
-    } else if (activeCount < dynamicSpawn.minActiveDishes + 2) {
-      effectiveInterval = Math.min(effectiveInterval, dynamicSpawn.lowActiveInterval);
+    // fill spawn: 최소 접시 수 보장
+    if (
+      activeCount < this.waveConfig.minDishCount &&
+      this.timeSinceLastFillSpawn >= fillSpawn.cooldownMs
+    ) {
+      this.spawnDish();
+      this.timeSinceLastFillSpawn = 0;
     }
 
-    if (this.timeSinceLastSpawn >= effectiveInterval) {
+    // normal spawn: 기존 간격 기반 스폰 유지
+    if (this.timeSinceLastSpawn >= this.waveConfig.spawnInterval) {
       this.spawnDish();
       this.timeSinceLastSpawn = 0;
     }

@@ -7,9 +7,8 @@
   },
   "minDishDistance": 100,
   "minBossDistance": 150,
-  "dynamicSpawn": {
-    "minActiveDishes": 2,
-    "emergencyInterval": 300,
-    "lowActiveInterval": 500
+  "fillSpawn": {
+    "maxPerFrame": 1,
+    "cooldownMs": 50
   }
 }

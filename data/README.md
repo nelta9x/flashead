@@ -130,7 +130,7 @@ import { COLORS, FONTS } from '../data/constants';
 {
   "number": 1,           // 웨이브 번호
   "name": "시작",        // 표시 이름
-  "dishCount": 3,        // 한 번에 활성화되는 최대 접시 수 (현재 미사용)
+  "dishCount": 3,        // 최소 활성 접시 수 (이 수 이하면 즉시 스폰)
   "spawnInterval": 1000, // 접시 스폰 간격 (ms). 낮을수록 빠름
   "dishTypes": [         // 접시 종류별 출현 가중치
     { "type": "basic", "weight": 0.8 },
@@ -152,7 +152,9 @@ import { COLORS, FONTS } from '../data/constants';
   "bombWeightIncrease": 0.02,    // 웨이브당 폭탄 가중치 증가
   "maxBombWeight": 0.35,         // 폭탄 최대 가중치
   "goldenWeightDecrease": 0.01,  // 웨이브당 골든 가중치 감소
-  "minGoldenWeight": 0.2         // 골든 최소 가중치
+  "minGoldenWeight": 0.2,        // 골든 최소 가중치
+  "minDishCountIncrease": 1,     // 웨이브당 최소 접시 수 증가
+  "maxMinDishCount": 20          // 최소 접시 수 상한
 }
 ```
 
@@ -420,10 +422,9 @@ import { COLORS, FONTS } from '../data/constants';
     "maxY": 640     // 스폰 영역 하단 경계
   },
   "minDishDistance": 100,  // 접시 간 최소 거리 (px)
-  "dynamicSpawn": {
-    "minActiveDishes": 2,     // 최소 유지할 활성 접시 수
-    "emergencyInterval": 300, // 긴급 스폰 간격 (ms) - 접시가 너무 적을 때
-    "lowActiveInterval": 500  // 저활성 스폰 간격 (ms)
+  "fillSpawn": {
+    "maxPerFrame": 1,         // 프레임당 최대 채우기 스폰 수
+    "cooldownMs": 50          // 채우기 스폰 간 쿨다운 (ms)
   }
 }
 ```

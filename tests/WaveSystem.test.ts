@@ -45,8 +45,13 @@ vi.mock('../src/data/DataManager', () => ({
   Data: {
     waves: {
       waves: [
-        { spawnInterval: 2000, dishTypes: [{ type: 'basic', weight: 1 }] },
         {
+          dishCount: 3,
+          spawnInterval: 2000,
+          dishTypes: [{ type: 'basic', weight: 1 }],
+        },
+        {
+          dishCount: 4,
           spawnInterval: 1500,
           dishTypes: [
             { type: 'basic', weight: 0.8 },
@@ -61,17 +66,19 @@ vi.mock('../src/data/DataManager', () => ({
         bombWeightIncrease: 0.05,
         minGoldenWeight: 0.1,
         goldenWeightDecrease: 0.05,
+        minDishCountIncrease: 1,
+        maxMinDishCount: 20,
       },
       fever: {
+        dishCount: 999,
         spawnInterval: 200,
         dishTypes: [{ type: 'golden', weight: 1.0 }],
       },
     },
     spawn: {
-      dynamicSpawn: {
-        minActiveDishes: 3,
-        emergencyInterval: 500,
-        lowActiveInterval: 1000,
+      fillSpawn: {
+        maxPerFrame: 1,
+        cooldownMs: 50,
       },
     },
   },
@@ -188,28 +195,35 @@ describe('WaveSystem', () => {
       expect(mockScene.spawnDish).not.toHaveBeenCalled();
     });
 
-    it('should respect dynamic spawn interval (emergency)', () => {
-      // Set active count to very low (0) -> should trigger emergency interval (500ms)
+    it('should fill spawn when active count is below minDishCount', () => {
+      // Wave 1 minDishCount = 3, fillSpawn cooldown = 50ms
       mockDishPool.getActiveCount.mockReturnValue(0);
 
-      // Update 500ms
-      waveSystem.update(500);
+      // Update 50ms (meets cooldown)
+      waveSystem.update(50);
 
       expect(mockScene.spawnDish).toHaveBeenCalled();
     });
 
-    it('should respect dynamic spawn interval (low active)', () => {
-      // Set active count to low (3) -> minActiveDishes(3) + 2 = 5. So 3 is < 5.
-      // But minActiveDishes is 3.
-      // If activeCount < 3 -> emergency.
-      // If activeCount < 5 -> lowActiveInterval (1000ms).
+    it('should NOT fill spawn when active count meets minDishCount', () => {
+      // Wave 1 minDishCount = 3, active count = 3 -> no fill spawn
+      mockDishPool.getActiveCount.mockReturnValue(3);
 
-      mockDishPool.getActiveCount.mockReturnValue(4);
+      // Update 50ms (meets cooldown but active count is sufficient)
+      waveSystem.update(50);
 
-      // Update 1000ms
-      waveSystem.update(1000);
+      // Should not spawn because interval (2000ms) hasn't passed and fill spawn not needed
+      expect(mockScene.spawnDish).not.toHaveBeenCalled();
+    });
 
-      expect(mockScene.spawnDish).toHaveBeenCalled();
+    it('should respect fill spawn cooldown', () => {
+      // Wave 1 minDishCount = 3, fillSpawn cooldown = 50ms
+      mockDishPool.getActiveCount.mockReturnValue(0);
+
+      // Update only 30ms (below cooldown)
+      waveSystem.update(30);
+
+      expect(mockScene.spawnDish).not.toHaveBeenCalled();
     });
   });
 
