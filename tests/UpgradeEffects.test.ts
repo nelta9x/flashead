@@ -315,4 +315,73 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       expect(upgrade.getMissileCount()).toBe(0);
     });
   });
+
+  describe('로케일 및 템플릿 치환 검증', () => {
+    it('모든 시스템 업그레이드의 이름과 설명 키가 존재해야 함', async () => {
+      const { Data } = await import('../src/data/DataManager');
+      const languages: ('en' | 'ko')[] = ['en', 'ko'];
+      
+      for (const lang of languages) {
+        Data.setLanguage(lang);
+        const locale = Data.locales[lang];
+
+        for (const upgrade of Data.upgrades.system) {
+          expect(locale[`upgrade.${upgrade.id}.name`], `Missing name for ${upgrade.id} in ${lang}`).toBeDefined();
+          expect(locale[`upgrade.${upgrade.id}.desc`], `Missing desc for ${upgrade.id} in ${lang}`).toBeDefined();
+          if (upgrade.descriptionTemplate) {
+            expect(locale[`upgrade.${upgrade.id}.desc_template`], `Missing desc_template for ${upgrade.id} in ${lang}`).toBeDefined();
+          }
+        }
+      }
+    });
+
+    it('모든 단계에서 설명(getFormattedDescription)에 미치환 태그가 없어야 함', async () => {
+      const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
+      const { Data } = await import('../src/data/DataManager');
+      const languages: ('en' | 'ko')[] = ['en', 'ko'];
+
+      for (const lang of languages) {
+        Data.setLanguage(lang);
+        const upgradeSystem = new UpgradeSystem();
+
+        for (const upgradeData of Data.upgrades.system) {
+          const upgradeObj = UPGRADES.find(u => u.id === upgradeData.id)!;
+          
+          // 0레벨부터 만렙까지 확인
+          const maxLevel = upgradeData.levels ? upgradeData.levels.length : 1;
+          for (let level = 0; level <= maxLevel; level++) {
+            if (level > 0) upgradeSystem.applyUpgrade(upgradeObj);
+            
+            const desc = upgradeSystem.getFormattedDescription(upgradeData.id);
+            // { 또는 } 가 포함되어 있으면 치환 실패로 간주
+            expect(desc, `Unreplaced tag in ${upgradeData.id} (Level ${level}, ${lang}): ${desc}`).not.toMatch(/\{|\}/);
+          }
+        }
+      }
+    });
+
+    it('모든 단계에서 미리보기(getPreviewDescription)에 미치환 태그가 없어야 함', async () => {
+      const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
+      const { Data } = await import('../src/data/DataManager');
+      const languages: ('en' | 'ko')[] = ['en', 'ko'];
+
+      for (const lang of languages) {
+        Data.setLanguage(lang);
+        const upgradeSystem = new UpgradeSystem();
+
+        for (const upgradeData of Data.upgrades.system) {
+          const upgradeObj = UPGRADES.find(u => u.id === upgradeData.id)!;
+          
+          const maxLevel = upgradeData.levels ? upgradeData.levels.length : 1;
+          for (let level = 0; level < maxLevel; level++) {
+            // 현재 level 상태에서 다음 레벨 미리보기 생성
+            const preview = upgradeSystem.getPreviewDescription(upgradeData.id);
+            expect(preview, `Unreplaced tag in preview ${upgradeData.id} (From Level ${level}, ${lang}): ${preview}`).not.toMatch(/\{|\}/);
+            
+            upgradeSystem.applyUpgrade(upgradeObj);
+          }
+        }
+      }
+    });
+  });
 });
