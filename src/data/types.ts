@@ -16,6 +16,8 @@ export interface CursorHitboxConfig {
 export interface PlayerConfig {
   initialHp: number;
   cursorHitbox: CursorHitboxConfig;
+  cursorColor: string;
+  cursorColorNumeric: number;
 }
 
 export interface UpgradeUIConfig {

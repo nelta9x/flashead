@@ -7,7 +7,9 @@
     "initialHp": 5,
     "cursorHitbox": {
       "baseRadius": 30
-    }
+    },
+    "cursorColor": "#bbddff",
+    "cursorColorNumeric": 12312063
   },
   "upgradeUI": {
     "boxWidth": 200,
@@ -74,6 +76,7 @@
   "audio": {
     "bgm": {
       "key": "bgm",
+      "path": "assets/audio/neon-drive.mp3",
       "volume": 0.1
     }
   }

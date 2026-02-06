@@ -1067,7 +1067,7 @@ export class GameScene extends Phaser.Scene {
     const readyColor = Phaser.Display.Color.HexStringToColor(
       Data.feedback.bossAttack.mainColor
     ).color;
-    const baseColor = isReady ? readyColor : COLORS.CYAN;
+    const baseColor = isReady ? readyColor : Data.gameConfig.player.cursorColorNumeric;
 
     this.attackRangeIndicator.lineStyle(2, baseColor, 0.5);
     this.attackRangeIndicator.strokeCircle(x, y, cursorRadius);
