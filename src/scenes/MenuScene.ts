@@ -24,6 +24,7 @@ export class MenuScene extends Phaser.Scene {
   private cursorTime: number = 0;
   private lastDishSpawnTime: number = 0;
   private bestWaveText!: Phaser.GameObjects.Text;
+  private langButton!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -46,8 +47,32 @@ export class MenuScene extends Phaser.Scene {
     this.createTitle();
     this.createStartUI();
     this.createBestWave();
+    this.createLanguageButton();
 
     this.setupInputHandlers();
+  }
+
+  private createLanguageButton(): void {
+    const currentLang = Data.getLanguage();
+    const text = currentLang === 'en' ? 'KO' : 'EN';
+    
+    this.langButton = this.add.text(GAME_WIDTH - 20, 20, text, {
+      fontFamily: FONTS.MAIN,
+      fontSize: '20px',
+      color: COLORS_HEX.WHITE,
+    })
+    .setOrigin(1, 0)
+    .setInteractive({ useHandCursor: true });
+
+    this.langButton.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      pointer.event.stopPropagation(); // 배경 클릭 방지
+      const newLang = currentLang === 'en' ? 'ko' : 'en';
+      Data.setLanguage(newLang);
+      this.scene.restart();
+    });
+
+    this.langButton.on('pointerover', () => this.langButton.setColor(COLORS_HEX.CYAN));
+    this.langButton.on('pointerout', () => this.langButton.setColor(COLORS_HEX.WHITE));
   }
 
   private createBoss(): void {
@@ -228,7 +253,7 @@ export class MenuScene extends Phaser.Scene {
     this.titleText = this.add.text(
       GAME_WIDTH / 2,
       GAME_HEIGHT / 2 - config.yOffset,
-      'FLASHHEAD',
+      Data.t('menu.title'),
       {
         fontFamily: FONTS.MAIN,
         fontSize: config.fontSize,
@@ -254,7 +279,7 @@ export class MenuScene extends Phaser.Scene {
 
   private createStartUI(): void {
     // 시작 안내 텍스트
-    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150, 'CLICK TO START', {
+    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150, Data.t('menu.start'), {
       fontFamily: FONTS.MAIN,
       fontSize: '28px',
       color: COLORS_HEX.WHITE,
@@ -282,7 +307,7 @@ export class MenuScene extends Phaser.Scene {
     this.bestWaveText = this.add.text(
       GAME_WIDTH / 2,
       GAME_HEIGHT / 2 + 150 - config.yOffset,
-      `BEST WAVE ${bestWave}`,
+      Data.t('menu.best_wave', bestWave),
       {
         fontFamily: FONTS.MAIN,
         fontSize: config.fontSize,

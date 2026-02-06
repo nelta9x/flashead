@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, FONTS } from '../data/constants';
+import { Data } from '../data/DataManager';
 
 export class WaveCountdownUI {
   private scene: Phaser.Scene;
@@ -46,7 +47,7 @@ export class WaveCountdownUI {
     if (this.visible) return;
 
     this.visible = true;
-    this.waveLabel.setText(`WAVE ${waveNumber} STARTING IN`);
+    this.waveLabel.setText(Data.t('hud.wave_starting', waveNumber));
     this.countdownText.setText('5');
     this.container.setVisible(true);
 
@@ -89,7 +90,7 @@ export class WaveCountdownUI {
 
     // 0일 때 "GO!" 표시
     if (seconds === 0) {
-      this.countdownText.setText('GO!');
+      this.countdownText.setText(Data.t('hud.go'));
       this.countdownText.setColor('#00ff88');
     } else {
       this.countdownText.setColor('#00ffff');

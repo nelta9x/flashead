@@ -18,6 +18,7 @@ import type {
   MagnetConfig,
   BossConfig,
   MenuConfig,
+  LocalesConfig,
 } from './types';
 
 // JSON 파일 직접 import
@@ -33,6 +34,7 @@ import dishesJson from '../../data/dishes.json';
 import upgradesJson from '../../data/upgrades.json';
 import weaponsJson from '../../data/weapons.json';
 import bossJson from '../../data/boss.json';
+import localesJson from '../../data/locales.json';
 
 class DataManager {
   private static instance: DataManager;
@@ -51,6 +53,9 @@ class DataManager {
   public readonly weapons: WeaponsConfig;
   public readonly magnet: MagnetConfig;
   public readonly boss: BossConfig;
+  public readonly locales: LocalesConfig;
+
+  private currentLang: 'en' | 'ko' = 'en';
 
   private constructor() {
     this.gameConfig = gameConfigJson as GameConfig;
@@ -66,6 +71,36 @@ class DataManager {
     this.weapons = weaponsJson as WeaponsConfig;
     this.magnet = gameConfigJson.magnet as MagnetConfig;
     this.boss = bossJson as BossConfig;
+    this.locales = localesJson as LocalesConfig;
+
+    // 지원하는 언어 목록 확인
+    const supportedLanguages = Object.keys(this.locales);
+    const defaultLang = this.gameConfig.defaultLanguage || 'en';
+
+    // 1. 저장된 언어 설정 확인
+    let savedLang: string | null = null;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        savedLang = localStorage.getItem('game_language');
+      }
+    } catch (e) {}
+
+    if (savedLang && supportedLanguages.includes(savedLang)) {
+      this.currentLang = savedLang as 'en' | 'ko';
+    } else {
+      // 2. 브라우저 언어 감지 및 매칭
+      let detectedLang = defaultLang;
+      try {
+        if (typeof navigator !== 'undefined') {
+          const browserLang = navigator.language.split('-')[0];
+          if (supportedLanguages.includes(browserLang)) {
+            detectedLang = browserLang;
+          }
+        }
+      } catch (e) {}
+      
+      this.currentLang = detectedLang as 'en' | 'ko';
+    }
   }
 
   public static getInstance(): DataManager {
@@ -74,6 +109,50 @@ class DataManager {
     }
     return DataManager.instance;
   }
+
+  // ========== 다국어 지원 메서드 ==========
+
+  public setLanguage(lang: 'en' | 'ko'): void {
+    this.currentLang = lang;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('game_language', lang);
+      }
+    } catch (e) {
+      console.warn('LocalStorage save failed:', e);
+    }
+  }
+
+  public getLanguage(): 'en' | 'ko' {
+    return this.currentLang;
+  }
+
+  public t(key: string, ...args: (string | number)[]): string {
+    const locale = this.locales[this.currentLang];
+    let str = locale[key] || this.locales['en'][key] || key;
+
+    // {0}, {1} 등 플레이스홀더 치환
+    args.forEach((arg, index) => {
+      str = str.replace(`{${index}}`, String(arg));
+    });
+
+    return str;
+  }
+
+  public formatTemplate(templateKey: string, params: Record<string, number | string>): string {
+    const locale = this.locales[this.currentLang];
+    let str = locale[templateKey] || this.locales['en'][templateKey] || templateKey;
+
+    Object.keys(params).forEach((key) => {
+      // 템플릿의 {key}를 값으로 치환
+      // 정규식 대신 split/join 사용하여 모든 발생 치환
+      str = str.split(`{${key}}`).join(String(params[key]));
+    });
+
+    return str;
+  }
+
+  // ===================================
 
   // 편의 메서드: 색상 숫자 값 가져오기
   public getColor(name: string): number {

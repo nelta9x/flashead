@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, COLORS, COLORS_HEX, INITIAL_HP, FONTS } from '../data/constants';
+import { Data } from '../data/DataManager';
 import { WaveSystem } from '../systems/WaveSystem';
 import { HealthSystem } from '../systems/HealthSystem';
 
@@ -28,7 +29,7 @@ export class HUD {
 
   private createUI(): void {
     // 웨이브 (우측 상단, 타이머 위)
-    this.waveText = this.scene.add.text(GAME_WIDTH - 20, 10, 'WAVE 1', {
+    this.waveText = this.scene.add.text(GAME_WIDTH - 20, 10, Data.t('hud.wave', 1), {
       fontFamily: FONTS.MAIN,
       fontSize: '16px',
       color: COLORS_HEX.WHITE,
@@ -48,7 +49,7 @@ export class HUD {
     this.timerText.setOrigin(1, 0);
 
     // 피버 타임 텍스트 (숨김)
-    this.feverText = this.scene.add.text(GAME_WIDTH / 2, 100, 'FEVER TIME!', {
+    this.feverText = this.scene.add.text(GAME_WIDTH / 2, 100, Data.t('hud.fever_time'), {
       fontFamily: FONTS.MAIN,
       fontSize: '32px',
       color: COLORS_HEX.YELLOW,
@@ -172,7 +173,7 @@ export class HUD {
     const isFever = this.waveSystem.isFever();
 
     if (isFever) {
-      this.waveText.setText('FEVER!');
+      this.waveText.setText(Data.t('hud.fever'));
       this.waveText.setColor(COLORS_HEX.YELLOW);
       this.feverText.setVisible(true);
 
@@ -188,14 +189,14 @@ export class HUD {
         });
       }
     } else {
-      this.waveText.setText(`WAVE ${wave}`);
+      this.waveText.setText(Data.t('hud.wave', wave));
       this.waveText.setColor(COLORS_HEX.WHITE);
       this.feverText.setVisible(false);
     }
   }
 
   showWaveComplete(waveNumber: number): void {
-    const text = this.scene.add.text(GAME_WIDTH / 2, 200, `WAVE ${waveNumber} COMPLETE!`, {
+    const text = this.scene.add.text(GAME_WIDTH / 2, 200, Data.t('hud.wave_complete', waveNumber), {
       fontFamily: FONTS.MAIN,
       fontSize: '36px',
       color: COLORS_HEX.GREEN,

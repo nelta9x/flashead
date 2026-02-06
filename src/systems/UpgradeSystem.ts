@@ -6,6 +6,7 @@ import type {
   StaticDischargeLevelData,
   MagnetLevelData,
   MissileLevelData,
+  HealthPackLevelData,
 } from '../data/types';
 import { EventBus, GameEvents } from '../utils/EventBus';
 
@@ -26,16 +27,16 @@ function createSystemUpgrades(): Upgrade[] {
     description: data.description,
     rarity: data.rarity,
     maxStack: data.levels ? data.levels.length : (data.maxStack ?? 999),
-    effect: (_us: UpgradeSystem) => {
+    effect: (us: UpgradeSystem) => {
       // levels 기반 어빌리티: 스택은 applyUpgrade에서 자동 증가하므로 no-op
-      // fullHeal만 이벤트 발생
-      if (data.effectType === 'fullHeal') {
-        EventBus.getInstance().emit(GameEvents.HP_CHANGED, {
-          hp: 999,
-          maxHp: 999,
-          delta: 999,
-          isFullHeal: true,
-        });
+      // healthPackLevel 업그레이드 시 HP 보너스 적용을 위한 이벤트 발생
+      if (data.effectType === 'healthPackLevel') {
+        const levelData = us.getLevelData<HealthPackLevelData>(data.id);
+        if (levelData) {
+          EventBus.getInstance().emit(GameEvents.HEALTH_PACK_UPGRADED, {
+            hpBonus: levelData.hpBonus,
+          });
+        }
       }
     },
   }));
@@ -221,6 +222,15 @@ export class UpgradeSystem {
     return this.getLevelData<MissileLevelData>('missile')?.count ?? 0;
   }
 
+  // ========== 헬스팩 ==========
+  getHealthPackLevel(): number {
+    return this.getUpgradeStack('health_pack');
+  }
+
+  getHealthPackDropBonus(): number {
+    return this.getLevelData<HealthPackLevelData>('health_pack')?.dropChanceBonus ?? 0;
+  }
+
   // ========== 유틸리티 ==========
   getUpgradeStack(upgradeId: string): number {
     return this.upgradeStacks.get(upgradeId) || 0;
@@ -235,39 +245,62 @@ export class UpgradeSystem {
   // 현재 레벨의 실제 효과를 설명하는 문자열 반환
   getFormattedDescription(upgradeId: string): string {
     const upgradeData = Data.upgrades.system.find((u) => u.id === upgradeId);
-    if (!upgradeData || !upgradeData.descriptionTemplate) {
-      return upgradeData?.description || '';
+    // 시스템 업그레이드가 아니면 일반 설명 반환 (번역 적용)
+    if (!upgradeData) {
+      return Data.t(`upgrade.${upgradeId}.desc`);
     }
 
     const stack = this.getUpgradeStack(upgradeId);
-    if (stack <= 0) return upgradeData.description;
-
-    if (!upgradeData.levels) return upgradeData.description;
-    const index = Math.min(stack, upgradeData.levels.length) - 1;
-    const levelData = upgradeData.levels[index];
-
-    let result = upgradeData.descriptionTemplate;
-    for (const [key, value] of Object.entries(levelData)) {
-      const displayValue = key === 'chance' || key === 'sizeBonus'
-        ? Math.round((value as number) * 100)
-        : value;
-      result = result.replace(`{${key}}`, String(displayValue));
+    if (stack <= 0) {
+      return Data.t(`upgrade.${upgradeId}.desc`);
     }
-    return result;
+
+    // 템플릿이 없는 경우
+    if (!upgradeData.descriptionTemplate) {
+      return Data.t(`upgrade.${upgradeId}.desc`);
+    }
+
+    if (!upgradeData.levels) return Data.t(`upgrade.${upgradeId}.desc`);
+    
+    const index = Math.min(stack, upgradeData.levels.length) - 1;
+    const levelData = upgradeData.levels[index] as Record<string, number | string>;
+
+    // 값 포맷팅 (chance, sizeBonus 등은 %로 변환)
+    const params: Record<string, number | string> = {};
+    for (const [key, value] of Object.entries(levelData)) {
+      if (typeof value === 'number') {
+        params[key] = (key === 'chance' || key === 'sizeBonus' || key === 'dropChanceBonus')
+          ? Math.round(value * 100)
+          : value;
+      } else {
+        params[key] = value;
+      }
+    }
+
+    // 로케일 파일의 템플릿 사용
+    return Data.formatTemplate(`upgrade.${upgradeId}.desc_template`, params);
   }
 
   // 선택 화면용 미리보기 설명 (현재 → 다음 레벨)
   getPreviewDescription(upgradeId: string): string {
     const upgradeData = Data.upgrades.system.find((u) => u.id === upgradeId);
-    if (!upgradeData) return '';
+    
+    // 시스템 업그레이드가 아니면 (무기 등) 일반 설명의 번역본 반환
+    if (!upgradeData) {
+        return Data.t(`upgrade.${upgradeId}.desc`);
+    }
 
     // fullHeal 등 levels가 없는 업그레이드
-    if (!upgradeData.levels) return upgradeData.description;
+    if (!upgradeData.levels) {
+        return Data.t(`upgrade.${upgradeId}.desc`);
+    }
 
     const currentStack = this.getUpgradeStack(upgradeId);
     const nextStack = currentStack + 1;
 
-    if (nextStack > upgradeData.levels.length) return upgradeData.description;
+    if (nextStack > upgradeData.levels.length) {
+        return Data.t(`upgrade.${upgradeId}.desc`);
+    }
 
     const nextData = upgradeData.levels[nextStack - 1];
 
@@ -285,65 +318,86 @@ export class UpgradeSystem {
     current: Record<string, unknown> | null,
     next: Record<string, unknown>
   ): string {
+    const params: Record<string, number | string> = {};
+
+    // Helper to process params
+    const process = (prefix: string, data: Record<string, unknown>) => {
+      for (const [key, value] of Object.entries(data)) {
+        if (typeof value === 'number') {
+           // 특수 필드는 % 변환
+           const val = (key === 'chance' || key === 'sizeBonus' || key === 'dropChanceBonus') 
+             ? Math.round(value * 100) 
+             : value;
+           params[`${prefix}${key}`] = val;
+           
+           // 매핑을 위한 별칭 (템플릿 키와 일치시키기 위해)
+           if (key === 'sizeBonus') params[`${prefix}Size`] = val;
+           if (key === 'damage') params[`${prefix}Dmg`] = val;
+           if (key === 'radius') params[`${prefix}Radius`] = val;
+           if (key === 'chance') params[`${prefix}Chance`] = val;
+           if (key === 'range') params[`${prefix}Range`] = val;
+           if (key === 'force') params[`${prefix}Force`] = val;
+           if (key === 'count') params[`${prefix}Count`] = val;
+           if (key === 'hpBonus') params[`${prefix}Hp`] = val;
+           if (key === 'dropChanceBonus') params[`${prefix}Drop`] = val;
+        } else {
+           params[`${prefix}${key}`] = String(value);
+        }
+      }
+    };
+
+    if (current) process('cur', current);
+    process(current ? 'next' : '', next); // new일때는 prefix 없이 사용하거나 next? 
+    // Wait, for 'new', I used keys like {sizeBonus} without prefix in locales.json.
+    // For 'upgrade', I used {curSize}, {nextSize}.
+    
+    // 재조정: new일 때는 prefix 없음. upgrade일 때는 cur/next prefix.
+    if (!current) {
+        // Reset params to remove 'next' prefix for simple keys if needed, 
+        // but my helper added 'nextSize'. 
+        // I need to add raw keys for 'new' case.
+        for (const [key, value] of Object.entries(next)) {
+             if (typeof value === 'number') {
+                const val = (key === 'chance' || key === 'sizeBonus' || key === 'dropChanceBonus') 
+                  ? Math.round(value * 100) 
+                  : value;
+                params[key] = val;
+             }
+        }
+    }
+
     switch (effectType) {
-      case 'cursorSizeBonus': {
-        const nextPct = Math.round((next.sizeBonus as number) * 100);
-        const nextDmg = next.damage as number;
-        if (!current) {
-          return `커서 범위 +${nextPct}%, 데미지 +${nextDmg}`;
-        }
-        const curPct = Math.round((current.sizeBonus as number) * 100);
-        const curDmg = current.damage as number;
-        return `범위 ${curPct}%→${nextPct}%, 데미지 ${curDmg}→${nextDmg}`;
-      }
+      case 'cursorSizeBonus':
+        return current 
+          ? Data.formatTemplate('upgrade.preview.cursor_size.upgrade', params)
+          : Data.formatTemplate('upgrade.preview.cursor_size.new', params);
 
-      case 'electricShockLevel': {
-        const nextRadius = next.radius as number;
-        const nextDmg = next.damage as number;
-        if (!current) {
-          return `반경 ${nextRadius}px, ${nextDmg} 데미지`;
-        }
-        const curRadius = current.radius as number;
-        const curDmg = current.damage as number;
-        return `반경 ${curRadius}→${nextRadius}px, 데미지 ${curDmg}→${nextDmg}`;
-      }
+      case 'electricShockLevel':
+        return current
+          ? Data.formatTemplate('upgrade.preview.electric_shock.upgrade', params)
+          : Data.formatTemplate('upgrade.preview.electric_shock.new', params);
 
-      case 'staticDischargeLevel': {
-        const nextChance = Math.round((next.chance as number) * 100);
-        const nextDmg = next.damage as number;
-        const nextRange = next.range as number;
-        if (!current) {
-          return `${nextChance}% 확률로 ${nextRange}px 내 적 타격 (${nextDmg} 데미지)`;
-        }
-        const curChance = Math.round((current.chance as number) * 100);
-        const curRange = current.range as number;
-        return `확률 ${curChance}%→${nextChance}%, 사거리 ${curRange}→${nextRange}px`;
-      }
+      case 'staticDischargeLevel':
+        return current
+          ? Data.formatTemplate('upgrade.preview.static_discharge.upgrade', params)
+          : Data.formatTemplate('upgrade.preview.static_discharge.new', params);
 
-      case 'magnetLevel': {
-        const nextRadius = next.radius as number;
-        const nextForce = next.force as number;
-        if (!current) {
-          return `끌어당김 반경 ${nextRadius}px, 힘 ${nextForce}`;
-        }
-        const curRadius = current.radius as number;
-        const curForce = current.force as number;
-        return `반경 ${curRadius}→${nextRadius}px, 힘 ${curForce}→${nextForce}`;
-      }
+      case 'magnetLevel':
+        return current
+          ? Data.formatTemplate('upgrade.preview.magnet.upgrade', params)
+          : Data.formatTemplate('upgrade.preview.magnet.new', params);
 
-      case 'missileLevel': {
-        const nextCount = next.count as number;
-        const nextDmg = next.damage as number;
-        if (!current) {
-          return `미사일 ${nextCount}발 (${nextDmg} 데미지)`;
+      case 'missileLevel':
+        if (!current) return Data.formatTemplate('upgrade.preview.missile.new', params);
+        if (current.damage !== next.damage) {
+             return Data.formatTemplate('upgrade.preview.missile.upgrade', params);
         }
-        const curCount = current.count as number;
-        const curDmg = current.damage as number;
-        if (curDmg !== nextDmg) {
-          return `미사일 ${curCount}→${nextCount}발, 데미지 ${curDmg}→${nextDmg}`;
-        }
-        return `미사일 수 ${curCount} → ${nextCount}발`;
-      }
+        return Data.formatTemplate('upgrade.preview.missile.upgrade_count', params);
+
+      case 'healthPackLevel':
+        return current
+          ? Data.formatTemplate('upgrade.preview.health_pack.upgrade', params)
+          : Data.formatTemplate('upgrade.preview.health_pack.new', params);
 
       default:
         return '';

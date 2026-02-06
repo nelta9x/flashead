@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, COLORS_HEX, UPGRADE_UI, FONTS } from '../data/constants';
+import { Data } from '../data/DataManager';
 import { UpgradeSystem, Upgrade } from '../systems/UpgradeSystem';
 import { EventBus, GameEvents } from '../utils/EventBus';
 
@@ -134,7 +135,7 @@ export class InGameUpgradeUI {
 
     // 이름
     const name = this.scene.add
-      .text(0, -BOX_HEIGHT / 2 + 58, upgrade.name, {
+      .text(0, -BOX_HEIGHT / 2 + 58, Data.t(`upgrade.${upgrade.id}.name`), {
         fontFamily: FONTS.KOREAN,
         fontSize: '14px',
         color: COLORS_HEX.WHITE,

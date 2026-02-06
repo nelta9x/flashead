@@ -119,7 +119,7 @@ export const HEAL_PACK = {
   HITBOX_SIZE: Data.healthPack.hitboxSize,
   COOLDOWN: Data.healthPack.cooldown,
   MAX_ACTIVE: Data.healthPack.maxActive,
-  SPAWN_CHANCE: Object.fromEntries(
-    Object.entries(Data.healthPack.spawnChanceByHp).map(([k, v]) => [Number(k), v])
-  ) as Record<number, number>,
+  BONUS_CHANCE_PER_COLLECTION: Data.healthPack.bonusSpawnChancePerCollection,
+  BASE_SPAWN_CHANCE: Data.healthPack.baseSpawnChance,
+  CHECK_INTERVAL: Data.healthPack.checkInterval,
 } as const;

@@ -225,7 +225,7 @@ export class GameScene extends Phaser.Scene {
       () => this.boss
     );
     this.healthSystem = new HealthSystem();
-    this.healthPackSystem = new HealthPackSystem(this);
+    this.healthPackSystem = new HealthPackSystem(this, this.upgradeSystem);
     this.monsterSystem = new MonsterSystem();
     this.gaugeSystem = new GaugeSystem(this.comboSystem);
 
@@ -339,6 +339,13 @@ export class GameScene extends Phaser.Scene {
         isDangerous: boolean;
       };
       this.onDishMissed(data);
+    });
+
+    // 힐팩 업그레이드 이벤트
+    EventBus.getInstance().on(GameEvents.HEALTH_PACK_UPGRADED, (...args: unknown[]) => {
+      const data = args[0] as { hpBonus: number };
+      this.healthSystem.setMaxHp(INITIAL_HP + data.hpBonus);
+      this.healthSystem.heal(data.hpBonus); // 보너스만큼 현재 체력도 회복
     });
 
     // HP 변경 이벤트

@@ -130,6 +130,7 @@ export const GameEvents = {
   HEALTH_PACK_SPAWNED: 'healthPack:spawned',
   HEALTH_PACK_COLLECTED: 'healthPack:collected',
   HEALTH_PACK_MISSED: 'healthPack:missed',
+  HEALTH_PACK_UPGRADED: 'healthPack:upgraded',
 
   // 몬스터 & 게이지 관련
   MONSTER_HP_CHANGED: 'monster:hpChanged',

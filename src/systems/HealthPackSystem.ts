@@ -3,30 +3,28 @@ import { GAME_WIDTH, HEAL_PACK } from '../data/constants';
 import { HealthPack } from '../entities/HealthPack';
 import { ObjectPool } from '../utils/ObjectPool';
 import { EventBus, GameEvents } from '../utils/EventBus';
+import { UpgradeSystem } from './UpgradeSystem';
 
 export class HealthPackSystem {
   private pool: ObjectPool<HealthPack>;
   private lastSpawnTime: number = -HEAL_PACK.COOLDOWN; // 게임 시작 시 바로 스폰 가능
   private timeSinceLastCheck: number = 0;
-  private currentHp: number = 5;
+  private collectionBonus: number = 0;
+  private upgradeSystem: UpgradeSystem;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, upgradeSystem: UpgradeSystem) {
+    this.upgradeSystem = upgradeSystem;
     this.pool = new ObjectPool<HealthPack>(
       () => new HealthPack(scene, 0, 0),
       2, // 초기 크기
       5 // 최대 크기
     );
 
-    // HP 변경 이벤트 구독
-    EventBus.getInstance().on(GameEvents.HP_CHANGED, (...args: unknown[]) => {
-      const data = args[0] as { hp: number; maxHp: number; delta: number };
-      this.currentHp = data.hp;
-    });
-
     // 힐팩 수집 이벤트 구독
     EventBus.getInstance().on(GameEvents.HEALTH_PACK_COLLECTED, (...args: unknown[]) => {
       const data = args[0] as { pack: HealthPack };
       this.releaseHealthPack(data.pack);
+      this.collectionBonus += HEAL_PACK.BONUS_CHANCE_PER_COLLECTION;
     });
 
     // 힐팩 놓침 이벤트 구독
@@ -52,14 +50,14 @@ export class HealthPackSystem {
       return;
     }
 
-    // 1초마다 확률 체크
+    // 설정된 주기(5초)마다 확률 체크
     this.timeSinceLastCheck += delta;
-    if (this.timeSinceLastCheck < 1000) {
+    if (this.timeSinceLastCheck < HEAL_PACK.CHECK_INTERVAL) {
       return;
     }
     this.timeSinceLastCheck = 0;
 
-    // HP 기반 스폰 확률 계산
+    // 고정 기본 확률 + 누적 보너스 계산
     const spawnChance = this.getSpawnChance();
     if (spawnChance <= 0) {
       return;
@@ -72,7 +70,8 @@ export class HealthPackSystem {
   }
 
   getSpawnChance(): number {
-    return HEAL_PACK.SPAWN_CHANCE[this.currentHp] ?? 0;
+    const upgradeBonus = this.upgradeSystem.getHealthPackDropBonus();
+    return HEAL_PACK.BASE_SPAWN_CHANCE + this.collectionBonus + upgradeBonus;
   }
 
   private spawnHealthPack(gameTime: number): void {
@@ -97,5 +96,6 @@ export class HealthPackSystem {
 
   clear(): void {
     this.pool.clear();
+    this.collectionBonus = 0;
   }
 }

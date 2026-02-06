@@ -21,13 +21,9 @@ vi.mock('../src/data/constants', () => ({
   HEAL_PACK: {
     COOLDOWN: 5000,
     MAX_ACTIVE: 1,
-    SPAWN_CHANCE: {
-      1: 0.5,
-      2: 0.3,
-      3: 0.1,
-      4: 0,
-      5: 0,
-    },
+    BONUS_CHANCE_PER_COLLECTION: 0.05,
+    BASE_SPAWN_CHANCE: 0.04,
+    CHECK_INTERVAL: 5000,
   },
 }));
 
@@ -81,6 +77,12 @@ vi.mock('../src/utils/ObjectPool', () => {
   };
 });
 
+// Mock UpgradeSystem
+const mockGetHealthPackDropBonus = vi.fn(() => 0);
+const mockUpgradeSystem = {
+  getHealthPackDropBonus: mockGetHealthPackDropBonus,
+} as any;
+
 describe('HealthPackSystem', () => {
   let system: HealthPackSystem;
   let mockScene: any;
@@ -88,73 +90,58 @@ describe('HealthPackSystem', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockScene = {};
-    system = new HealthPackSystem(mockScene);
+    mockGetHealthPackDropBonus.mockReturnValue(0);
+    system = new HealthPackSystem(mockScene, mockUpgradeSystem);
   });
 
   describe('Initialization', () => {
     it('should subscribe to events', () => {
-      expect(mockOn).toHaveBeenCalledWith(GameEvents.HP_CHANGED, expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith(GameEvents.HEALTH_PACK_COLLECTED, expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith(GameEvents.HEALTH_PACK_MISSED, expect.any(Function));
     });
   });
 
   describe('Spawn Logic', () => {
-    it('should calculate spawn chance based on HP', () => {
-      // Default HP is 5
-      expect(system.getSpawnChance()).toBe(0);
-
-      // Simulate HP change to 1
-      const hpCallback = mockOn.mock.calls.find((call) => call[0] === GameEvents.HP_CHANGED)?.[1];
-      if (hpCallback) {
-        hpCallback({ hp: 1, maxHp: 5, delta: 0 });
-      }
-
-      expect(system.getSpawnChance()).toBe(0.5);
+    it('should use fixed base spawn chance', () => {
+      expect(system.getSpawnChance()).toBe(0.04);
     });
 
-    it('should not spawn if cooldown active', () => {
-      // HP 1 설정 (스폰 확률 0.5)
-      const hpCallback = mockOn.mock.calls.find((call) => call[0] === GameEvents.HP_CHANGED)?.[1];
-      if (hpCallback) {
-        hpCallback({ hp: 1, maxHp: 5, delta: 0 });
-      }
+    it('should include upgrade bonus in spawn chance', () => {
+      mockGetHealthPackDropBonus.mockReturnValue(0.02);
+      expect(system.getSpawnChance()).toBe(0.06);
+    });
 
+    it('should not spawn if check interval not reached', () => {
       const originalRandom = Math.random;
-      Math.random = vi.fn(() => 0.01); // 1% 확률 (성공)
+      Math.random = vi.fn(() => 0.01); // 성공 확률
 
       mockAcquire.mockClear();
-
-      // 첫 번째 업데이트: 스폰되어야 함
-      // lastSpawnTime 초기값은 -5000, gameTime=1000 -> 1000 > -5000 + 5000 (0) 이므로 통과
-      // delta=1100 -> 1초 체크 통과
-      system.update(1100, 1000);
-
-      expect(mockAcquire).toHaveBeenCalledTimes(1);
-
-      // 두 번째 업데이트: 쿨다운 중이라 안 되어야 함
-      // lastSpawnTime이 1000이 되었으므로, 1000 + 5000 = 6000 이후에만 스폰 가능
-      mockAcquire.mockClear();
-      system.update(1100, 2000); // 2000 < 6000
-
+      
+      // 4.9초 업데이트 (5초 미만)
+      system.update(4900, 10000);
       expect(mockAcquire).not.toHaveBeenCalled();
+
+      // 추가 0.1초 업데이트 (총 5초)
+      system.update(100, 10100);
+      expect(mockAcquire).toHaveBeenCalledTimes(1);
 
       Math.random = originalRandom;
     });
 
-    it('should not spawn if max active reached', () => {
-      // HP 1
-      const hpCallback = mockOn.mock.calls.find((call) => call[0] === GameEvents.HP_CHANGED)?.[1];
-      if (hpCallback) {
-        hpCallback({ hp: 1, maxHp: 5, delta: 0 });
-      }
-
-      mockGetActiveCount.mockReturnValue(1); // Max is 1
-
+    it('should not spawn if cooldown active', () => {
       const originalRandom = Math.random;
       Math.random = vi.fn(() => 0.01);
 
-      system.update(1100, 10000);
+      mockAcquire.mockClear();
+
+      // 첫 번째 업데이트: 스폰
+      system.update(5100, 10000);
+      expect(mockAcquire).toHaveBeenCalledTimes(1);
+
+      // 두 번째 업데이트: 5초 지났지만 쿨다운(5초) 중이라 안 됨
+      // lastSpawnTime = 10000, 쿨다운 5000 -> 15000 이후 가능
+      mockAcquire.mockClear();
+      system.update(5100, 14000); // gameTime 14000 < 15000
 
       expect(mockAcquire).not.toHaveBeenCalled();
 
@@ -163,6 +150,19 @@ describe('HealthPackSystem', () => {
   });
 
   describe('Event Handling', () => {
+    it('should increase spawn chance on collected', () => {
+      expect(system.getSpawnChance()).toBe(0.04);
+
+      // 힐팩 수집
+      const collectCallback = mockOn.mock.calls.find((call) => call[0] === GameEvents.HEALTH_PACK_COLLECTED)?.[1];
+      if (collectCallback) {
+        collectCallback({ pack: {} });
+      }
+
+      // 0.04 + 0.05 = 0.09
+      expect(system.getSpawnChance()).toBeCloseTo(0.09);
+    });
+
     it('should release pack on collected', () => {
       const callback = mockOn.mock.calls.find((call) => call[0] === GameEvents.HEALTH_PACK_COLLECTED)?.[1];
       if (callback) {

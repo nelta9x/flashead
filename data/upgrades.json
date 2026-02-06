@@ -289,12 +289,15 @@
     {
       "id": "health_pack",
       "name": "강화 헬스팩",
-      "description": "모든 체력을 즉시 회복",
-      "descriptionTemplate": "모든 체력을 즉시 회복합니다.",
+      "description": "헬스팩 성능 강화 및 최대 체력 증가",
+      "descriptionTemplate": "최대 체력이 {hpBonus} 증가하고, 헬스팩 드롭 확률이 {dropChanceBonus}% 증가합니다.",
       "rarity": "common",
-      "effectType": "fullHeal",
-      "value": 1,
-      "maxStack": 999
+      "effectType": "healthPackLevel",
+      "levels": [
+        { "hpBonus": 1, "dropChanceBonus": 0.01 },
+        { "hpBonus": 2, "dropChanceBonus": 0.02 },
+        { "hpBonus": 3, "dropChanceBonus": 0.03 }
+      ]
     }
   ]
 }

@@ -76,7 +76,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private createTitle(): void {
-    const title = this.add.text(GAME_WIDTH / 2, 120, 'PLAY RECORD', {
+    const title = this.add.text(GAME_WIDTH / 2, 120, Data.t('gameover.title'), {
       fontFamily: FONTS.MAIN,
       fontSize: '72px',
       color: '#ff4444',
@@ -111,7 +111,7 @@ export class GameOverScene extends Phaser.Scene {
     const statsContainer = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30);
 
     // 생존 시간 (최상단, 가장 큰 폰트)
-    const timeLabel = this.add.text(-150, -80, 'SURVIVED', {
+    const timeLabel = this.add.text(-150, -80, Data.t('gameover.survived'), {
       fontFamily: FONTS.MAIN,
       fontSize: '24px',
       color: COLORS_HEX.GREEN,
@@ -126,7 +126,7 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(1, 0);
 
     // 도달 웨이브
-    const waveLabel = this.add.text(-150, 0, 'WAVE REACHED', {
+    const waveLabel = this.add.text(-150, 0, Data.t('gameover.wave_reached'), {
       fontFamily: FONTS.MAIN,
       fontSize: '20px',
       color: COLORS_HEX.WHITE,
@@ -141,7 +141,7 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(1, 0);
 
     // 최대 콤보
-    const comboLabel = this.add.text(-150, 60, 'MAX COMBO', {
+    const comboLabel = this.add.text(-150, 60, Data.t('gameover.max_combo'), {
       fontFamily: FONTS.MAIN,
       fontSize: '20px',
       color: COLORS_HEX.WHITE,
@@ -158,7 +158,7 @@ export class GameOverScene extends Phaser.Scene {
     const children = [timeLabel, timeValue, waveLabel, waveValue, comboLabel, comboValue];
 
     if (this.isNewBestWave) {
-      const bestBadge = this.add.text(160, 0, 'NEW BEST', {
+      const bestBadge = this.add.text(160, 0, Data.t('gameover.new_best'), {
         fontFamily: FONTS.MAIN,
         fontSize: '14px',
         color: COLORS_HEX.YELLOW,
@@ -191,7 +191,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private createPrompt(): void {
-    const prompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, 'CLICK TO MENU', {
+    const prompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, Data.t('gameover.click_menu'), {
       fontFamily: FONTS.MAIN,
       fontSize: '28px',
       color: COLORS_HEX.WHITE,

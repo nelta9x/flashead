@@ -163,6 +163,7 @@ export interface PlayerAttackConfig {
 
 export interface GameConfig {
   screen: ScreenConfig;
+  defaultLanguage: string;
   player: PlayerConfig;
   upgradeUI: UpgradeUIConfig;
   waveTransition: WaveTransitionConfig;
@@ -227,7 +228,9 @@ export interface HealthPackConfig {
   hitboxSize: number;
   cooldown: number;
   maxActive: number;
-  spawnChanceByHp: Record<string, number>;
+  bonusSpawnChancePerCollection: number;
+  baseSpawnChance: number;
+  checkInterval: number;
 }
 
 // ========== 피드백 효과 ==========
@@ -518,13 +521,18 @@ export interface MissileLevelData {
   damage: number;
   count: number;
 }
+export interface HealthPackLevelData {
+  hpBonus: number;
+  dropChanceBonus: number;
+}
 
 export type SystemUpgradeLevelData =
   | CursorSizeLevelData
   | ElectricShockLevelData
   | StaticDischargeLevelData
   | MagnetLevelData
-  | MissileLevelData;
+  | MissileLevelData
+  | HealthPackLevelData;
 
 export interface SystemUpgradeData {
   id: string;
@@ -669,6 +677,16 @@ export interface BossConfig {
   };
 }
 
+// ========== 다국어 지원 ==========
+export interface LocaleData {
+  [key: string]: string;
+}
+
+export interface LocalesConfig {
+  en: LocaleData;
+  ko: LocaleData;
+}
+
 // ========== 전체 데이터 구조 ==========
 export interface GameDataConfig {
   gameConfig: GameConfig;
@@ -684,4 +702,5 @@ export interface GameDataConfig {
   weapons: WeaponsConfig;
   magnet: MagnetConfig;
   boss: BossConfig;
+  locales: LocalesConfig;
 }
