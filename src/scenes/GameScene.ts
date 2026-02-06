@@ -467,7 +467,7 @@ export class GameScene extends Phaser.Scene {
 
         for (let i = 0; i < missileCount; i++) {
           this.time.delayedCall(i * config.fire.missileInterval, () => {
-            this.fireSequentialMissile(fireX, fireY, endX, endY, i, missileCount);
+            this.fireSequentialMissile(fireX, fireY, i, missileCount);
           });
         }
       },
@@ -478,8 +478,6 @@ export class GameScene extends Phaser.Scene {
   private fireSequentialMissile(
     startX: number,
     startY: number,
-    targetX: number,
-    targetY: number,
     index: number,
     total: number
   ): void {
@@ -491,12 +489,14 @@ export class GameScene extends Phaser.Scene {
     const intensity = (index + 1) / total;
     const speed = config.fire.duration * (1 - intensity * 0.3); // 최대 30% 더 빨라짐
 
-    // 궤적 변화: 시작점과 타겟점에 약간의 랜덤 오프셋 부여
+    // 궤적 변화: 시작점에 약간의 랜덤 오프셋 부여
     const offsetRange = 30 * intensity;
     const curStartX = startX + Phaser.Math.Between(-offsetRange, offsetRange);
     const curStartY = startY + Phaser.Math.Between(-offsetRange, offsetRange);
-    const curTargetX = targetX + Phaser.Math.Between(-20, 20);
-    const curTargetY = targetY + Phaser.Math.Between(-10, 10);
+
+    // 타겟 오프셋 (보스 중심에서 약간씩 빗나가게 하여 뭉치지 않게 함)
+    const targetOffsetX = Phaser.Math.Between(-20, 20);
+    const targetOffsetY = Phaser.Math.Between(-10, 10);
 
     // 미사일 객체 생성
     const missile = this.add.circle(curStartX, curStartY, 8 + 4 * intensity, mainColor);
@@ -512,12 +512,21 @@ export class GameScene extends Phaser.Scene {
     let lastTrailY = curStartY;
 
     this.tweens.add({
-      targets: missile,
-      x: curTargetX,
-      y: curTargetY,
+      targets: { progress: 0 },
+      progress: 1,
       duration: speed,
       ease: 'Expo.In',
-      onUpdate: () => {
+      onUpdate: (_tween, target) => {
+        const p = target.progress;
+
+        // 보스의 현재 위치를 실시간으로 추적
+        const curTargetX = this.boss.x + targetOffsetX;
+        const curTargetY = this.boss.y + targetOffsetY;
+
+        // 시작점과 현재 보스 위치 사이를 보간
+        missile.x = curStartX + (curTargetX - curStartX) * p;
+        missile.y = curStartY + (curTargetY - curStartY) * p;
+
         const curX = missile.x;
         const curY = missile.y;
 
@@ -545,6 +554,10 @@ export class GameScene extends Phaser.Scene {
         });
       },
       onComplete: () => {
+        // 폭발 시점의 보스 위치 재계산
+        const finalTargetX = this.boss.x + targetOffsetX;
+        const finalTargetY = this.boss.y + targetOffsetY;
+
         missile.destroy();
 
         // 미사일 데미지 적용
@@ -556,13 +569,13 @@ export class GameScene extends Phaser.Scene {
 
         // 타격 피드백 (마지막 발사일수록 더 강하게)
         if (index === total - 1) {
-          this.feedbackSystem.onBossDamaged(curTargetX, curTargetY, totalDamage * total);
+          this.feedbackSystem.onBossDamaged(finalTargetX, finalTargetY, totalDamage * total);
           // 마지막 발사 시 카메라 효과 강화
           this.cameras.main.shake(config.impact.shakeDuration, config.impact.shakeIntensity * 1.5);
         } else {
           // 중간 발사체 타격 효과
-          this.particleManager.createHitEffect(curTargetX, curTargetY, COLORS.WHITE);
-          this.particleManager.createExplosion(curTargetX, curTargetY, mainColor, 'basic', 0.5);
+          this.particleManager.createHitEffect(finalTargetX, finalTargetY, COLORS.WHITE);
+          this.particleManager.createExplosion(finalTargetX, finalTargetY, mainColor, 'basic', 0.5);
           this.soundSystem.playHitSound();
         }
       },
