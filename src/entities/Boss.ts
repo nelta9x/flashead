@@ -9,6 +9,7 @@ export class Boss extends Phaser.GameObjects.Container {
   private hpRatio: number = 1;
   private timeElapsed: number = 0;
   private isDead: boolean = false;
+  private frozen: boolean = false;
 
   // 아머 설정 (HP바 역할)
   private readonly maxArmorPieces: number;
@@ -235,11 +236,13 @@ export class Boss extends Phaser.GameObjects.Container {
     if (!this.visible || this.isDead) return;
 
     const config = Data.boss;
-    this.timeElapsed += delta;
     const dangerLevel = 1 - this.hpRatio;
 
-    // 움직임 계산 → baseX/Y 갱신
-    this.updateMovement(delta);
+    // frozen 상태에서는 이동하지 않음 (시각 효과는 유지)
+    if (!this.frozen) {
+      this.timeElapsed += delta;
+      this.updateMovement(delta);
+    }
 
     // 코어 연출
     const corePulse =
@@ -263,6 +266,14 @@ export class Boss extends Phaser.GameObjects.Container {
       this.x += (Math.random() - 0.5) * intensity;
       this.y += (Math.random() - 0.5) * intensity;
     }
+  }
+
+  freeze(): void {
+    this.frozen = true;
+  }
+
+  unfreeze(): void {
+    this.frozen = false;
   }
 
   private drawArmor(): void {

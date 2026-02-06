@@ -231,7 +231,7 @@ export class GameScene extends Phaser.Scene {
 
     // 보스 생성 (화면 상단 중앙)
     this.boss = new Boss(this, GAME_WIDTH / 2, 100);
-    this.boss.setDepth(100);
+    this.boss.setDepth(1600);
 
     // 레이저 그래픽 초기화
     this.laserGraphics = this.add.graphics();
@@ -1116,7 +1116,17 @@ export class GameScene extends Phaser.Scene {
       if (laserConfig && laserConfig.maxCount > 0) {
         // 한 번에 발사할 레이저 수 결정 (1 ~ maxCount)
         const count = Phaser.Math.Between(1, laserConfig.maxCount);
-        for (let i = 0; i < count; i++) {
+
+        // 보스가 살아있으면 첫 번째 레이저는 보스→플레이어 방향
+        let bossLaserFired = false;
+        if (this.boss.visible && this.monsterSystem.isAlive()) {
+          this.triggerBossLaserAttack();
+          bossLaserFired = true;
+        }
+
+        // 나머지는 기존 랜덤 레이저
+        const randomCount = bossLaserFired ? count - 1 : count;
+        for (let i = 0; i < randomCount; i++) {
           this.triggerLaserAttack();
         }
       }
@@ -1204,6 +1214,107 @@ export class GameScene extends Phaser.Scene {
         }
       });
     });
+  }
+
+  private triggerBossLaserAttack(): void {
+    const config = Data.gameConfig.monsterAttack.laser;
+    const pointer = this.input.activePointer;
+
+    const startX = this.boss.x;
+    const startY = this.boss.y;
+
+    // 보스→커서 방향 벡터
+    const dx = pointer.x - startX;
+    const dy = pointer.y - startY;
+    const len = Math.sqrt(dx * dx + dy * dy);
+
+    // 보스와 커서가 거의 같은 위치면 랜덤 레이저로 폴백
+    if (len < 1) {
+      this.triggerLaserAttack();
+      return;
+    }
+
+    const dirX = dx / len;
+    const dirY = dy / len;
+
+    // 보스→커서 방향으로 화면 경계까지 연장한 끝점
+    const endPoint = this.findScreenEdgePoint(startX, startY, dirX, dirY);
+
+    // 레이저 발사 동안 보스 이동 정지
+    this.boss.freeze();
+
+    const laser = {
+      x1: startX,
+      y1: startY,
+      x2: endPoint.x,
+      y2: endPoint.y,
+      isWarning: true,
+      isFiring: false,
+      startTime: this.gameTime,
+    };
+    this.activeLasers.push(laser);
+
+    this.soundSystem.playBossChargeSound();
+
+    this.time.delayedCall(config.warningDuration, () => {
+      if (this.isGameOver) return;
+      laser.isWarning = false;
+      laser.isFiring = true;
+
+      this.soundSystem.playBossFireSound();
+      this.cameras.main.shake(200, 0.005);
+
+      this.time.delayedCall(config.fireDuration, () => {
+        const index = this.activeLasers.indexOf(laser);
+        if (index > -1) {
+          this.activeLasers.splice(index, 1);
+          if (this.activeLasers.length === 0) {
+            this.laserGraphics.clear();
+          }
+        }
+        // 레이저 종료 후 보스 이동 재개
+        this.boss.unfreeze();
+      });
+    });
+  }
+
+  private findScreenEdgePoint(
+    startX: number,
+    startY: number,
+    dirX: number,
+    dirY: number
+  ): { x: number; y: number } {
+    const padding = Data.gameConfig.monsterAttack.laser.trajectory.spawnPadding;
+    const minX = padding;
+    const maxX = GAME_WIDTH - padding;
+    const minY = padding;
+    const maxY = GAME_HEIGHT - padding;
+
+    let tMin = Infinity;
+
+    // 각 경계면까지의 t 값 계산 (ray: P = start + t * dir)
+    if (dirX !== 0) {
+      const tRight = (maxX - startX) / dirX;
+      if (tRight > 0 && tRight < tMin) tMin = tRight;
+      const tLeft = (minX - startX) / dirX;
+      if (tLeft > 0 && tLeft < tMin) tMin = tLeft;
+    }
+    if (dirY !== 0) {
+      const tBottom = (maxY - startY) / dirY;
+      if (tBottom > 0 && tBottom < tMin) tMin = tBottom;
+      const tTop = (minY - startY) / dirY;
+      if (tTop > 0 && tTop < tMin) tMin = tTop;
+    }
+
+    // 안전장치: 교차점을 찾지 못한 경우 충분히 먼 점 반환
+    if (tMin === Infinity) {
+      tMin = Math.max(GAME_WIDTH, GAME_HEIGHT);
+    }
+
+    return {
+      x: startX + dirX * tMin,
+      y: startY + dirY * tMin,
+    };
   }
 
   private drawLasers(): void {
