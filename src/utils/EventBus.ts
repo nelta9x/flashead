@@ -113,7 +113,6 @@ export const GameEvents = {
 
   // 업그레이드 관련
   UPGRADE_SELECTED: 'upgrade:selected',
-  UPGRADES_CHANGED: 'upgrade:changed',
 
   // 점수 관련
   SCORE_CHANGED: 'score:changed',

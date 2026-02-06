@@ -299,7 +299,7 @@ export class UpgradeSystem {
 
   // ========== 동적 설명 생성 ==========
 
-  // 현재 레벨의 실제 효과를 설명하는 문자열 반환 (AbilityPanel용)
+  // 현재 레벨의 실제 효과를 설명하는 문자열 반환
   getFormattedDescription(upgradeId: string): string {
     const upgradeData = Data.upgrades.system.find((u) => u.id === upgradeId);
     if (!upgradeData || !upgradeData.descriptionTemplate) {

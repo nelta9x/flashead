@@ -30,7 +30,6 @@ import { MonsterSystem } from '../systems/MonsterSystem';
 import { GaugeSystem } from '../systems/GaugeSystem';
 import { InGameUpgradeUI } from '../ui/InGameUpgradeUI';
 import { WaveCountdownUI } from '../ui/WaveCountdownUI';
-import { AbilityPanel } from '../ui/AbilityPanel';
 
 export class GameScene extends Phaser.Scene {
   private dishPool!: ObjectPool<Dish>;
@@ -52,7 +51,6 @@ export class GameScene extends Phaser.Scene {
   private boss!: Boss;
   private inGameUpgradeUI!: InGameUpgradeUI;
   private waveCountdownUI!: WaveCountdownUI;
-  private abilityPanel!: AbilityPanel;
   private particleManager!: ParticleManager;
   private screenShake!: ScreenShake;
   private slowMotion!: SlowMotion;
@@ -225,9 +223,6 @@ export class GameScene extends Phaser.Scene {
     // 웨이브 카운트다운 UI
     this.waveCountdownUI = new WaveCountdownUI(this);
 
-    // 어빌리티 패널 (DOM 기반)
-    this.abilityPanel = new AbilityPanel();
-    this.abilityPanel.setUpgradeSystem(this.upgradeSystem);
   }
 
   private initializeEntities(): void {
@@ -288,14 +283,6 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // 업그레이드 선택 완료
-    EventBus.getInstance().on(GameEvents.UPGRADE_SELECTED, () => {
-      // 어빌리티 패널 업데이트
-      EventBus.getInstance().emit(
-        GameEvents.UPGRADES_CHANGED,
-        this.upgradeSystem.getAllUpgradeStacks()
-      );
-    });
 
     // 카운트다운 틱
     EventBus.getInstance().on(GameEvents.WAVE_COUNTDOWN_TICK, (...args: unknown[]) => {
@@ -901,7 +888,6 @@ export class GameScene extends Phaser.Scene {
     this.healthPackSystem.clear();
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
-    this.abilityPanel.destroy();
     if (this.cursorTrail) this.cursorTrail.destroy();
     if (this.gaugeSystem) this.gaugeSystem.destroy();
   }
