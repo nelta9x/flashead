@@ -60,7 +60,7 @@
   "gameGrid": {
     "size": 60,
     "speed": 0.1,
-    "alpha": 0.05,
+    "alpha": 0.12,
     "color": "#00ffff"
   },
   "stars": {
