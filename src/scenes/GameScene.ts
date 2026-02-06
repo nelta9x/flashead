@@ -25,6 +25,7 @@ import { SlowMotion } from '../effects/SlowMotion';
 import { DamageText } from '../ui/DamageText';
 import { CursorTrail } from '../effects/CursorTrail';
 import { StarBackground } from '../effects/StarBackground';
+import { CursorRenderer } from '../effects/CursorRenderer';
 import { FeedbackSystem } from '../systems/FeedbackSystem';
 import { SoundSystem } from '../systems/SoundSystem';
 import { MonsterSystem } from '../systems/MonsterSystem';
@@ -68,8 +69,8 @@ export class GameScene extends Phaser.Scene {
   // 웨이브 전환 상태
   private pendingWaveNumber: number = 1;
 
-  // 공격 범위 표시
-  private attackRangeIndicator!: Phaser.GameObjects.Graphics;
+  // 커서 렌더러
+  private cursorRenderer!: CursorRenderer;
 
   // 그리드 배경
   private gridGraphics!: Phaser.GameObjects.Graphics;
@@ -142,9 +143,9 @@ export class GameScene extends Phaser.Scene {
     });
     this.bgm.play();
 
-    // 공격 범위 인디케이터 생성
-    this.attackRangeIndicator = this.add.graphics();
-    this.attackRangeIndicator.setDepth(1000); // 최상위에 표시
+    // 커서 렌더러 생성
+    this.cursorRenderer = new CursorRenderer(this);
+    this.cursorRenderer.setDepth(1000); // 최상위에 표시
   }
 
   private createBackground(): void {
@@ -1076,54 +1077,19 @@ export class GameScene extends Phaser.Scene {
     const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
     const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 
-    this.attackRangeIndicator.clear();
-
-    // 자기장 범위 원 (자기장 레벨 > 0일 때만)
+    // 자기장 데이터
     const magnetLevel = this.upgradeSystem.getMagnetLevel();
-    if (magnetLevel > 0) {
-      const magnetRadius = this.upgradeSystem.getMagnetRadius();
+    const magnetRadius = this.upgradeSystem.getMagnetRadius();
 
-      // 자기장 범위 (마젠타, 더 투명하게)
-      this.attackRangeIndicator.lineStyle(1, COLORS.MAGENTA, 0.25);
-      this.attackRangeIndicator.strokeCircle(x, y, magnetRadius);
-
-      // 내부 채우기
-      this.attackRangeIndicator.fillStyle(COLORS.MAGENTA, 0.04);
-      this.attackRangeIndicator.fillCircle(x, y, magnetRadius);
-    }
-
-    // 공격 범위 테두리
-    const isReady = this.gaugeRatio >= 1;
-    const readyColor = Phaser.Display.Color.HexStringToColor(
-      Data.feedback.bossAttack.mainColor
-    ).color;
-    const baseColor = isReady ? readyColor : Data.gameConfig.player.cursorColorNumeric;
-
-    this.attackRangeIndicator.lineStyle(2, baseColor, 0.8);
-    this.attackRangeIndicator.strokeCircle(x, y, cursorRadius);
-
-    // 내부 게이지 채우기
-    if (this.gaugeRatio > 0) {
-      // 에너지가 어느정도 차있냐에 따라서 커서 내부가 채워지도록 함
-      // ratio에 따라 반지름을 조절하여 채워지는 연출
-      const fillRadius = cursorRadius * this.gaugeRatio;
-      this.attackRangeIndicator.fillStyle(baseColor, isReady ? 0.5 : 0.4);
-      this.attackRangeIndicator.fillCircle(x, y, fillRadius);
-
-      if (isReady) {
-        // 준비 완료 시 글로우 효과
-        this.attackRangeIndicator.lineStyle(4, readyColor, 0.4);
-        this.attackRangeIndicator.strokeCircle(x, y, cursorRadius + 2);
-      }
-    }
-
-    // 기본 내부 채우기 (반투명)
-    this.attackRangeIndicator.fillStyle(baseColor, 0.15);
-    this.attackRangeIndicator.fillCircle(x, y, cursorRadius);
-
-    // 중앙 점
-    this.attackRangeIndicator.fillStyle(COLORS.WHITE, 1);
-    this.attackRangeIndicator.fillCircle(x, y, 2);
+    // 렌더링 위임
+    this.cursorRenderer.renderAttackIndicator(
+      x,
+      y,
+      cursorRadius,
+      this.gaugeRatio,
+      magnetRadius,
+      magnetLevel
+    );
   }
 
   private clearAllDishes(): void {

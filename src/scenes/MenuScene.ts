@@ -5,26 +5,26 @@ import { SoundSystem } from '../systems/SoundSystem';
 import { CursorTrail } from '../effects/CursorTrail';
 import { ParticleManager } from '../effects/ParticleManager';
 import { StarBackground } from '../effects/StarBackground';
+import { GridRenderer } from '../effects/GridRenderer';
+import { MenuBossRenderer } from '../effects/MenuBossRenderer';
+import { CursorRenderer } from '../effects/CursorRenderer';
 
 export class MenuScene extends Phaser.Scene {
   private titleText!: Phaser.GameObjects.Text;
   private startPrompt!: Phaser.GameObjects.Text;
   private isTransitioning: boolean = false;
-  private gridGraphics!: Phaser.GameObjects.Graphics;
-  private bossGraphics!: Phaser.GameObjects.Graphics;
+  private gridRenderer!: GridRenderer;
+  private bossRenderer!: MenuBossRenderer;
   private starBackground!: StarBackground;
-  private menuCursorGraphics!: Phaser.GameObjects.Graphics;
+  private cursorRenderer!: CursorRenderer;
   private cursorTrail!: CursorTrail;
   private particleManager!: ParticleManager;
   private menuDishes!: Phaser.GameObjects.Group;
   private cursorPos = { x: 0, y: 0 };
 
-  private gridOffset: number = 0;
-  private bossTime: number = 0;
   private cursorTime: number = 0;
   private lastDishSpawnTime: number = 0;
   private bestWaveText!: Phaser.GameObjects.Text;
-  private langButton!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -36,14 +36,14 @@ export class MenuScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.DARK_BG).setOrigin(0, 0).setDepth(-10);
     
     this.starBackground = new StarBackground(this, Data.mainMenu.stars);
-    this.createBoss();
-    this.createGrid();
+    this.bossRenderer = new MenuBossRenderer(this);
+    this.gridRenderer = new GridRenderer(this);
 
     this.particleManager = new ParticleManager(this);
     this.menuDishes = this.add.group();
 
     this.cursorTrail = new CursorTrail(this);
-    this.createMenuCursor();
+    this.cursorRenderer = new CursorRenderer(this);
     this.createTitle();
     this.createStartUI();
     this.createBestWave();
@@ -127,110 +127,8 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  private createBoss(): void {
-    this.bossGraphics = this.add.graphics();
-    // 보스 위치: 이전 태양 위치와 비슷하게
-    this.updateBoss(0);
-  }
-
-  private updateBoss(delta: number): void {
-    const config = Data.mainMenu.boss;
-    this.bossGraphics.clear();
-    this.bossTime += delta;
-
-    const bossX = GAME_WIDTH / 2;
-    const bossY = GAME_HEIGHT * config.posYRatio;
-
-    // 1. 배경 아우라 (붉은빛)
-    const auraPulse = 0.2 + Math.sin(this.bossTime * config.aura.pulseSpeed) * 0.1;
-    for (let i = 0; i < config.aura.count; i++) {
-      const alpha = (1 - i / config.aura.count) * auraPulse;
-      this.bossGraphics.fillStyle(COLORS.RED, alpha);
-      this.bossGraphics.fillCircle(bossX, bossY, config.baseRadius * (1 + i * config.aura.spacing));
-    }
-
-    // 2. 중앙 거대 코어
-    const corePulse = 0.6 + Math.sin(this.bossTime * config.core.pulseSpeed) * 0.2;
-    this.bossGraphics.fillStyle(COLORS.RED, corePulse);
-    this.bossGraphics.fillCircle(bossX, bossY, config.coreRadius);
-
-    // 코어 내부 흰색 광원
-    this.bossGraphics.fillStyle(0xffffff, 0.8);
-    this.bossGraphics.fillCircle(bossX, bossY, config.innerLightRadius);
-
-    // 3. 회전하는 거대 아머 조각들
-    const rotation = this.bossTime * config.armor.rotationSpeed;
-    const pieceAngle = (Math.PI * 2) / config.armor.pieceCount;
-
-    for (let i = 0; i < config.armor.pieceCount; i++) {
-      const startAngle = rotation + i * pieceAngle + config.armor.gap;
-      const endAngle = rotation + (i + 1) * pieceAngle - config.armor.gap;
-
-      const p1x = bossX + Math.cos(startAngle) * config.armor.innerRadius;
-      const p1y = bossY + Math.sin(startAngle) * config.armor.innerRadius;
-      const p2x = bossX + Math.cos(endAngle) * config.armor.innerRadius;
-      const p2y = bossY + Math.sin(endAngle) * config.armor.innerRadius;
-      const p3x = bossX + Math.cos(endAngle) * config.armor.outerRadius;
-      const p3y = bossY + Math.sin(endAngle) * config.armor.outerRadius;
-      const p4x = bossX + Math.cos(startAngle) * config.armor.outerRadius;
-      const p4y = bossY + Math.sin(startAngle) * config.armor.outerRadius;
-
-      // 아머 본체 (어두운 색)
-      this.bossGraphics.fillStyle(0x1a0505, 0.9);
-      this.bossGraphics.fillPoints(
-        [
-          { x: p1x, y: p1y },
-          { x: p2x, y: p2y },
-          { x: p3x, y: p3y },
-          { x: p4x, y: p4y },
-        ],
-        true
-      );
-
-      // 아머 테두리 (네온 레드)
-      this.bossGraphics.lineStyle(3, COLORS.RED, 0.8);
-      this.bossGraphics.strokePoints(
-        [
-          { x: p1x, y: p1y },
-          { x: p2x, y: p2y },
-          { x: p3x, y: p3y },
-          { x: p4x, y: p4y },
-        ],
-        true
-      );
-
-      // 아머 내부 디테일 라인
-      this.bossGraphics.lineStyle(1, COLORS.RED, 0.4);
-      const midR = (config.armor.innerRadius + config.armor.outerRadius) / 2;
-      this.bossGraphics.beginPath();
-      this.bossGraphics.arc(bossX, bossY, midR, startAngle, endAngle);
-      this.bossGraphics.strokePath();
-    }
-
-    // 보스 미세 진동 효과
-    const shakeX = (Math.random() - 0.5) * 2;
-    const shakeY = (Math.random() - 0.5) * 2;
-    this.bossGraphics.x = shakeX;
-    this.bossGraphics.y = shakeY;
-  }
-
-  private createGrid(): void {
-    this.gridGraphics = this.add.graphics();
-    this.gridGraphics.setDepth(Data.gameConfig.gameGrid.depth);
-    this.gridGraphics.setBlendMode(Phaser.BlendModes.SCREEN);
-  }
-
-  private createMenuCursor(): void {
-    const config = Data.mainMenu.cursor;
-    this.menuCursorGraphics = this.add.graphics();
-    this.cursorPos.x = GAME_WIDTH / 2;
-    this.cursorPos.y = GAME_HEIGHT - config.yOffset;
-    this.updateMenuCursor(0);
-  }
-
   private updateMenuCursor(delta: number): void {
     const config = Data.mainMenu.cursor;
-    this.menuCursorGraphics.clear();
     this.cursorTime += delta;
 
     // 1. 타겟 결정
@@ -282,21 +180,8 @@ export class MenuScene extends Phaser.Scene {
     // 트레일 업데이트
     this.cursorTrail.update(delta, currentRadius, x, y);
 
-    // 1. 외곽 원 (원근감이 적용된 두께와 크기)
-    this.menuCursorGraphics.lineStyle(
-      1 + perspectiveFactor * 2,
-      Data.gameConfig.player.cursorColorNumeric,
-      0.4 + perspectiveFactor * 0.4
-    );
-    this.menuCursorGraphics.strokeCircle(x, y, currentRadius);
-
-    // 2. 내부 채우기
-    this.menuCursorGraphics.fillStyle(Data.gameConfig.player.cursorColorNumeric, 0.1 + perspectiveFactor * 0.2);
-    this.menuCursorGraphics.fillCircle(x, y, currentRadius);
-
-    // 4. 중앙 점
-    this.menuCursorGraphics.fillStyle(COLORS.WHITE, 0.7 + perspectiveFactor * 0.3);
-    this.menuCursorGraphics.fillCircle(x, y, 2 * (0.5 + perspectiveFactor * 0.5));
+    // 렌더링 위임
+    this.cursorRenderer.renderMenuCursor(x, y, currentRadius, perspectiveFactor);
   }
 
   private createTitle(): void {
@@ -476,61 +361,11 @@ export class MenuScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const globalConfig = Data.gameConfig.gameGrid;
-    this.updateGrid(delta);
+    this.gridRenderer.update(delta);
     this.starBackground.update(delta, time, globalConfig.speed);
-    this.updateBoss(delta);
+    this.bossRenderer.update(delta);
     this.updateMenuCursor(delta);
     this.updateMenuDishes(delta);
-  }
-
-  private updateGrid(delta: number): void {
-    const config = Data.mainMenu.grid;
-    const globalConfig = Data.gameConfig.gameGrid;
-    this.gridGraphics.clear();
-    const horizonY = GAME_HEIGHT * config.horizonRatio;
-    const vanishingPointX = GAME_WIDTH / 2;
-    const verticalSpread = 8; // 좌우로 퍼지는 강도
-
-    // 1. 세로선 (원근법) - 화면 전체를 덮도록 시작점을 넓게 잡음
-    this.gridGraphics.lineStyle(globalConfig.lineWidth, COLORS.CYAN, globalConfig.alpha);
-    
-    for (let i = 0; i <= config.verticalLines; i++) {
-      // 선 사이의 간격을 좁혀서 더 촘촘하게 배치 (나누는 값을 키움)
-      const xOffset = (i - config.verticalLines / 2) * (GAME_WIDTH / 25);
-      const startX = vanishingPointX + xOffset * 0.08; 
-      const endX = vanishingPointX + xOffset * verticalSpread; 
-
-      this.gridGraphics.moveTo(startX, horizonY);
-      this.gridGraphics.lineTo(endX, GAME_HEIGHT);
-    }
-
-    // 2. 움직이는 가로선 (원근법 적용)
-    this.gridOffset += delta * globalConfig.speed;
-    const maxRange = config.horizontalLines * config.size;
-    if (this.gridOffset >= config.size) {
-      this.gridOffset -= config.size;
-    }
-
-    for (let i = 0; i < config.horizontalLines; i++) {
-      const progress = (i * config.size + this.gridOffset) / maxRange;
-      const perspectiveProgress = Math.pow(progress, 2.0);
-      const y = horizonY + perspectiveProgress * (GAME_HEIGHT - horizonY);
-
-      if (y > GAME_HEIGHT) continue;
-
-      // 가로선 너비도 세로선 확장에 맞춰 충분히 넓게 설정
-      const widthAtY = GAME_WIDTH * verticalSpread;
-      this.gridGraphics.moveTo(vanishingPointX - widthAtY / 2, y);
-      this.gridGraphics.lineTo(vanishingPointX + widthAtY / 2, y);
-    }
-
-    this.gridGraphics.strokePath();
-
-    // 지평선 강조 (globalConfig.alpha 사용)
-    this.gridGraphics.lineStyle(2, COLORS.CYAN, globalConfig.alpha * 1.5);
-    this.gridGraphics.moveTo(0, horizonY);
-    this.gridGraphics.lineTo(GAME_WIDTH, horizonY);
-    this.gridGraphics.strokePath();
   }
 
   private async startGame(): Promise<void> {
