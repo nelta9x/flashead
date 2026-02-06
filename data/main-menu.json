@@ -61,11 +61,13 @@
     "yOffset": -110,
     "fontSize": "18px",
     "alpha": 0.6,
-    "localStorageKey": "vibeshooter_bestWave"
+    "localStorageKey": "flashhead_bestWave"
   },
   "title": {
     "yOffset": 100,
     "fontSize": "100px",
+    "color": "#ffffff",
+    "shadowColor": "#00ffff",
     "shadowBlur": 20,
     "moveDuration": 2000,
     "moveY": 110,

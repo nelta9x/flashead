@@ -223,18 +223,18 @@ export class MenuScene extends Phaser.Scene {
     this.titleText = this.add.text(
       GAME_WIDTH / 2,
       GAME_HEIGHT / 2 - config.yOffset,
-      'VIBESHOOTER',
+      'FLASHHEAD',
       {
         fontFamily: FONTS.MAIN,
         fontSize: config.fontSize,
-        color: COLORS_HEX.CYAN,
+        color: config.color,
         fontStyle: 'italic bold',
       }
     );
     this.titleText.setOrigin(0.5);
     // 그림자와 이탤릭체로 인해 글자가 잘리는 것을 방지하기 위해 패딩 추가
     this.titleText.setPadding(config.padding, config.padding, config.padding, config.padding);
-    this.titleText.setShadow(0, 0, COLORS_HEX.MAGENTA, config.shadowBlur, true, true);
+    this.titleText.setShadow(0, 0, config.shadowColor, config.shadowBlur, true, true);
 
     // 은은한 글로우/애니메이션
     this.tweens.add({

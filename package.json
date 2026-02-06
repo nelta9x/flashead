@@ -1,7 +1,7 @@
 {
-  "name": "vibeshooter",
+  "name": "flashhead",
   "version": "1.0.0",
-  "description": "VibeShoooter - 로그라이크 슈팅 접시깨기 게임",
+  "description": "FLASHHEAD",
   "type": "module",
   "scripts": {
     "dev": "vite",
