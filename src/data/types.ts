@@ -608,6 +608,7 @@ export interface BossConfig {
       initialAlpha: number;
       pulseSpeed: number;
       pulseIntensity: number;
+      glowLevels?: Array<{ radius: number; alpha: number }>;
     };
     armor: {
       maxPieces: number;
@@ -618,6 +619,8 @@ export interface BossConfig {
       bodyColor: string;
       bodyAlpha: number;
       borderColor: string;
+      glowAlpha?: number;
+      glowWidth?: number;
     };
     shockwave: {
       initialRadius: number;

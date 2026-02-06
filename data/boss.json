@@ -6,7 +6,12 @@
       "color": "red",
       "initialAlpha": 0.8,
       "pulseSpeed": 0.01,
-      "pulseIntensity": 0.2
+      "pulseIntensity": 0.2,
+      "glowLevels": [
+        { "radius": 1.2, "alpha": 0.3 },
+        { "radius": 1.5, "alpha": 0.15 },
+        { "radius": 2.0, "alpha": 0.05 }
+      ]
     },
     "armor": {
       "maxPieces": 10,
@@ -14,9 +19,11 @@
       "innerRadius": 40,
       "rotationSpeed": 0.0005,
       "gap": 0.1,
-      "bodyColor": "0x440000",
+      "bodyColor": "0x1a0505",
       "bodyAlpha": 0.9,
-      "borderColor": "red"
+      "borderColor": "red",
+      "glowAlpha": 0.4,
+      "glowWidth": 4
     },
     "shockwave": {
       "initialRadius": 40,
