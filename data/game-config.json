@@ -49,9 +49,9 @@
     "korean": "'Black Han Sans', 'Orbitron', sans-serif"
   },
   "magnet": {
-    "baseRadius": 90,
+    "baseRadius": 99,
     "radiusPerLevel": 25,
-    "baseForce": 100,
+    "baseForce": 130,
     "forcePerLevel": 20,
     "minPullDistance": 30
   },
