@@ -628,8 +628,8 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private onDishDestroyed(data: { dish: Dish; x: number; y: number }): void {
-    const { dish, x, y } = data;
+  private onDishDestroyed(data: { dish: Dish; x: number; y: number; byAbility?: boolean }): void {
+    const { dish, x, y, byAbility } = data;
 
     // 지뢰(Bomb) 터짐
     if (dish.isDangerous()) {
@@ -646,18 +646,19 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // ===== 레이저 보너스 체크 =====
-    const laserConfig = Data.gameConfig.monsterAttack.laser;
-    const isLaserFiring = this.activeLasers.some((l) => l.isFiring);
-    const comboBonus = isLaserFiring ? laserConfig.bonus.comboAmount : 0; // 레이저 발사 중 보너스
+    // ===== 콤보 증가 (어빌리티 파괴 제외) =====
+    if (!byAbility) {
+      const laserConfig = Data.gameConfig.monsterAttack.laser;
+      const isLaserFiring = this.activeLasers.some((l) => l.isFiring);
+      const comboBonus = isLaserFiring ? laserConfig.bonus.comboAmount : 0; // 레이저 발사 중 보너스
 
-    // 콤보 증가
-    this.comboSystem.increment(comboBonus);
+      this.comboSystem.increment(comboBonus);
 
-    // 보너스 피드백
-    if (isLaserFiring) {
-      this.damageText.showText(x, y - 40, 'LASER BONUS!', COLORS.YELLOW);
-      this.soundSystem.playBossImpactSound(); // 보너스 느낌의 소리
+      // 보너스 피드백
+      if (isLaserFiring) {
+        this.damageText.showText(x, y - 40, 'LASER BONUS!', COLORS.YELLOW);
+        this.soundSystem.playBossImpactSound(); // 보너스 느낌의 소리
+      }
     }
 
     // 현재 커서 반경 계산

@@ -86,6 +86,9 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
   private slowEndTime: number = 0;
   private isFrozen: boolean = false;
 
+  // 어빌리티에 의한 파괴 여부
+  private destroyedByAbility: boolean = false;
+
   // 업그레이드 효과
   private upgradeOptions: DishUpgradeOptions = {};
   private damageInterval: number = Data.dishes.damage.damageInterval;
@@ -146,6 +149,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     this.hitFlashPhase = 0;
     this.color = config.color;
     this.chainReaction = config.chainReaction || false;
+    this.destroyedByAbility = false;
     this.dangerous = config.dangerous || false;
     this.invulnerable = config.invulnerable || false;
     this.active = true;
@@ -586,6 +590,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
       y: this.y,
       type: this.dishType,
       chainReaction: this.chainReaction,
+      byAbility: this.destroyedByAbility,
     });
 
     this.deactivate();
@@ -644,6 +649,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
       this.chainReaction = true;
     }
 
+    this.destroyedByAbility = true;
     this.currentHp -= damage;
     this.hitFlashPhase = 1;
 
