@@ -26,7 +26,7 @@ export class WaveCountdownUI {
       .text(0, config.label.yOffset, '', {
         fontFamily: FONTS.MAIN,
         fontSize: `${config.label.fontSize}px`,
-        color: (COLORS_HEX as any)[config.label.color.toUpperCase()] || config.label.color,
+        color: Data.getColorHex(config.label.color),
       })
       .setOrigin(0.5);
     this.container.add(this.waveLabel);
@@ -36,8 +36,8 @@ export class WaveCountdownUI {
       .text(0, config.number.yOffset, '', {
         fontFamily: FONTS.MAIN,
         fontSize: `${config.number.fontSize}px`,
-        color: (COLORS_HEX as any)[config.number.color.toUpperCase()] || config.number.color,
-        stroke: (COLORS_HEX as any)[config.number.stroke.toUpperCase()] || config.number.stroke,
+        color: Data.getColorHex(config.number.color),
+        stroke: Data.getColorHex(config.number.stroke),
         strokeThickness: config.number.strokeThickness,
       })
       .setOrigin(0.5);
@@ -54,7 +54,7 @@ export class WaveCountdownUI {
     // 설정된 지속 시간에 맞춰 초기 텍스트 설정 (예: 3000ms -> '3')
     const initialSeconds = Math.ceil(Data.gameConfig.waveTransition.countdownDuration / 1000);
     this.countdownText.setText(initialSeconds.toString());
-    this.countdownText.setColor((COLORS_HEX as any)[config.number.color.toUpperCase()] || config.number.color);
+    this.countdownText.setColor(Data.getColorHex(config.number.color));
     
     this.container.setVisible(true);
 
@@ -99,9 +99,9 @@ export class WaveCountdownUI {
     // 0일 때 "GO!" 표시
     if (seconds === 0) {
       this.countdownText.setText(Data.t('hud.go'));
-      this.countdownText.setColor((COLORS_HEX as any)[config.number.goColor.toUpperCase()] || config.number.goColor);
+      this.countdownText.setColor(Data.getColorHex(config.number.goColor));
     } else {
-      this.countdownText.setColor((COLORS_HEX as any)[config.number.color.toUpperCase()] || config.number.color);
+      this.countdownText.setColor(Data.getColorHex(config.number.color));
     }
   }
 

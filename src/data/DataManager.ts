@@ -163,14 +163,38 @@ class DataManager {
 
   // ===================================
 
-  // 편의 메서드: 색상 숫자 값 가져오기
-  public getColor(name: string): number {
-    return this.colors.numeric[name] ?? 0xffffff;
+  /**
+   * 색상 키(예: "cyan") 또는 헥스 문자열(예: "#00ffff")을 받아 숫자 색상 값을 반환합니다.
+   */
+  public getColor(nameOrHex: string): number {
+    // 1. COLORS 키인지 확인 (대소문자 무시)
+    const upperKey = nameOrHex.toUpperCase();
+    const numericValue = this.colors.numeric[nameOrHex] || (this.colors.numeric as any)[upperKey];
+    if (numericValue !== undefined) return numericValue;
+
+    // 2. 헥스 문자열인 경우 숫자로 변환
+    if (nameOrHex.startsWith('#')) {
+      return parseInt(nameOrHex.replace('#', ''), 16);
+    }
+
+    // 3. 폴백
+    return 0xffffff;
   }
 
-  // 편의 메서드: 색상 헥스 값 가져오기
-  public getColorHex(name: string): string {
-    return this.colors.hex[name] ?? '#ffffff';
+  /**
+   * 색상 키(예: "cyan") 또는 헥스 문자열을 받아 헥스 문자열(예: "#00ffff")을 반환합니다.
+   */
+  public getColorHex(nameOrHex: string): string {
+    // 1. 이미 헥스 문자열인 경우 그대로 반환
+    if (nameOrHex.startsWith('#')) return nameOrHex;
+
+    // 2. COLORS 키인지 확인
+    const upperKey = nameOrHex.toUpperCase();
+    const hexValue = this.colors.hex[nameOrHex] || (this.colors.hex as any)[upperKey];
+    if (hexValue !== undefined) return hexValue;
+
+    // 3. 폴백
+    return '#ffffff';
   }
 
   // 편의 메서드: 특정 웨이브 데이터 가져오기

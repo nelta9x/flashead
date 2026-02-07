@@ -5,6 +5,19 @@ vi.mock('../src/data/DataManager', () => ({
   Data: {
     t: vi.fn((key) => key),
     formatTemplate: vi.fn((key) => key),
+    getColor: vi.fn((key) => {
+      if (key === 'red') return 0xff0000;
+      if (key === 'green') return 0x00ff00;
+      return 0xffffff;
+    }),
+    getColorHex: vi.fn((key) => {
+      if (key === 'green') return '#00ff00';
+      if (key === 'brightGreen') return '#44ff88';
+      if (key === 'cyan') return '#00ffff';
+      if (key === 'yellow') return '#ffff00';
+      if (key === 'white') return '#ffffff';
+      return '#ffffff';
+    }),
     gameConfig: {
       gameGrid: { speed: 100 },
       render: { pixelArt: true, antialias: false },

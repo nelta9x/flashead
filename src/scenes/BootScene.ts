@@ -24,12 +24,12 @@ export class BootScene extends Phaser.Scene {
     const loadingText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - config.loadingText.yOffset, 'LOADING...', {
       fontFamily: FONTS.MAIN,
       fontSize: `${config.loadingText.fontSize}px`,
-      color: (COLORS_HEX as any)[config.loadingText.color.toUpperCase()] || config.loadingText.color,
+      color: Data.getColorHex(config.loadingText.color),
     });
     loadingText.setOrigin(0.5, 0.5);
 
     // 로딩 진행률 표시
-    const barColor = (COLORS as any)[config.progressBar.color.toUpperCase()] || COLORS.CYAN;
+    const barColor = Data.getColor(config.progressBar.color);
     this.load.on('progress', (value: number) => {
       progressBar.clear();
       progressBar.fillStyle(barColor, 1);

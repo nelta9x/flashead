@@ -80,7 +80,7 @@ export class GameOverScene extends Phaser.Scene {
     const title = this.add.text(GAME_WIDTH / 2, config.y, Data.t('gameover.title'), {
       fontFamily: FONTS.MAIN,
       fontSize: `${config.fontSize}px`,
-      color: (COLORS_HEX as any)[config.color.toUpperCase()] || config.color,
+      color: Data.getColorHex(config.color),
     });
     title.setOrigin(0.5);
     title.setShadow(0, 0, COLORS_HEX.RED, 15, true, true);

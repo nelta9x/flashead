@@ -232,7 +232,7 @@ export class MenuScene extends Phaser.Scene {
     this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + config.yOffset, Data.t('menu.start'), {
       fontFamily: FONTS.MAIN,
       fontSize: config.fontSize,
-      color: (COLORS_HEX as any)[config.color.toUpperCase()] || config.color,
+      color: Data.getColorHex(config.color),
     });
     this.startPrompt.setOrigin(0.5);
     this.startPrompt.setShadow(0, 0, COLORS_HEX.CYAN, 10, true, true);

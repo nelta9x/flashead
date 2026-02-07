@@ -93,10 +93,8 @@ export class HUD {
     graphics.clear();
 
     const config = Data.gameConfig.hud.hpDisplay;
-    const filledColor = (COLORS as any)[config.filledColor.toUpperCase()] || COLORS.RED;
-    const emptyColor = config.emptyColor.startsWith('#') 
-      ? parseInt(config.emptyColor.replace('#', ''), 16) 
-      : (COLORS as any)[config.emptyColor.toUpperCase()] || 0x333333;
+    const filledColor = Data.getColor(config.filledColor);
+    const emptyColor = Data.getColor(config.emptyColor);
 
     const color = filled ? filledColor : emptyColor;
     const alpha = filled ? 1 : 0.5;
@@ -198,16 +196,14 @@ export class HUD {
     const thresholds = hudConfig.timerThresholds;
     const colors = hudConfig.timerColors;
 
-    const getColor = (key: string) => (COLORS_HEX as any)[key.toUpperCase()] || key;
-
     if (gameTime >= thresholds.ultra) {
-      this.timerText.setColor(getColor(colors.ultra));
+      this.timerText.setColor(Data.getColorHex(colors.ultra));
     } else if (gameTime >= thresholds.high) {
-      this.timerText.setColor(getColor(colors.high));
+      this.timerText.setColor(Data.getColorHex(colors.high));
     } else if (gameTime >= thresholds.mid) {
-      this.timerText.setColor(getColor(colors.mid));
+      this.timerText.setColor(Data.getColorHex(colors.mid));
     } else {
-      this.timerText.setColor(getColor(colors.default));
+      this.timerText.setColor(Data.getColorHex(colors.default));
     }
 
     // 웨이브 업데이트
