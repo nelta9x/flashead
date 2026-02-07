@@ -97,7 +97,8 @@ import { COLORS, FONTS } from '../data/constants';
     "boxHeight": 140,   // 업그레이드 선택 박스 높이
     "boxSpacing": 30,   // 박스 간 간격
     "hoverDuration": 300, // 호버 후 선택까지 시간 (ms)
-    "boxYOffset": 150   // 화면 하단에서의 거리
+    "boxYOffset": 150,  // 기본 카드 중심 Y 오프셋 (화면 하단 기준)
+    "avoidAbilityUiGap": 24 // 하단 어빌리티 요약 UI와 최소 간격 (px)
   },
   "waveTransition": {
     "countdownDuration": 1000, // 웨이브 시작 전 카운트다운 총 시간 (ms)

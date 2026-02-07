@@ -41,6 +41,7 @@ export interface UpgradeUIConfig {
   boxSpacing: number;
   hoverDuration: number;
   boxYOffset: number;
+  avoidAbilityUiGap: number;
 }
 
 export interface WaveTransitionConfig {

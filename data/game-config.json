@@ -32,7 +32,8 @@
     "boxHeight": 400,
     "boxSpacing": 45,
     "hoverDuration": 1000,
-    "boxYOffset": 220
+    "boxYOffset": 220,
+    "avoidAbilityUiGap": 24
   },
   "waveTransition": {
     "countdownDuration": 1000,

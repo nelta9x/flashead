@@ -23,6 +23,7 @@ export class InGameUpgradeUI {
   private boxes: UpgradeBox[] = [];
   private visible: boolean = false;
   private mainContainer!: Phaser.GameObjects.Container;
+  private currentBoxCenterY: number = GAME_HEIGHT - UPGRADE_UI.BOX_Y_OFFSET;
 
   constructor(scene: Phaser.Scene, upgradeSystem: UpgradeSystem, particleManager: ParticleManager) {
     this.scene = scene;
@@ -88,13 +89,33 @@ export class InGameUpgradeUI {
     const { BOX_WIDTH, BOX_SPACING, BOX_Y_OFFSET } = UPGRADE_UI;
     const totalWidth = upgrades.length * BOX_WIDTH + (upgrades.length - 1) * BOX_SPACING;
     const startX = (GAME_WIDTH - totalWidth) / 2 + BOX_WIDTH / 2;
-    const y = GAME_HEIGHT - BOX_Y_OFFSET;
+    const baseY = GAME_HEIGHT - BOX_Y_OFFSET;
+    const y = this.getSafeBoxCenterY(baseY);
+    this.currentBoxCenterY = y;
 
     upgrades.forEach((upgrade, index) => {
       const x = startX + index * (BOX_WIDTH + BOX_SPACING);
       const box = this.createUpgradeBox(upgrade, x, y);
       this.boxes.push(box);
     });
+  }
+
+  private getSafeBoxCenterY(baseY: number): number {
+    const { BOX_HEIGHT } = UPGRADE_UI;
+    const upgradeUiConfig = Data.gameConfig.upgradeUI;
+    const abilityConfig = Data.gameConfig.hud.abilityDisplay;
+
+    const abilityPanelHeight =
+      abilityConfig.iconSize +
+      abilityConfig.levelOffsetY +
+      abilityConfig.levelFontSize +
+      abilityConfig.panelPaddingY * 2;
+    const abilityTopY = GAME_HEIGHT - abilityConfig.bottomMargin - abilityPanelHeight;
+    const maxYWithoutOverlap =
+      abilityTopY - upgradeUiConfig.avoidAbilityUiGap - BOX_HEIGHT / 2;
+    const minVisibleY = BOX_HEIGHT / 2 + 20;
+
+    return Math.max(minVisibleY, Math.min(baseY, maxYWithoutOverlap));
   }
 
   private createUpgradeBox(upgrade: Upgrade, x: number, y: number): UpgradeBox {
@@ -339,7 +360,7 @@ export class InGameUpgradeUI {
   getBlockedYArea(): number {
     // UI 표시 중 접시 스폰을 피해야 할 Y 영역의 상단 경계
     if (!this.visible) return GAME_HEIGHT;
-    return GAME_HEIGHT - UPGRADE_UI.BOX_Y_OFFSET - UPGRADE_UI.BOX_HEIGHT / 2 - 30;
+    return this.currentBoxCenterY - UPGRADE_UI.BOX_HEIGHT / 2 - 30;
   }
 
   destroy(): void {
