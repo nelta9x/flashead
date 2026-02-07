@@ -146,8 +146,8 @@ export class ParticleManager {
   createUpgradeAbsorption(
     startX: number,
     startY: number,
-    endX: number,
-    endY: number,
+    _endX: number, // 실시간 추적을 위해 무시
+    _endY: number, // 실시간 추적을 위해 무시
     color: number,
     onComplete?: () => void
   ): void {
@@ -164,6 +164,7 @@ export class ParticleManager {
       suctionDelayMax
     } = config;
 
+    const pointer = this.scene.input.activePointer;
     let soundPlayed = false;
 
     // 1. 입자 생성 및 확산 연출 (Slow Spread)
@@ -172,7 +173,7 @@ export class ParticleManager {
       const particle = this.scene.add.circle(startX, startY, size, color, 1);
       particle.setDepth(2000);
 
-      // 시작 위치 랜덤 오프셋 (스프레드) - 처음엔 넓고 천천히 퍼짐
+      // 시작 위치 랜덤 오프셋 (스프레드)
       const spreadAngle = Math.random() * Math.PI * 2;
       const spreadDist = Math.random() * startSpread;
       const spreadX = startX + Math.cos(spreadAngle) * spreadDist;
@@ -193,23 +194,30 @@ export class ParticleManager {
             soundPlayed = true;
           }
 
-          // 2단계: 커서로 빠르게 흡수되기 (Accelerating Suction)
+          // 2단계: 커서의 "현재" 위치로 빠르게 흡수되기 (Dynamic Suction)
           const delay = Math.random() * suctionDelayMax;
+          const currentSpreadX = particle.x;
+          const currentSpreadY = particle.y;
 
           this.scene.tweens.add({
-            targets: particle,
-            x: endX,
-            y: endY,
-            scale: 0,
-            alpha: { from: 0.8, to: 1 },
+            targets: { progress: 0 },
+            progress: 1,
             duration: duration,
             delay: delay,
-            ease: suctionEase, 
+            ease: suctionEase,
+            onUpdate: (_tween, target) => {
+              const p = target.progress;
+              // 확산된 위치에서 실시간 커서 위치로 보간 (Interpolation)
+              particle.x = currentSpreadX + (pointer.worldX - currentSpreadX) * p;
+              particle.y = currentSpreadY + (pointer.worldY - currentSpreadY) * p;
+              particle.alpha = 0.8 + 0.2 * p;
+              particle.scale = 1 - p;
+            },
             onComplete: () => {
               particle.destroy();
-              // 마지막 입자가 도착할 때 임팩트 실행
+              // 마지막 입자가 도착할 때 현재 커서 위치에 임팩트 실행
               if (i === particleCount - 1) {
-                this.createUpgradeImpact(endX, endY, color);
+                this.createUpgradeImpact(pointer.worldX, pointer.worldY, color);
                 if (onComplete) onComplete();
               }
             },
