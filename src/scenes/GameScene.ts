@@ -928,11 +928,16 @@ export class GameScene extends Phaser.Scene {
     // 슬로우 모션 적용된 델타 타임 계산
     const scaledDelta = delta * this.time.timeScale;
 
+    // 커서 범위 계산 (여러 곳에서 사용하므로 미리 계산)
+    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+    const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
+
     // 업그레이드 선택 중에는 생존 시간과 주요 게임 로직 중단
     if (this.isUpgrading) {
       this.inGameUpgradeUI.update(scaledDelta);
       this.starBackground.update(scaledDelta, _time, Data.gameConfig.gameGrid.speed);
       this.gridRenderer.update(scaledDelta);
+      this.cursorTrail.update(scaledDelta, cursorRadius); // 트레일 업데이트 추가
       this.updateAttackRangeIndicator();
       return;
     }
@@ -958,10 +963,6 @@ export class GameScene extends Phaser.Scene {
 
     // 보스 업데이트
     this.boss.update(scaledDelta);
-
-    // 커서 범위 계산
-    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
-    const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 
     // 커서 트레일 업데이트
     this.cursorTrail.update(scaledDelta, cursorRadius);
