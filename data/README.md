@@ -83,6 +83,13 @@ import { COLORS, FONTS } from '../data/constants';
     "initialHp": 5,     // 게임 시작 시 플레이어 HP
     "cursorHitbox": {
       "baseRadius": 30  // 커서 기본 공격 범위 (px)
+    },
+    "hpRing": {
+      "radiusOffset": -4,      // 커서 반지름 대비 HP 링 위치 오프셋 (음수면 안쪽, 0에 가까울수록 껍데기에 붙음)
+      "barThickness": 6,       // HP 바 두께
+      "segmentGapDeg": 9,      // HP 세그먼트 간격(도)
+      "filledAlpha": 0.85,     // 채워진 HP 바 투명도
+      "emptyAlpha": 0.25       // 비워진 HP 바 투명도(테두리는 별도 유지)
     }
   },
   "upgradeUI": {

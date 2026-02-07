@@ -1180,6 +1180,8 @@ export class GameScene extends Phaser.Scene {
 
     // 전기 충격 데이터
     const electricLevel = this.upgradeSystem.getElectricShockLevel();
+    const currentHp = this.healthSystem.getHp();
+    const maxHp = this.healthSystem.getMaxHp();
 
     // 렌더링 위임
     this.cursorRenderer.renderAttackIndicator(
@@ -1190,7 +1192,9 @@ export class GameScene extends Phaser.Scene {
       magnetRadius,
       magnetLevel,
       electricLevel,
-      this.gameTime
+      this.gameTime,
+      currentHp,
+      maxHp
     );
   }
 

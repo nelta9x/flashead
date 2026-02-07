@@ -148,7 +148,12 @@ function createMockContainer() {
     add: vi.fn().mockReturnThis(),
     x: 0,
     y: 0,
+    visible: true,
     setPosition: vi.fn().mockReturnThis(),
+    setVisible: vi.fn(function (this: { visible: boolean }, value: boolean) {
+      this.visible = value;
+      return this;
+    }),
   };
 }
 
@@ -184,32 +189,23 @@ describe('HUD', () => {
     hud = new HUD(mockScene as any, waveSystem as any, healthSystem);
   });
 
-  it('should initialize with initial HP hearts', () => {
-    // Initial maxHp is 5
-    expect(mockScene.add.graphics).toHaveBeenCalledTimes(5);
+  it('should not render top HP graphics after moving HP to cursor ring', () => {
+    // HUD constructor should not draw HP hearts anymore.
+    expect(mockScene.add.graphics).toHaveBeenCalledTimes(0);
   });
 
-  it('should increase heart count when maxHp increases', () => {
-    // Initial: 5 calls in constructor
-    mockScene.add.graphics.mockClear();
-
+  it('should update safely when maxHp increases', () => {
     healthSystem.setMaxHp(7);
     hud.update(0);
 
-    // syncHpHearts should have added 2 more hearts
-    expect(mockScene.add.graphics).toHaveBeenCalledTimes(2);
+    // HP is rendered by cursor ring now, so no top-heart graphics are created.
+    expect(mockScene.add.graphics).toHaveBeenCalledTimes(0);
   });
 
-  it('should decrease heart count when maxHp decreases', () => {
-    // Get the hearts created during initialization
-    const initialGraphics = mockScene.add.graphics.mock.results.map((r: any) => r.value);
-
+  it('should update safely when maxHp decreases', () => {
     healthSystem.setMaxHp(3);
     hud.update(0);
 
-    // Should have called destroy on the last 2 hearts (index 3 and 4)
-    expect(initialGraphics[4].destroy).toHaveBeenCalled();
-    expect(initialGraphics[3].destroy).toHaveBeenCalled();
-    expect(initialGraphics[2].destroy).not.toHaveBeenCalled();
+    expect(mockScene.add.graphics).toHaveBeenCalledTimes(0);
   });
 });

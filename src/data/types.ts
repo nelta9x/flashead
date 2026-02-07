@@ -16,6 +16,20 @@ export interface CursorHitboxConfig {
 export interface PlayerConfig {
   initialHp: number;
   cursorHitbox: CursorHitboxConfig;
+  hpRing: {
+    radiusOffset: number;
+    barThickness: number;
+    segmentGapDeg: number;
+    filledColor: string;
+    filledAlpha: number;
+    emptyColor: string;
+    emptyAlpha: number;
+    borderColor: string;
+    borderAlpha: number;
+    borderThickness: number;
+    lowHpPulseSpeed: number;
+    lowHpMinAlpha: number;
+  };
   cursorColor: string;
   cursorColorNumeric: number;
   cursorSpeed: number;

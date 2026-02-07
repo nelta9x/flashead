@@ -20,9 +20,25 @@ vi.mock('phaser', () => {
 // Mock DataManager
 vi.mock('../src/data/DataManager', () => ({
   Data: {
+    getColor: vi.fn(() => 0xffffff),
     gameConfig: {
       player: {
-        cursorColorNumeric: 0x00ffff
+        initialHp: 5,
+        cursorColorNumeric: 0x00ffff,
+        hpRing: {
+          radiusOffset: 10,
+          barThickness: 6,
+          segmentGapDeg: 9,
+          filledColor: 'cyan',
+          filledAlpha: 0.85,
+          emptyColor: '#102230',
+          emptyAlpha: 0.25,
+          borderColor: 'white',
+          borderAlpha: 0.75,
+          borderThickness: 1.6,
+          lowHpPulseSpeed: 0.008,
+          lowHpMinAlpha: 0.35
+        }
       }
     },
     feedback: {
@@ -50,6 +66,7 @@ function createMockGraphics() {
     strokeCircle: vi.fn().mockReturnThis(),
     fillStyle: vi.fn().mockReturnThis(),
     fillCircle: vi.fn().mockReturnThis(),
+    arc: vi.fn().mockReturnThis(),
     beginPath: vi.fn().mockReturnThis(),
     moveTo: vi.fn().mockReturnThis(),
     lineTo: vi.fn().mockReturnThis(),
@@ -84,6 +101,14 @@ describe('CursorRenderer', () => {
     expect(mockGraphics.strokeCircle).toHaveBeenCalledWith(100, 100, 30);
     // Should NOT call electric effect related methods
     expect(mockGraphics.beginPath).not.toHaveBeenCalled();
+  });
+
+  it('should render hp ring in menu cursor', () => {
+    cursorRenderer.renderMenuCursor(100, 100, 30, 0.7, 1200);
+
+    expect(mockGraphics.clear).toHaveBeenCalled();
+    expect(mockGraphics.strokeCircle).toHaveBeenCalledWith(100, 100, 30);
+    expect(mockGraphics.arc).toHaveBeenCalled();
   });
 
   it('should render electric sparks when electricLevel > 0', () => {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS_HEX, INITIAL_HP, FONTS } from '../data/constants';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS_HEX, FONTS } from '../data/constants';
 import { Data } from '../data/DataManager';
 import { WaveSystem } from '../systems/WaveSystem';
 import { HealthSystem } from '../systems/HealthSystem';
@@ -95,22 +95,9 @@ export class HUD {
   }
 
   private createHpDisplay(): void {
-    const config = Data.gameConfig.hud.hpDisplay;
-    const maxHp = this.healthSystem?.getMaxHp() ?? INITIAL_HP;
-    const startX = config.startX;
-    const startY = config.startY;
-    const heartSpacing = config.spacing;
-
-    this.hpContainer = this.scene.add.container(startX, startY);
-
-    // 하트 아이콘들 생성
-    for (let i = 0; i < maxHp; i++) {
-      const heart = this.scene.add.graphics();
-      heart.setPosition(i * heartSpacing, 0);
-      this.drawHeart(heart, true);
-      this.hpHearts.push(heart);
-      this.hpContainer.add(heart);
-    }
+    // 플레이어 HP는 커서 링으로 표현되므로 상단 HP UI는 숨김 처리
+    this.hpContainer = this.scene.add.container(0, 0);
+    this.hpContainer.setVisible(false);
   }
 
   private drawHeart(graphics: Phaser.GameObjects.Graphics, filled: boolean): void {
@@ -139,7 +126,7 @@ export class HUD {
   }
 
   updateHpDisplay(): void {
-    if (!this.healthSystem) return;
+    if (!this.healthSystem || !this.hpContainer.visible) return;
 
     const currentHp = this.healthSystem.getHp();
     const maxHp = this.healthSystem.getMaxHp();
@@ -193,6 +180,8 @@ export class HUD {
   }
 
   showHpLoss(): void {
+    if (!this.hpContainer.visible) return;
+
     // HP 감소 시 빨간 플래시 + 흔들림
     this.scene.tweens.add({
       targets: this.hpContainer,

@@ -12,7 +12,13 @@ export class CursorRenderer {
   /**
    * 메뉴용 원근감 커서 렌더링
    */
-  public renderMenuCursor(x: number, y: number, radius: number, perspectiveFactor: number): void {
+  public renderMenuCursor(
+    x: number,
+    y: number,
+    radius: number,
+    perspectiveFactor: number,
+    time: number = 0
+  ): void {
     this.graphics.clear();
 
     // 1. 외곽 원 (원근감이 적용된 두께와 크기)
@@ -30,7 +36,11 @@ export class CursorRenderer {
     );
     this.graphics.fillCircle(x, y, radius);
 
-    // 3. 중앙 점
+    // 3. 메뉴에서도 인게임과 동일한 HP 링 표시 (항상 최대 HP 상태)
+    const initialHp = Math.max(1, Math.floor(Data.gameConfig.player.initialHp));
+    this.drawHpRing(x, y, radius, initialHp, initialHp, time);
+
+    // 4. 중앙 점
     this.graphics.fillStyle(COLORS.WHITE, 0.7 + perspectiveFactor * 0.3);
     this.graphics.fillCircle(x, y, 2 * (0.5 + perspectiveFactor * 0.5));
   }
@@ -46,7 +56,9 @@ export class CursorRenderer {
     magnetRadius: number,
     magnetLevel: number,
     electricLevel: number = 0,
-    time: number = 0
+    time: number = 0,
+    currentHp: number = 0,
+    maxHp: number = 0
   ): void {
     this.graphics.clear();
 
@@ -90,9 +102,77 @@ export class CursorRenderer {
     this.graphics.fillStyle(baseColor, 0.15);
     this.graphics.fillCircle(x, y, radius);
 
-    // 6. 중앙 점
+    // 6. HP 링 (커서 둘레 세그먼트 바)
+    this.drawHpRing(x, y, radius, currentHp, maxHp, time);
+
+    // 7. 중앙 점
     this.graphics.fillStyle(COLORS.WHITE, 1);
     this.graphics.fillCircle(x, y, 2);
+  }
+
+  private drawHpRing(
+    x: number,
+    y: number,
+    radius: number,
+    currentHp: number,
+    maxHp: number,
+    time: number
+  ): void {
+    const config = Data.gameConfig.player.hpRing;
+    if (!config || maxHp <= 0) return;
+
+    const segmentCount = Math.max(1, Math.floor(maxHp));
+    const filledCount = Phaser.Math.Clamp(Math.floor(currentHp), 0, segmentCount);
+    const gapAngle = Phaser.Math.DegToRad(config.segmentGapDeg);
+    const ringRadius = radius + config.radiusOffset;
+    const fullCircle = Math.PI * 2;
+    const maxGap = fullCircle / (segmentCount + 1);
+    const clampedGap = Phaser.Math.Clamp(gapAngle, 0, maxGap);
+    const segmentAngle = (fullCircle - clampedGap * segmentCount) / segmentCount;
+
+    if (segmentAngle <= 0) return;
+
+    const filledColor = Data.getColor(config.filledColor);
+    const emptyColor = Data.getColor(config.emptyColor);
+    const borderColor = Data.getColor(config.borderColor);
+
+    let filledAlphaScale = 1;
+    if (filledCount === 1) {
+      const pulse = (Math.sin(time * config.lowHpPulseSpeed) + 1) * 0.5;
+      filledAlphaScale = Phaser.Math.Linear(config.lowHpMinAlpha, 1, pulse);
+    }
+
+    let startAngle = -Math.PI / 2;
+
+    for (let i = 0; i < segmentCount; i++) {
+      const endAngle = startAngle + segmentAngle;
+      // Fill from the tail so HP loss depletes clockwise from the start segment.
+      const isFilled = i >= segmentCount - filledCount;
+
+      // Empty bar base keeps the slot visible after HP loss.
+      this.graphics.lineStyle(config.barThickness, emptyColor, config.emptyAlpha);
+      this.graphics.beginPath();
+      this.graphics.arc(x, y, ringRadius, startAngle, endAngle);
+      this.graphics.strokePath();
+
+      if (isFilled) {
+        this.graphics.lineStyle(
+          config.barThickness,
+          filledColor,
+          config.filledAlpha * filledAlphaScale
+        );
+        this.graphics.beginPath();
+        this.graphics.arc(x, y, ringRadius, startAngle, endAngle);
+        this.graphics.strokePath();
+      }
+
+      this.graphics.lineStyle(config.borderThickness, borderColor, config.borderAlpha);
+      this.graphics.beginPath();
+      this.graphics.arc(x, y, ringRadius, startAngle, endAngle);
+      this.graphics.strokePath();
+
+      startAngle = endAngle + clampedGap;
+    }
   }
 
   /**

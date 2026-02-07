@@ -197,7 +197,7 @@ export class MenuScene extends Phaser.Scene {
     this.cursorTrail.update(delta, currentRadius, x, y);
 
     // 렌더링 위임
-    this.cursorRenderer.renderMenuCursor(x, y, currentRadius, perspectiveFactor);
+    this.cursorRenderer.renderMenuCursor(x, y, currentRadius, perspectiveFactor, this.cursorTime);
   }
 
   private createTitle(): void {

@@ -9,6 +9,20 @@
     "cursorHitbox": {
       "baseRadius": 30
     },
+    "hpRing": {
+      "radiusOffset": -4,
+      "barThickness": 6,
+      "segmentGapDeg": 9,
+      "filledColor": "white",
+      "filledAlpha": 0.85,
+      "emptyColor": "#102230",
+      "emptyAlpha": 0.25,
+      "borderColor": "white",
+      "borderAlpha": 0.75,
+      "borderThickness": 1.6,
+      "lowHpPulseSpeed": 0.008,
+      "lowHpMinAlpha": 0.35
+    },
     "cursorColor": "#f0f8ff",
     "cursorColorNumeric": 15792383,
     "cursorSpeed": 1123
