@@ -14,10 +14,10 @@
   },
   "upgradeUI": {
     "boxWidth": 300,
-    "boxHeight": 240,
+    "boxHeight": 400,
     "boxSpacing": 45,
     "hoverDuration": 300,
-    "boxYOffset": 250
+    "boxYOffset": 320
   },
   "waveTransition": {
     "countdownDuration": 3000
