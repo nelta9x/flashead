@@ -155,7 +155,26 @@
     "sizeSpeedFactor": 0.4,
     "twinkleSpeedMin": 0.0005,
     "twinkleSpeedMax": 0.0015,
-    "verticalLimitRatio": 1.0
+    "verticalLimitRatio": 1.0,
+    "shootingStar": {
+      "enabled": true,
+      "cycleIntervalMs": { "min": 5000, "max": 20000 },
+      "burstCount": { "min": 1, "max": 2 },
+      "spawnDelayMs": { "min": 240, "max": 1300 },
+      "startYMaxRatio": 0.35,
+      "startXPadding": 160,
+      "angleDeg": { "min": 18, "max": 42 },
+      "speed": { "min": 680, "max": 1180 },
+      "travelDistance": { "min": 680, "max": 1350 },
+      "length": { "min": 110, "max": 230 },
+      "lineWidth": { "min": 1.2, "max": 2.6 },
+      "alpha": { "min": 0.55, "max": 0.95 },
+      "tailAlphaScale": 0.65,
+      "glowRadiusScale": 1.9,
+      "glowAlphaScale": 0.5,
+      "headGlowIntensity": { "min": 0.35, "max": 1.0 },
+      "color": "#c8f6ff"
+    }
   },
   "audio": {
     "bgm": {

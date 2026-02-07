@@ -82,6 +82,32 @@ export interface StarsConfig {
   twinkleSpeedMin: number;
   twinkleSpeedMax: number;
   verticalLimitRatio: number;
+  shootingStar?: ShootingStarConfig;
+}
+
+export interface NumberRangeConfig {
+  min: number;
+  max: number;
+}
+
+export interface ShootingStarConfig {
+  enabled: boolean;
+  cycleIntervalMs: NumberRangeConfig;
+  burstCount: NumberRangeConfig;
+  spawnDelayMs: NumberRangeConfig;
+  startYMaxRatio: number;
+  startXPadding: number;
+  angleDeg: NumberRangeConfig;
+  speed: NumberRangeConfig;
+  travelDistance: NumberRangeConfig;
+  length: NumberRangeConfig;
+  lineWidth: NumberRangeConfig;
+  alpha: NumberRangeConfig;
+  tailAlphaScale: number;
+  glowRadiusScale: number;
+  glowAlphaScale: number;
+  headGlowIntensity: NumberRangeConfig;
+  color: string;
 }
 
 export interface LanguageUIConfig {
