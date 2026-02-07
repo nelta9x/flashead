@@ -7,7 +7,7 @@ import { EventBus, GameEvents } from '../utils/EventBus';
 export class HealthPack extends Phaser.GameObjects.Container implements Poolable {
   active: boolean = false;
   private graphics: Phaser.GameObjects.Graphics;
-  private velocityY: number = Data.healthPack.fallSpeed;
+  private fallSpeed: number = Data.healthPack.fallSpeed;
   private pulsePhase: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -16,12 +16,6 @@ export class HealthPack extends Phaser.GameObjects.Container implements Poolable
 
     this.graphics = scene.add.graphics();
     this.add(this.graphics);
-
-    // 물리 바디 설정
-    scene.physics.add.existing(this);
-    const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setCircle(Data.healthPack.hitboxSize);
-    body.setOffset(-Data.healthPack.hitboxSize, -Data.healthPack.hitboxSize);
 
     this.setVisible(false);
     this.setActive(false);
@@ -39,10 +33,6 @@ export class HealthPack extends Phaser.GameObjects.Container implements Poolable
     this.setPosition(x, -40);
     this.active = true;
     this.pulsePhase = 0;
-
-    const body = this.body as Phaser.Physics.Arcade.Body;
-    body.enable = true;
-    body.setVelocity(0, this.velocityY);
 
     // 클릭 가능하게 설정 (관대한 히트박스)
     this.setInteractive(
@@ -149,6 +139,9 @@ export class HealthPack extends Phaser.GameObjects.Container implements Poolable
   update(delta: number): void {
     if (!this.active) return;
 
+    // 프레임 레이트와 무관하게 일정한 낙하 속도(px/sec)를 유지
+    this.y += (this.fallSpeed * delta) / 1000;
+
     // 펄스 애니메이션
     this.pulsePhase += delta * 0.005;
 
@@ -183,9 +176,5 @@ export class HealthPack extends Phaser.GameObjects.Container implements Poolable
     this.setActive(false);
     this.disableInteractive();
     this.removeAllListeners();
-
-    const body = this.body as Phaser.Physics.Arcade.Body;
-    body.enable = false;
-    body.setVelocity(0, 0);
   }
 }
