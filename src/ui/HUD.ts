@@ -71,10 +71,11 @@ export class HUD {
   }
 
   private createHpDisplay(): void {
+    const config = Data.gameConfig.hud.hpDisplay;
     const maxHp = this.healthSystem?.getMaxHp() ?? INITIAL_HP;
-    const startX = 20;
-    const startY = 25;
-    const heartSpacing = 35;
+    const startX = config.startX;
+    const startY = config.startY;
+    const heartSpacing = config.spacing;
 
     this.hpContainer = this.scene.add.container(startX, startY);
 
@@ -91,13 +92,19 @@ export class HUD {
   private drawHeart(graphics: Phaser.GameObjects.Graphics, filled: boolean): void {
     graphics.clear();
 
-    const color = filled ? COLORS.RED : 0x333333;
+    const config = Data.gameConfig.hud.hpDisplay;
+    const filledColor = (COLORS as any)[config.filledColor.toUpperCase()] || COLORS.RED;
+    const emptyColor = config.emptyColor.startsWith('#') 
+      ? parseInt(config.emptyColor.replace('#', ''), 16) 
+      : (COLORS as any)[config.emptyColor.toUpperCase()] || 0x333333;
+
+    const color = filled ? filledColor : emptyColor;
     const alpha = filled ? 1 : 0.5;
 
     graphics.fillStyle(color, alpha);
 
     // 심장 모양 그리기 (간단한 버전)
-    const size = 12;
+    const size = config.heartSize;
     graphics.fillCircle(-size / 2, 0, size / 2);
     graphics.fillCircle(size / 2, 0, size / 2);
     graphics.fillTriangle(-size, 0, size, 0, 0, size * 1.2);
@@ -144,7 +151,8 @@ export class HUD {
   }
 
   private syncHpHearts(maxHp: number): void {
-    const heartSpacing = 35;
+    const config = Data.gameConfig.hud.hpDisplay;
+    const heartSpacing = config.spacing;
 
     // 부족한 만큼 추가
     while (this.hpHearts.length < maxHp) {
@@ -186,18 +194,20 @@ export class HUD {
     this.timerText.setText(this.formatTime(gameTime));
 
     // 생존 시간에 따라 색상 변경 (오래 버틸수록 밝아짐)
-    if (gameTime >= 180000) {
-      // 3분 이상: 골드
-      this.timerText.setColor(COLORS_HEX.YELLOW);
-    } else if (gameTime >= 120000) {
-      // 2분 이상: 시안
-      this.timerText.setColor(COLORS_HEX.CYAN);
-    } else if (gameTime >= 60000) {
-      // 1분 이상: 밝은 녹색
-      this.timerText.setColor('#44ff88');
+    const hudConfig = Data.gameConfig.hud;
+    const thresholds = hudConfig.timerThresholds;
+    const colors = hudConfig.timerColors;
+
+    const getColor = (key: string) => (COLORS_HEX as any)[key.toUpperCase()] || key;
+
+    if (gameTime >= thresholds.ultra) {
+      this.timerText.setColor(getColor(colors.ultra));
+    } else if (gameTime >= thresholds.high) {
+      this.timerText.setColor(getColor(colors.high));
+    } else if (gameTime >= thresholds.mid) {
+      this.timerText.setColor(getColor(colors.mid));
     } else {
-      // 1분 미만: 기본 녹색
-      this.timerText.setColor(COLORS_HEX.GREEN);
+      this.timerText.setColor(getColor(colors.default));
     }
 
     // 웨이브 업데이트

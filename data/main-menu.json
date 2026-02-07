@@ -78,5 +78,10 @@
     "spacing": 20,
     "activeScale": 1.1,
     "inactiveAlpha": 0.5
+  },
+  "startPrompt": {
+    "yOffset": 150,
+    "fontSize": "28px",
+    "color": "white"
   }
 }

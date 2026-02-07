@@ -14,6 +14,11 @@ vi.mock('../data/feedback.json', () => ({
         fontSize: 32,
         initialScale: 2.2,
       },
+      boss: {
+        color: '#ff3300',
+        fontSize: 64,
+        initialScale: 0.2,
+      },
       combo: {
         minComboToShow: 2,
         fontSize: 16,

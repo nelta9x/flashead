@@ -15,12 +15,15 @@ export const COLORS = {
   MAGENTA: Data.colors.numeric.magenta,
   YELLOW: Data.colors.numeric.yellow,
   RED: Data.colors.numeric.red,
+  BRIGHT_RED: Data.colors.numeric.brightRed,
   GREEN: Data.colors.numeric.green,
+  BRIGHT_GREEN: Data.colors.numeric.brightGreen,
   WHITE: Data.colors.numeric.white,
   ORB_CORE: Data.colors.numeric.orbCore,
   ORB_GLOW: Data.colors.numeric.orbGlow,
   DARK_BG: Data.colors.numeric.darkBg,
   DARK_PURPLE: Data.colors.numeric.darkPurple,
+  DARK_CYAN: Data.colors.numeric.darkCyan,
 } as const;
 
 // 색상 (헥스)
@@ -29,12 +32,15 @@ export const COLORS_HEX = {
   MAGENTA: Data.colors.hex.magenta,
   YELLOW: Data.colors.hex.yellow,
   RED: Data.colors.hex.red,
+  BRIGHT_RED: Data.colors.hex.brightRed,
   GREEN: Data.colors.hex.green,
+  BRIGHT_GREEN: Data.colors.hex.brightGreen,
   WHITE: Data.colors.hex.white,
   ORB_CORE: Data.colors.hex.orbCore,
   ORB_GLOW: Data.colors.hex.orbGlow,
   DARK_BG: Data.colors.hex.darkBg,
   DARK_PURPLE: Data.colors.hex.darkPurple,
+  DARK_CYAN: Data.colors.hex.darkCyan,
 } as const;
 
 // 업그레이드 간격 (가속 후 감속 시스템)

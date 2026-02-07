@@ -22,6 +22,62 @@
   "waveTransition": {
     "countdownDuration": 3000
   },
+  "waveCountdownUI": {
+    "label": {
+      "fontSize": 24,
+      "yOffset": -60,
+      "color": "white"
+    },
+    "number": {
+      "fontSize": 120,
+      "yOffset": 20,
+      "color": "cyan",
+      "stroke": "darkCyan",
+      "strokeThickness": 4,
+      "goColor": "green"
+    }
+  },
+  "hud": {
+    "timerColors": {
+      "default": "green",
+      "mid": "brightGreen",
+      "high": "cyan",
+      "ultra": "yellow"
+    },
+    "timerThresholds": {
+      "mid": 60000,
+      "high": 120000,
+      "ultra": 180000
+    },
+    "hpDisplay": {
+      "startX": 20,
+      "startY": 25,
+      "spacing": 35,
+      "heartSize": 12,
+      "filledColor": "red",
+      "emptyColor": "#333333"
+    }
+  },
+  "gameOver": {
+    "title": {
+      "y": 120,
+      "fontSize": 72,
+      "color": "brightRed"
+    },
+    "stats": {
+      "y": 330,
+      "labelFontSize": 20,
+      "valueFontSize": 32,
+      "timeLabelFontSize": 24,
+      "timeValueFontSize": 48,
+      "comboValueFontSize": 28,
+      "badgeFontSize": 14
+    },
+    "prompt": {
+      "yOffset": 100,
+      "fontSize": 28
+    }
+  },
   "monsterAttack": {
     "laser": {
       "width": 40,
@@ -103,6 +159,19 @@
       "key": "bgm",
       "path": "assets/audio/neon-drive.mp3",
       "volume": 0.1
+    }
+  },
+  "boot": {
+    "progressBar": {
+      "width": 320,
+      "height": 50,
+      "innerPadding": 10,
+      "color": "cyan"
+    },
+    "loadingText": {
+      "yOffset": 50,
+      "fontSize": 24,
+      "color": "cyan"
     }
   }
 }

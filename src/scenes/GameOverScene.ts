@@ -76,10 +76,11 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private createTitle(): void {
-    const title = this.add.text(GAME_WIDTH / 2, 120, Data.t('gameover.title'), {
+    const config = Data.gameConfig.gameOver.title;
+    const title = this.add.text(GAME_WIDTH / 2, config.y, Data.t('gameover.title'), {
       fontFamily: FONTS.MAIN,
-      fontSize: '72px',
-      color: '#ff4444',
+      fontSize: `${config.fontSize}px`,
+      color: (COLORS_HEX as any)[config.color.toUpperCase()] || config.color,
     });
     title.setOrigin(0.5);
     title.setShadow(0, 0, COLORS_HEX.RED, 15, true, true);
@@ -108,19 +109,20 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private createStats(): void {
-    const statsContainer = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30);
+    const config = Data.gameConfig.gameOver.stats;
+    const statsContainer = this.add.container(GAME_WIDTH / 2, config.y - 30);
 
     // 생존 시간 (최상단, 가장 큰 폰트)
     const timeLabel = this.add.text(-150, -80, Data.t('gameover.survived'), {
       fontFamily: FONTS.MAIN,
-      fontSize: '24px',
+      fontSize: `${config.timeLabelFontSize}px`,
       color: COLORS_HEX.GREEN,
     });
 
     const timeValue = this.add
       .text(150, -80, this.formatTime(this.stats.time), {
         fontFamily: FONTS.MAIN,
-        fontSize: '48px',
+        fontSize: `${config.timeValueFontSize}px`,
         color: COLORS_HEX.GREEN,
       })
       .setOrigin(1, 0);
@@ -128,14 +130,14 @@ export class GameOverScene extends Phaser.Scene {
     // 도달 웨이브
     const waveLabel = this.add.text(-150, 0, Data.t('gameover.wave_reached'), {
       fontFamily: FONTS.MAIN,
-      fontSize: '20px',
+      fontSize: `${config.labelFontSize}px`,
       color: COLORS_HEX.WHITE,
     });
 
     const waveValue = this.add
       .text(150, 0, `${this.stats.wave}`, {
         fontFamily: FONTS.MAIN,
-        fontSize: '32px',
+        fontSize: `${config.valueFontSize}px`,
         color: COLORS_HEX.YELLOW,
       })
       .setOrigin(1, 0);
@@ -143,14 +145,14 @@ export class GameOverScene extends Phaser.Scene {
     // 최대 콤보
     const comboLabel = this.add.text(-150, 60, Data.t('gameover.max_combo'), {
       fontFamily: FONTS.MAIN,
-      fontSize: '20px',
+      fontSize: `${config.labelFontSize}px`,
       color: COLORS_HEX.WHITE,
     });
 
     const comboValue = this.add
       .text(150, 60, `x${this.stats.maxCombo}`, {
         fontFamily: FONTS.MAIN,
-        fontSize: '28px',
+        fontSize: `${config.comboValueFontSize}px`,
         color: COLORS_HEX.MAGENTA,
       })
       .setOrigin(1, 0);
@@ -160,7 +162,7 @@ export class GameOverScene extends Phaser.Scene {
     if (this.isNewBestWave) {
       const bestBadge = this.add.text(160, 0, Data.t('gameover.new_best'), {
         fontFamily: FONTS.MAIN,
-        fontSize: '14px',
+        fontSize: `${config.badgeFontSize}px`,
         color: COLORS_HEX.YELLOW,
       });
       bestBadge.setShadow(0, 0, COLORS_HEX.YELLOW, 8, true, true);
@@ -184,16 +186,17 @@ export class GameOverScene extends Phaser.Scene {
     this.tweens.add({
       targets: statsContainer,
       alpha: 1,
-      y: GAME_HEIGHT / 2 - 50,
+      y: config.y - 50,
       duration: 500,
       ease: 'Power2',
     });
   }
 
   private createPrompt(): void {
-    const prompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, Data.t('gameover.click_menu'), {
+    const config = Data.gameConfig.gameOver.prompt;
+    const prompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - config.yOffset, Data.t('gameover.click_menu'), {
       fontFamily: FONTS.MAIN,
-      fontSize: '28px',
+      fontSize: `${config.fontSize}px`,
       color: COLORS_HEX.WHITE,
     });
     prompt.setOrigin(0.5);

@@ -23,14 +23,15 @@ export class DamageText {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
-    const style = Data.feedback.damageText.style;
+    const config = Data.feedback.damageText;
+    const style = config.style;
 
     // 텍스트 풀 생성
     for (let i = 0; i < 20; i++) {
       const text = scene.add.text(0, 0, '', {
         fontFamily: FONTS.MAIN,
-        fontSize: '20px',
-        color: COLORS_HEX.WHITE,
+        fontSize: `${config.normal.fontSize}px`,
+        color: config.normal.color,
         stroke: '#000000',
         strokeThickness: style?.strokeThickness || 3,
         fontStyle: style?.fontStyle || 'normal',
@@ -45,8 +46,8 @@ export class DamageText {
     for (let i = 0; i < 20; i++) {
       const comboText = scene.add.text(0, 0, '', {
         fontFamily: FONTS.MAIN,
-        fontSize: '16px',
-        color: COLORS_HEX.WHITE,
+        fontSize: `${config.combo.fontSize}px`,
+        color: config.combo.colors.low,
         stroke: '#000000',
         strokeThickness: 2,
       });
@@ -58,23 +59,25 @@ export class DamageText {
   }
 
   show(x: number, y: number, damage: number): void {
+    const config = Data.feedback.damageText.normal;
     this.createDamageText({
       x,
       y,
       text: damage.toString(),
-      color: COLORS_HEX.WHITE,
-      fontSize: 20,
+      color: config.color,
+      fontSize: config.fontSize,
       isCritical: false,
     });
   }
 
   showCritical(x: number, y: number, damage: number): void {
+    const config = Data.feedback.damageText.critical;
     this.createDamageText({
       x,
       y,
       text: Data.t('damage.critical', damage),
-      color: COLORS_HEX.YELLOW,
-      fontSize: 32,
+      color: config.color,
+      fontSize: config.fontSize,
       isCritical: true,
     });
   }
@@ -96,8 +99,8 @@ export class DamageText {
       const style = config.style;
       text = this.scene.add.text(0, 0, '', {
         fontFamily: FONTS.MAIN,
-        fontSize: '20px',
-        color: COLORS_HEX.WHITE,
+        fontSize: `${typeConfig.fontSize}px`,
+        color: typeConfig.color,
         stroke: '#000000',
         strokeThickness: style?.strokeThickness || 3,
         fontStyle: style?.fontStyle || 'normal',
@@ -147,8 +150,8 @@ export class DamageText {
       if (!comboText) {
         comboText = this.scene.add.text(0, 0, '', {
           fontFamily: FONTS.MAIN,
-          fontSize: '16px',
-          color: COLORS_HEX.WHITE,
+          fontSize: `${comboConfig.fontSize}px`,
+          color: comboConfig.colors.low,
           stroke: '#000000',
           strokeThickness: 2,
         });
@@ -232,14 +235,17 @@ export class DamageText {
   }
 
   showBossDamage(x: number, y: number, damage: number): void {
+    const config = Data.feedback.damageText;
+    const bossConfig = config.boss;
+    
     // 풀에서 텍스트 가져오기
     let text = this.pool.find((t) => !this.activeTexts.has(t));
 
     if (!text) {
       text = this.scene.add.text(0, 0, '', {
         fontFamily: FONTS.MAIN,
-        fontSize: '48px',
-        color: '#ffcc00',
+        fontSize: `${bossConfig.fontSize}px`,
+        color: bossConfig.color,
         stroke: '#000000',
         strokeThickness: 6,
         fontStyle: 'bold',
@@ -254,11 +260,11 @@ export class DamageText {
     // 보스가 상단(y=80)에 있으므로, 숫자가 위로 올라가면 화면 밖으로 나감
     // 타격 지점보다 약간 아래에서 시작해서 아래로 떨어지거나 제자리에서 팝업되도록 수정
     text.setPosition(x + Phaser.Math.Between(-30, 30), y + 40);
-    text.setColor('#ff3300'); // 강렬한 빨강-주황
-    text.setFontSize(64);
+    text.setColor(bossConfig.color);
+    text.setFontSize(bossConfig.fontSize);
     text.setVisible(true);
     text.setAlpha(1);
-    text.setScale(0.2); // 아주 작게 시작해서 커지는 효과
+    text.setScale(bossConfig.initialScale);
     text.setRotation(Phaser.Math.DegToRad(Phaser.Math.Between(-10, 10)));
 
     this.activeTexts.add(text);
@@ -291,12 +297,13 @@ export class DamageText {
 
   showText(x: number, y: number, text: string, color: number): void {
     const hexColor = '#' + color.toString(16).padStart(6, '0');
+    const config = Data.feedback.damageText.normal;
     this.createDamageText({
       x,
       y,
       text,
       color: hexColor,
-      fontSize: 24,
+      fontSize: config.fontSize,
       isCritical: false,
     });
   }

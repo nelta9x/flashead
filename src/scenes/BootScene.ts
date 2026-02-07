@@ -9,25 +9,36 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
+    const config = Data.gameConfig.boot;
     // 로딩 바 생성
     const progressBar = this.add.graphics();
     const progressBox = this.add.graphics();
 
-    progressBox.fillStyle(0x222222, 0.8);
-    progressBox.fillRect(GAME_WIDTH / 2 - 160, GAME_HEIGHT / 2 - 25, 320, 50);
+    const boxWidth = config.progressBar.width;
+    const boxHeight = config.progressBar.height;
+    const padding = config.progressBar.innerPadding;
 
-    const loadingText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50, 'LOADING...', {
+    progressBox.fillStyle(0x222222, 0.8);
+    progressBox.fillRect(GAME_WIDTH / 2 - boxWidth / 2, GAME_HEIGHT / 2 - boxHeight / 2, boxWidth, boxHeight);
+
+    const loadingText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - config.loadingText.yOffset, 'LOADING...', {
       fontFamily: FONTS.MAIN,
-      fontSize: '24px',
-      color: '#00ffff',
+      fontSize: `${config.loadingText.fontSize}px`,
+      color: (COLORS_HEX as any)[config.loadingText.color.toUpperCase()] || config.loadingText.color,
     });
     loadingText.setOrigin(0.5, 0.5);
 
     // 로딩 진행률 표시
+    const barColor = (COLORS as any)[config.progressBar.color.toUpperCase()] || COLORS.CYAN;
     this.load.on('progress', (value: number) => {
       progressBar.clear();
-      progressBar.fillStyle(COLORS.CYAN, 1);
-      progressBar.fillRect(GAME_WIDTH / 2 - 150, GAME_HEIGHT / 2 - 15, 300 * value, 30);
+      progressBar.fillStyle(barColor, 1);
+      progressBar.fillRect(
+        GAME_WIDTH / 2 - (boxWidth - padding) / 2,
+        GAME_HEIGHT / 2 - (boxHeight - padding * 2) / 2,
+        (boxWidth - padding) * value,
+        boxHeight - padding * 2
+      );
     });
 
     this.load.on('complete', () => {

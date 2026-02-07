@@ -171,12 +171,49 @@ export interface PlayerAttackConfig {
   baseMissileDamage: number;
 }
 
+export interface GameOverConfig {
+  title: {
+    y: number;
+    fontSize: number;
+    color: string;
+  };
+  stats: {
+    y: number;
+    labelFontSize: number;
+    valueFontSize: number;
+    timeLabelFontSize: number;
+    timeValueFontSize: number;
+    comboValueFontSize: number;
+    badgeFontSize: number;
+  };
+  prompt: {
+    yOffset: number;
+    fontSize: number;
+  };
+}
+
+export interface BootConfig {
+  progressBar: {
+    width: number;
+    height: number;
+    innerPadding: number;
+    color: string;
+  };
+  loadingText: {
+    yOffset: number;
+    fontSize: number;
+    color: string;
+  };
+}
+
 export interface GameConfig {
   screen: ScreenConfig;
   defaultLanguage: string;
   player: PlayerConfig;
   upgradeUI: UpgradeUIConfig;
   waveTransition: WaveTransitionConfig;
+  gameOver: GameOverConfig;
+  boot: BootConfig;
   monsterAttack: MonsterAttackConfig;
   playerAttack: PlayerAttackConfig;
   fonts: {
@@ -339,6 +376,7 @@ export interface DamageTextRandomRotationConfig {
 export interface DamageTextConfig {
   normal: DamageTextTypeConfig;
   critical: DamageTextTypeConfig;
+  boss: DamageTextTypeConfig;
   combo: DamageTextComboConfig;
   style: DamageTextStyleConfig;
   randomScale: DamageTextRandomScaleConfig;

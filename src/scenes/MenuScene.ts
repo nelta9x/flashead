@@ -73,7 +73,7 @@ export class MenuScene extends Phaser.Scene {
     const separator = this.add
       .text(-config.spacing, 0, '|', {
         fontFamily: FONTS.MAIN,
-        fontSize: '16px',
+        fontSize: config.fontSize,
         color: COLORS_HEX.WHITE,
       })
       .setOrigin(0.5, 0)
@@ -227,11 +227,12 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createStartUI(): void {
+    const config = Data.mainMenu.startPrompt;
     // 시작 안내 텍스트
-    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150, Data.t('menu.start'), {
+    this.startPrompt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + config.yOffset, Data.t('menu.start'), {
       fontFamily: FONTS.MAIN,
-      fontSize: '28px',
-      color: COLORS_HEX.WHITE,
+      fontSize: config.fontSize,
+      color: (COLORS_HEX as any)[config.color.toUpperCase()] || config.color,
     });
     this.startPrompt.setOrigin(0.5);
     this.startPrompt.setShadow(0, 0, COLORS_HEX.CYAN, 10, true, true);

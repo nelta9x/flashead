@@ -20,6 +20,27 @@ vi.mock('../src/data/DataManager', () => ({
           timerStrokeThickness: 2,
         },
       },
+      hud: {
+        timerColors: {
+          default: 'green',
+          mid: 'brightGreen',
+          high: 'cyan',
+          ultra: 'yellow',
+        },
+        timerThresholds: {
+          mid: 60000,
+          high: 120000,
+          ultra: 180000,
+        },
+        hpDisplay: {
+          startX: 20,
+          startY: 25,
+          spacing: 35,
+          heartSize: 12,
+          filledColor: 'red',
+          emptyColor: '#333333',
+        },
+      },
     },
     upgrades: {
       system: [],

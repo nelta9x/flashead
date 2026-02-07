@@ -4,12 +4,15 @@
     "magenta": "#ff00ff",
     "yellow": "#ffff00",
     "red": "#ff0044",
+    "brightRed": "#ff4444",
     "green": "#00ff88",
+    "brightGreen": "#44ff88",
     "white": "#ffffff",
     "orbCore": "#ffffff",
     "orbGlow": "#88ccff",
     "darkBg": "#0a0a0f",
-    "darkPurple": "#1a0a2e"
+    "darkPurple": "#1a0a2e",
+    "darkCyan": "#003333"
   },
   "numeric": {
     "cyan": 65535,
@@ -17,10 +20,12 @@
     "yellow": 16776960,
     "red": 16711748,
     "green": 65416,
+    "brightGreen": 4521864,
     "white": 16777215,
     "orbCore": 16777215,
     "orbGlow": 8965375,
     "darkBg": 657423,
-    "darkPurple": 1706542
+    "darkPurple": 1706542,
+    "darkCyan": 13107
   }
 }

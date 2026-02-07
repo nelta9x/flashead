@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, FONTS } from '../data/constants';
+import { GAME_WIDTH, GAME_HEIGHT, FONTS, COLORS_HEX } from '../data/constants';
 import { Data } from '../data/DataManager';
 
 export class WaveCountdownUI {
@@ -15,6 +15,7 @@ export class WaveCountdownUI {
   }
 
   private createUI(): void {
+    const config = Data.gameConfig.waveCountdownUI;
     this.container = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     this.container.setDepth(850);
     this.container.setVisible(false);
@@ -22,22 +23,22 @@ export class WaveCountdownUI {
 
     // "WAVE X STARTING IN" 라벨
     this.waveLabel = this.scene.add
-      .text(0, -60, '', {
+      .text(0, config.label.yOffset, '', {
         fontFamily: FONTS.MAIN,
-        fontSize: '24px',
-        color: '#ffffff',
+        fontSize: `${config.label.fontSize}px`,
+        color: (COLORS_HEX as any)[config.label.color.toUpperCase()] || config.label.color,
       })
       .setOrigin(0.5);
     this.container.add(this.waveLabel);
 
     // 카운트다운 숫자
     this.countdownText = this.scene.add
-      .text(0, 20, '', {
+      .text(0, config.number.yOffset, '', {
         fontFamily: FONTS.MAIN,
-        fontSize: '120px',
-        color: '#00ffff',
-        stroke: '#003333',
-        strokeThickness: 4,
+        fontSize: `${config.number.fontSize}px`,
+        color: (COLORS_HEX as any)[config.number.color.toUpperCase()] || config.number.color,
+        stroke: (COLORS_HEX as any)[config.number.stroke.toUpperCase()] || config.number.stroke,
+        strokeThickness: config.number.strokeThickness,
       })
       .setOrigin(0.5);
     this.container.add(this.countdownText);
@@ -46,13 +47,14 @@ export class WaveCountdownUI {
   show(waveNumber: number): void {
     if (this.visible) return;
 
+    const config = Data.gameConfig.waveCountdownUI;
     this.visible = true;
     this.waveLabel.setText(Data.t('hud.wave_starting', waveNumber));
     
     // 설정된 지속 시간에 맞춰 초기 텍스트 설정 (예: 3000ms -> '3')
     const initialSeconds = Math.ceil(Data.gameConfig.waveTransition.countdownDuration / 1000);
     this.countdownText.setText(initialSeconds.toString());
-    this.countdownText.setColor('#00ffff');
+    this.countdownText.setColor((COLORS_HEX as any)[config.number.color.toUpperCase()] || config.number.color);
     
     this.container.setVisible(true);
 
@@ -82,6 +84,7 @@ export class WaveCountdownUI {
   updateCountdown(seconds: number): void {
     if (!this.visible) return;
 
+    const config = Data.gameConfig.waveCountdownUI;
     this.countdownText.setText(seconds.toString());
 
     // 펄스 애니메이션
@@ -96,9 +99,9 @@ export class WaveCountdownUI {
     // 0일 때 "GO!" 표시
     if (seconds === 0) {
       this.countdownText.setText(Data.t('hud.go'));
-      this.countdownText.setColor('#00ff88');
+      this.countdownText.setColor((COLORS_HEX as any)[config.number.goColor.toUpperCase()] || config.number.goColor);
     } else {
-      this.countdownText.setColor('#00ffff');
+      this.countdownText.setColor((COLORS_HEX as any)[config.number.color.toUpperCase()] || config.number.color);
     }
   }
 
