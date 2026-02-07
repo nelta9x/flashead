@@ -1,6 +1,4 @@
-import Phaser from 'phaser';
-import { COLORS } from '../data/constants';
-import { Data } from '../data/DataManager';
+import { SoundSystem } from '../systems/SoundSystem';
 
 // 무지개 색상 배열
 const RAINBOW_COLORS = [
@@ -23,6 +21,7 @@ export class ParticleManager {
   }
 
   private createEmitters(): void {
+    // ... 기존 코드와 동일 ...
     // 기본 폭발 이미터
     const explosionEmitter = this.scene.add.particles(0, 0, 'particle', {
       speed: { min: 100, max: 300 },
@@ -263,7 +262,20 @@ export class ParticleManager {
     onComplete?: () => void
   ): void {
     const config = Data.feedback.upgradeAbsorption;
-    const { particleCount, duration, particleSizeMin, particleSizeMax, startSpread } = config;
+    const { 
+      particleCount, 
+      duration, 
+      particleSizeMin, 
+      particleSizeMax, 
+      startSpread,
+      spreadDuration,
+      spreadEase,
+      suctionEase,
+      suctionDelayMax
+    } = config;
+
+    // 사운드 재생
+    SoundSystem.getInstance().playUpgradeSound();
 
     // 1. 입자 흡수 연출 (Particle Stream)
     for (let i = 0; i < particleCount; i++) {
@@ -271,32 +283,43 @@ export class ParticleManager {
       const particle = this.scene.add.circle(startX, startY, size, color, 1);
       particle.setDepth(2000);
 
-      // 시작 위치 랜덤 오프셋 (스프레드)
-      const offsetX = (Math.random() - 0.5) * startSpread;
-      const offsetY = (Math.random() - 0.5) * startSpread;
-      particle.x += offsetX;
-      particle.y += offsetY;
+      // 시작 위치 랜덤 오프셋 (스프레드) - 처음엔 확 퍼졌다가
+      const spreadAngle = Math.random() * Math.PI * 2;
+      const spreadDist = Math.random() * startSpread;
+      const spreadX = startX + Math.cos(spreadAngle) * spreadDist;
+      const spreadY = startY + Math.sin(spreadAngle) * spreadDist;
 
-      // 딜레이를 주어 순차적으로 빨려들어가는 느낌
-      const delay = Math.random() * 300;
-
+      // 1단계: 퍼지기
       this.scene.tweens.add({
         targets: particle,
-        x: endX,
-        y: endY,
-        scale: 0, // 점점 작아지며 흡수
-        alpha: { from: 1, to: 0.5 },
-        duration: duration,
-        delay: delay,
-        ease: 'Back.easeIn', // 빨려들어가는 가속감
+        x: spreadX,
+        y: spreadY,
+        duration: spreadDuration,
+        ease: spreadEase,
         onComplete: () => {
-          particle.destroy();
-          // 마지막 입자가 도착할 즈음 임팩트 실행 (한 번만)
-          if (i === particleCount - 1) {
-            this.createUpgradeImpact(endX, endY, color);
-            if (onComplete) onComplete();
-          }
-        },
+          // 2단계: 커서로 흡수되기
+          // 딜레이를 주어 순차적으로 빨려들어가는 느낌
+          const delay = Math.random() * suctionDelayMax;
+
+          this.scene.tweens.add({
+            targets: particle,
+            x: endX,
+            y: endY,
+            scale: 0, // 점점 작아지며 흡수
+            alpha: { from: 1, to: 0.5 },
+            duration: duration,
+            delay: delay,
+            ease: suctionEase, // 빨려들어가는 가속감
+            onComplete: () => {
+              particle.destroy();
+              // 마지막 입자가 도착할 즈음 임팩트 실행 (한 번만)
+              if (i === particleCount - 1) {
+                this.createUpgradeImpact(endX, endY, color);
+                if (onComplete) onComplete();
+              }
+            },
+          });
+        }
       });
     }
   }

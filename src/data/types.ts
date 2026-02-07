@@ -160,6 +160,12 @@ export interface AudioBGMConfig {
   key: string;
   path: string;
   volume: number;
+  synth?: {
+    notes: number[];
+    noteDuration: number;
+    waveType: OscillatorType;
+    gain: number;
+  };
 }
 
 export interface AudioConfig {
@@ -484,6 +490,10 @@ export interface UpgradeAbsorptionConfig {
   particleSizeMin: number;
   particleSizeMax: number;
   startSpread: number;
+  spreadDuration: number;
+  spreadEase: string;
+  suctionEase: string;
+  suctionDelayMax: number;
   impactRingSize: number;
   impactRingScale: number;
   impactGlowSize: number;

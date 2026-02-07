@@ -721,6 +721,47 @@ export class SoundSystem {
   }
 
   /**
+   * 업그레이드 선택 사운드 (마리오 파워업 스타일)
+   */
+  playUpgradeSound(): void {
+    const config = Data.gameConfig.audio.upgrade_selected;
+    if (!config) return;
+
+    if (this.scene) {
+      // 오디오 파일이 로드되어 있으면 그것을 사용
+      if (this.scene.sound.get(config.key)) {
+        this.scene.sound.play(config.key, { volume: config.volume });
+        return;
+      }
+    }
+
+    // 파일이 없거나 로드되지 않았으면 신디사이저로 폴백
+    if (!this.ensureContext() || !config.synth) return;
+    const ctx = this.audioContext!;
+    const now = ctx.currentTime;
+    const synth = config.synth;
+
+    // 마리오 파워업 스타일: 빠른 아르페지오 상승
+    synth.notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = synth.waveType; // 데이터에서 파형 결정 (square 권장)
+      osc.frequency.setValueAtTime(freq, now + i * synth.noteDuration);
+
+      gain.gain.setValueAtTime(synth.gain, now + i * synth.noteDuration);
+      gain.gain.linearRampToValueAtTime(synth.gain, now + i * synth.noteDuration + synth.noteDuration * 0.8);
+      gain.gain.linearRampToValueAtTime(0, now + i * synth.noteDuration + synth.noteDuration);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(now + i * synth.noteDuration);
+      osc.stop(now + i * synth.noteDuration + synth.noteDuration);
+    });
+  }
+
+  /**
    * Phaser 씬 설정 (BGM 재생에 필요)
    */
   setScene(scene: Phaser.Scene): void {
