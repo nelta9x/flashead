@@ -164,6 +164,7 @@ export interface AudioBGMConfig {
 
 export interface AudioConfig {
   bgm: AudioBGMConfig;
+  upgrade_selected?: AudioBGMConfig;
 }
 
 export interface PlayerAttackConfig {

@@ -159,6 +159,11 @@
       "key": "bgm",
       "path": "assets/audio/neon-drive.mp3",
       "volume": 0.1
+    },
+    "upgrade_selected": {
+      "key": "upgrade_selected",
+      "path": "assets/audio/powerup.mp3",
+      "volume": 0.5
     }
   },
   "boot": {
