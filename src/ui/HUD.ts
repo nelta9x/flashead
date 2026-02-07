@@ -105,6 +105,10 @@ export class HUD {
     return interactionState;
   }
 
+  public getDockHoverArea(): Phaser.Geom.Rectangle | null {
+    return this.abilitySummaryWidget?.getHoverBounds() ?? null;
+  }
+
   public showHpLoss(): void {
     if (!this.hpContainer.visible) {
       return;

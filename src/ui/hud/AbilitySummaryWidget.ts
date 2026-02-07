@@ -180,6 +180,10 @@ export class AbilitySummaryWidget {
     return this.hoverBounds;
   }
 
+  public getHoverBounds(): Phaser.Geom.Rectangle | null {
+    return this.hoverBounds;
+  }
+
   public renderDockInteraction(progress: number, visible: boolean, isPaused: boolean): void {
     this.dockOverlay.clear();
     this.dockPauseGauge.clear();

@@ -72,6 +72,7 @@ export class GameScene extends Phaser.Scene {
   private isSimulationPaused: boolean = false;
   private isUpgrading: boolean = false;
   private gaugeRatio: number = 0;
+  private maxSpawnedDishRadius: number = 0;
 
   // 웨이브 전환 상태
   private pendingWaveNumber: number = 1;
@@ -186,6 +187,7 @@ export class GameScene extends Phaser.Scene {
 
     this.comboSystem = new ComboSystem();
     this.upgradeSystem = new UpgradeSystem();
+    this.maxSpawnedDishRadius = this.calculateMaxSpawnedDishRadius();
 
     // 이펙트 시스템 (가장 먼저 초기화)
     this.particleManager = new ParticleManager(this);
@@ -208,8 +210,12 @@ export class GameScene extends Phaser.Scene {
     this.waveSystem = new WaveSystem(
       this,
       () => this.dishPool,
-      () =>
-        this.inGameUpgradeUI.isVisible() ? this.inGameUpgradeUI.getBlockedYArea() : SPAWN_AREA.maxY,
+      () => {
+        const baseMaxY = this.inGameUpgradeUI.isVisible()
+          ? this.inGameUpgradeUI.getBlockedYArea()
+          : SPAWN_AREA.maxY;
+        return this.getDockSafeSpawnMaxY(baseMaxY);
+      },
       () => this.boss
     );
     this.healthSystem = new HealthSystem();
@@ -223,6 +229,32 @@ export class GameScene extends Phaser.Scene {
 
     // 웨이브 카운트다운 UI
     this.waveCountdownUI = new WaveCountdownUI(this);
+  }
+
+  private getDockSafeSpawnMaxY(baseMaxY: number): number {
+    const dockHoverArea = this.hud.getDockHoverArea();
+    if (!dockHoverArea) {
+      return baseMaxY;
+    }
+
+    const dockSafeMaxY = Math.floor(dockHoverArea.y - this.maxSpawnedDishRadius);
+    return Math.max(SPAWN_AREA.minY, Math.min(baseMaxY, dockSafeMaxY));
+  }
+
+  private calculateMaxSpawnedDishRadius(): number {
+    const waveDishTypes = Data.waves.waves.flatMap((wave) => wave.dishTypes.map((dish) => dish.type));
+    const feverDishTypes = Data.waves.fever.dishTypes.map((dish) => dish.type);
+    const uniqueDishTypes = new Set<string>([...waveDishTypes, ...feverDishTypes]);
+
+    let maxRadius = 0;
+    uniqueDishTypes.forEach((type) => {
+      const dishData = Data.getDishData(type);
+      if (dishData) {
+        maxRadius = Math.max(maxRadius, dishData.size);
+      }
+    });
+
+    return maxRadius;
   }
 
   private initializeEntities(): void {
