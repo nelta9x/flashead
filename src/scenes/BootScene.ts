@@ -76,6 +76,7 @@ export class BootScene extends Phaser.Scene {
       'magnet',
       'missile',
       'health_pack',
+      'orbiting_orb',
     ];
 
     icons.forEach((icon) => {

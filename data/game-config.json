@@ -58,6 +58,32 @@
       "heartSize": 12,
       "filledColor": "red",
       "emptyColor": "#333333"
+    },
+    "abilityDisplay": {
+      "bottomMargin": 0,
+      "iconSize": 28,
+      "iconGap": 12,
+      "iconPadding": 3,
+      "iconCornerRadius": 6,
+      "iconBackgroundColor": "darkPurple",
+      "iconBackgroundAlpha": 0.9,
+      "iconBorderColor": "cyan",
+      "iconBorderAlpha": 0.75,
+      "iconBorderWidth": 1.5,
+      "panelPaddingX": 12,
+      "panelPaddingY": 6,
+      "panelColor": "darkBg",
+      "panelAlpha": 0.7,
+      "panelBorderColor": "darkCyan",
+      "panelBorderAlpha": 0.9,
+      "panelBorderWidth": 1.5,
+      "panelCornerRadius": 8,
+      "levelOffsetY": 8,
+      "levelFontSize": 12,
+      "fallbackIconFontSize": 18,
+      "levelTextColor": "white",
+      "levelStrokeColor": "darkBg",
+      "levelStrokeThickness": 2
     }
   },
   "gameOver": {

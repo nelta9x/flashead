@@ -269,6 +269,32 @@ export interface HudConfig {
     filledColor: string;
     emptyColor: string;
   };
+  abilityDisplay: {
+    bottomMargin: number;
+    iconSize: number;
+    iconGap: number;
+    iconPadding: number;
+    iconCornerRadius: number;
+    iconBackgroundColor: string;
+    iconBackgroundAlpha: number;
+    iconBorderColor: string;
+    iconBorderAlpha: number;
+    iconBorderWidth: number;
+    panelPaddingX: number;
+    panelPaddingY: number;
+    panelColor: string;
+    panelAlpha: number;
+    panelBorderColor: string;
+    panelBorderAlpha: number;
+    panelBorderWidth: number;
+    panelCornerRadius: number;
+    levelOffsetY: number;
+    levelFontSize: number;
+    fallbackIconFontSize: number;
+    levelTextColor: string;
+    levelStrokeColor: string;
+    levelStrokeThickness: number;
+  };
 }
 
 export interface GameConfig {

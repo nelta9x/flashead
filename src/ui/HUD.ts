@@ -1,13 +1,20 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, COLORS_HEX, INITIAL_HP, FONTS } from '../data/constants';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS_HEX, INITIAL_HP, FONTS } from '../data/constants';
 import { Data } from '../data/DataManager';
 import { WaveSystem } from '../systems/WaveSystem';
 import { HealthSystem } from '../systems/HealthSystem';
+import { UpgradeSystem } from '../systems/UpgradeSystem';
+
+interface ActiveAbility {
+  id: string;
+  level: number;
+}
 
 export class HUD {
   private scene: Phaser.Scene;
   private waveSystem: WaveSystem;
   private healthSystem: HealthSystem | null = null;
+  private upgradeSystem: UpgradeSystem | null = null;
 
   // UI 요소들
   private waveText!: Phaser.GameObjects.Text;
@@ -19,10 +26,22 @@ export class HUD {
   private hpHearts: Phaser.GameObjects.Graphics[] = [];
   private hpBlinkTween: Phaser.Tweens.Tween | null = null;
 
-  constructor(scene: Phaser.Scene, waveSystem: WaveSystem, healthSystem?: HealthSystem) {
+  // 어빌리티 요약 UI
+  private abilityContainer: Phaser.GameObjects.Container | null = null;
+  private abilityPanelBg: Phaser.GameObjects.Graphics | null = null;
+  private abilityEntries: Phaser.GameObjects.Container[] = [];
+  private abilitySignature: string = '';
+
+  constructor(
+    scene: Phaser.Scene,
+    waveSystem: WaveSystem,
+    healthSystem?: HealthSystem,
+    upgradeSystem?: UpgradeSystem
+  ) {
     this.scene = scene;
     this.waveSystem = waveSystem;
     this.healthSystem = healthSystem || null;
+    this.upgradeSystem = upgradeSystem || null;
 
     this.createUI();
   }
@@ -68,6 +87,11 @@ export class HUD {
 
     // HP 표시 생성
     this.createHpDisplay();
+
+    // 어빌리티 보유 목록 UI
+    if (this.upgradeSystem) {
+      this.createAbilityDisplay();
+    }
   }
 
   private createHpDisplay(): void {
@@ -184,9 +208,179 @@ export class HUD {
     this.updateHpDisplay();
   }
 
+  setUpgradeSystem(upgradeSystem: UpgradeSystem): void {
+    this.upgradeSystem = upgradeSystem;
+    this.abilitySignature = '';
+    if (!this.abilityContainer) {
+      this.createAbilityDisplay();
+    }
+    this.updateAbilityDisplay();
+  }
+
+  private createAbilityDisplay(): void {
+    const config = Data.gameConfig.hud.abilityDisplay;
+    this.abilityContainer = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT - config.bottomMargin);
+    this.abilityContainer.setDepth(950);
+    this.abilityContainer.setVisible(false);
+
+    this.abilityPanelBg = this.scene.add.graphics();
+    this.abilityContainer.add(this.abilityPanelBg);
+  }
+
+  private clearAbilityEntries(): void {
+    this.abilityEntries.forEach((entry) => entry.destroy());
+    this.abilityEntries = [];
+  }
+
+  private getActiveAbilities(): ActiveAbility[] {
+    const upgradeSystem = this.upgradeSystem;
+    if (!upgradeSystem) return [];
+
+    return Data.upgrades.system
+      .map((upgrade) => ({
+        id: upgrade.id,
+        level: upgradeSystem.getUpgradeStack(upgrade.id),
+      }))
+      .filter((ability) => ability.level > 0);
+  }
+
+  private getAbilitySymbol(abilityId: string): string {
+    const symbols: Record<string, string> = {
+      cursor_size: '◯',
+      critical_chance: '✦',
+      electric_shock: '⚡',
+      static_discharge: '✶',
+      magnet: '⊕',
+      missile: '✹',
+      health_pack: '✚',
+      orbiting_orb: '◎',
+    };
+
+    return symbols[abilityId] || '★';
+  }
+
+  private updateAbilityDisplay(): void {
+    if (!this.upgradeSystem || !this.abilityContainer || !this.abilityPanelBg) return;
+
+    const config = Data.gameConfig.hud.abilityDisplay;
+    const activeAbilities = this.getActiveAbilities();
+    const abilityContainer = this.abilityContainer;
+    const signature = activeAbilities.map((ability) => `${ability.id}:${ability.level}`).join('|');
+
+    if (signature === this.abilitySignature) {
+      return;
+    }
+    this.abilitySignature = signature;
+
+    this.clearAbilityEntries();
+    this.abilityPanelBg.clear();
+
+    if (activeAbilities.length === 0) {
+      this.abilityContainer.setVisible(false);
+      return;
+    }
+
+    const totalWidth =
+      activeAbilities.length * config.iconSize + (activeAbilities.length - 1) * config.iconGap;
+    const panelWidth = totalWidth + config.panelPaddingX * 2;
+    const panelHeight =
+      config.iconSize +
+      config.levelOffsetY +
+      config.levelFontSize +
+      config.panelPaddingY * 2 +
+      4;
+    const iconY = -panelHeight / 2 + config.panelPaddingY + config.iconSize / 2;
+    const levelY = iconY + config.iconSize / 2 + config.levelOffsetY;
+
+    this.abilityContainer.setPosition(GAME_WIDTH / 2, GAME_HEIGHT - config.bottomMargin - panelHeight / 2);
+    this.abilityContainer.setVisible(true);
+
+    const panelColor = Data.getColor(config.panelColor);
+    this.abilityPanelBg.fillStyle(panelColor, config.panelAlpha);
+    this.abilityPanelBg.fillRoundedRect(
+      -panelWidth / 2,
+      -panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      config.panelCornerRadius
+    );
+    this.abilityPanelBg.lineStyle(
+      config.panelBorderWidth,
+      Data.getColor(config.panelBorderColor),
+      config.panelBorderAlpha
+    );
+    this.abilityPanelBg.strokeRoundedRect(
+      -panelWidth / 2,
+      -panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      config.panelCornerRadius
+    );
+
+    activeAbilities.forEach((ability, index) => {
+      const x = -totalWidth / 2 + config.iconSize / 2 + index * (config.iconSize + config.iconGap);
+      const entryContainer = this.scene.add.container(x, 0);
+
+      const iconBg = this.scene.add.graphics();
+      iconBg.fillStyle(Data.getColor(config.iconBackgroundColor), config.iconBackgroundAlpha);
+      iconBg.fillRoundedRect(
+        -config.iconSize / 2,
+        iconY - config.iconSize / 2,
+        config.iconSize,
+        config.iconSize,
+        config.iconCornerRadius
+      );
+      iconBg.lineStyle(
+        config.iconBorderWidth,
+        Data.getColor(config.iconBorderColor),
+        config.iconBorderAlpha
+      );
+      iconBg.strokeRoundedRect(
+        -config.iconSize / 2,
+        iconY - config.iconSize / 2,
+        config.iconSize,
+        config.iconSize,
+        config.iconCornerRadius
+      );
+      entryContainer.add(iconBg);
+
+      const iconSize = Math.max(1, config.iconSize - config.iconPadding * 2);
+      if (this.scene.textures.exists(ability.id)) {
+        const iconImage = this.scene.add.image(0, iconY, ability.id);
+        iconImage.setDisplaySize(iconSize, iconSize);
+        entryContainer.add(iconImage);
+      } else {
+        const symbol = this.getAbilitySymbol(ability.id);
+        const iconText = this.scene.add
+          .text(0, iconY, symbol, {
+            fontFamily: FONTS.MAIN,
+            fontSize: `${config.fallbackIconFontSize}px`,
+            color: Data.getColorHex(config.levelTextColor),
+          })
+          .setOrigin(0.5);
+        entryContainer.add(iconText);
+      }
+
+      const levelText = this.scene.add
+        .text(0, levelY, `${ability.level}`, {
+          fontFamily: FONTS.MAIN,
+          fontSize: `${config.levelFontSize}px`,
+          color: Data.getColorHex(config.levelTextColor),
+          stroke: Data.getColorHex(config.levelStrokeColor),
+          strokeThickness: config.levelStrokeThickness,
+        })
+        .setOrigin(0.5);
+      entryContainer.add(levelText);
+
+      abilityContainer.add(entryContainer);
+      this.abilityEntries.push(entryContainer);
+    });
+  }
+
   update(gameTime: number): void {
     // HP 업데이트
     this.updateHpDisplay();
+    this.updateAbilityDisplay();
 
     // 생존 시간 업데이트 (정순 카운트)
     this.timerText.setText(this.formatTime(gameTime));

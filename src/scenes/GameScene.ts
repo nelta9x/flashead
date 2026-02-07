@@ -212,7 +212,7 @@ export class GameScene extends Phaser.Scene {
     this.orbSystem = new OrbSystem(this.upgradeSystem);
 
     // HUD
-    this.hud = new HUD(this, this.waveSystem, this.healthSystem);
+    this.hud = new HUD(this, this.waveSystem, this.healthSystem, this.upgradeSystem);
 
     // 웨이브 카운트다운 UI
     this.waveCountdownUI = new WaveCountdownUI(this);
