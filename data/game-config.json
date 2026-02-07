@@ -17,7 +17,7 @@
     "boxHeight": 400,
     "boxSpacing": 45,
     "hoverDuration": 300,
-    "boxYOffset": 320
+    "boxYOffset": 220
   },
   "waveTransition": {
     "countdownDuration": 3000
