@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GameEvents } from '../src/utils/EventBus';
 
 // Mock Phaser
 vi.mock('phaser', () => {
@@ -11,6 +12,36 @@ vi.mock('phaser', () => {
           },
         },
         DegToRad: (deg: number) => deg * (Math.PI / 180),
+      },
+    },
+  };
+});
+
+// Mock EventBus
+const mockEmit = vi.fn();
+vi.mock('../src/utils/EventBus', async () => {
+  const actual = await vi.importActual('../src/utils/EventBus');
+  return {
+    ...actual,
+    EventBus: {
+      getInstance: () => ({
+        emit: mockEmit,
+      }),
+    },
+  };
+});
+
+// Mock DataManager
+vi.mock('../src/data/DataManager', () => {
+  return {
+    Data: {
+      feedback: {
+        bombDestructionByAbility: {
+          shake: 8,
+          shakeDuration: 250,
+          slowMotion: 0.05,
+          slowDuration: 200,
+        },
       },
     },
   };
@@ -188,5 +219,9 @@ describe('OrbSystem', () => {
     mockBomb.x = 125; // Distance = 25. <= 30.
     system.update(100, 3000, 0, 0, mockDishPool);
     expect(mockBomb.forceDestroy).toHaveBeenCalled();
+
+    // Verify feedback events
+    expect(mockEmit).toHaveBeenCalledWith(GameEvents.SCREEN_SHAKE, expect.any(Object));
+    expect(mockEmit).toHaveBeenCalledWith(GameEvents.SLOW_MOTION, expect.any(Object));
   });
 });

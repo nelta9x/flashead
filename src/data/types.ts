@@ -514,6 +514,12 @@ export interface FeedbackConfig {
   cursorTrail: CursorTrailConfig;
   bossAttack: BossAttackConfig;
   upgradeAbsorption: UpgradeAbsorptionConfig;
+  bombDestructionByAbility: {
+    shake: number;
+    shakeDuration: number;
+    slowMotion: number;
+    slowDuration: number;
+  };
 }
 
 // ========== 색상 설정 ==========
