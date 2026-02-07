@@ -153,8 +153,11 @@ describe('Boss Laser Cancellation Logic', () => {
       add: vi.fn((config) => {
         if (config.onComplete) config.onComplete();
         if (config.onUpdate) config.onUpdate({ progress: 1 }, { progress: 1 });
-      })
+      }),
+      pauseAll: vi.fn(),
+      resumeAll: vi.fn(),
     };
+    gameScene.time.timeScale = 1;
   });
 
   it('취소 로직: 충전 중인 레이저는 제거하고 발사 중인 레이저는 유지해야 함', () => {
@@ -278,5 +281,34 @@ describe('Boss Laser Cancellation Logic', () => {
     expect(fireSpy).toHaveBeenNthCalledWith(1, 100, 100, 0, 3);
     expect(fireSpy).toHaveBeenNthCalledWith(2, 200, 200, 1, 3);
     expect(fireSpy).toHaveBeenNthCalledWith(3, 300, 300, 2, 3);
+  });
+
+  it('도크 일시정지 시 scene time/tween/physics가 함께 정지되어야 함', () => {
+    gameScene.isPaused = false;
+    gameScene.isGameOver = false;
+    gameScene.isDockPaused = false;
+    gameScene.isSimulationPaused = false;
+
+    (gameScene as any).setDockPaused(true);
+
+    expect(gameScene.time.timeScale).toBe(0);
+    expect(gameScene.tweens.pauseAll).toHaveBeenCalled();
+    expect(gameScene.physics.pause).toHaveBeenCalled();
+  });
+
+  it('도크 일시정지 해제 시 scene time/tween/physics가 재개되어야 함', () => {
+    gameScene.isPaused = false;
+    gameScene.isGameOver = false;
+    gameScene.isDockPaused = false;
+    gameScene.isSimulationPaused = false;
+
+    (gameScene as any).setDockPaused(true);
+    vi.clearAllMocks();
+
+    (gameScene as any).setDockPaused(false);
+
+    expect(gameScene.time.timeScale).toBe(1);
+    expect(gameScene.tweens.resumeAll).toHaveBeenCalled();
+    expect(gameScene.physics.resume).toHaveBeenCalled();
   });
 });

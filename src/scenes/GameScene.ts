@@ -68,6 +68,8 @@ export class GameScene extends Phaser.Scene {
   private gameTime: number = 0;
   private isGameOver: boolean = false;
   private isPaused: boolean = false;
+  private isDockPaused: boolean = false;
+  private isSimulationPaused: boolean = false;
   private isUpgrading: boolean = false;
   private gaugeRatio: number = 0;
 
@@ -113,8 +115,12 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.isGameOver = false;
     this.isPaused = false;
+    this.isDockPaused = false;
+    this.isSimulationPaused = false;
     this.gameTime = 0;
     this.activeLasers = [];
+    this.time.timeScale = 1;
+    this.tweens.resumeAll();
 
     // 배경색 채우기 (블렌딩 베이스)
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.DARK_BG).setOrigin(0, 0).setDepth(-10);
@@ -950,19 +956,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   private pauseGame(): void {
+    if (this.isPaused) return;
     this.isPaused = true;
-    this.physics.pause();
+    this.syncSimulationPauseState();
     EventBus.getInstance().emit(GameEvents.GAME_PAUSED);
   }
 
   private resumeGame(): void {
+    if (!this.isPaused) return;
     this.isPaused = false;
-    this.physics.resume();
+    this.syncSimulationPauseState();
     EventBus.getInstance().emit(GameEvents.GAME_RESUMED);
   }
 
   private gameOver(): void {
     this.isGameOver = true;
+    this.isPaused = false;
+    this.isDockPaused = false;
+    this.syncSimulationPauseState();
     this.physics.pause();
 
     // BGM 정지
@@ -1031,6 +1042,7 @@ export class GameScene extends Phaser.Scene {
 
     // 업그레이드 선택 중에는 생존 시간과 주요 게임 로직 중단
     if (this.isUpgrading) {
+      this.setDockPaused(false);
       this.inGameUpgradeUI.update(delta);
       this.hud.update(this.gameTime, hudContext, delta);
       this.starBackground.update(delta, _time, Data.gameConfig.gameGrid.speed);
@@ -1041,7 +1053,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     const hudInteraction = this.hud.updateInteractionState(hudContext, delta);
-    if (hudInteraction.shouldPauseGame) {
+    this.setDockPaused(hudInteraction.shouldPauseGame);
+    if (this.isDockPaused) {
       this.hud.render(this.gameTime);
       this.cursorTrail.update(delta, cursorRadius, this.cursorX, this.cursorY);
       this.updateAttackRangeIndicator();
@@ -1452,5 +1465,37 @@ export class GameScene extends Phaser.Scene {
 
     // 카메라 흔들림 강화
     this.cameras.main.shake(300, 0.01);
+  }
+
+  private setDockPaused(paused: boolean): void {
+    if (this.isDockPaused === paused) {
+      return;
+    }
+
+    this.isDockPaused = paused;
+    this.syncSimulationPauseState();
+  }
+
+  private syncSimulationPauseState(): void {
+    const shouldPauseSimulation = this.isPaused || this.isDockPaused;
+    if (this.isSimulationPaused === shouldPauseSimulation) {
+      return;
+    }
+
+    this.isSimulationPaused = shouldPauseSimulation;
+
+    if (shouldPauseSimulation) {
+      this.physics.pause();
+      this.time.timeScale = 0;
+      this.tweens.pauseAll();
+      return;
+    }
+
+    this.time.timeScale = 1;
+    this.tweens.resumeAll();
+
+    if (!this.isGameOver) {
+      this.physics.resume();
+    }
   }
 }
