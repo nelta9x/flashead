@@ -59,7 +59,7 @@
     "resolution": 2,
     "upgradeUI": {
       "nameSize": 16,
-      "descSize": 12
+      "descSize": 16
     },
     "hud": {
       "waveSize": 16,
