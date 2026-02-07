@@ -14,7 +14,10 @@
 - **`src/main.ts`**: 게임 인스턴스 생성 및 씬 등록 (`Boot`, `Menu`, `Game`, `GameOver`).
 - **`src/scenes/BootScene.ts`**: 초기 로딩 화면. 에셋 프리로딩(오디오, SVG 아이콘), 프로그레스 바 표시.
 - **`src/scenes/MenuScene.ts`**: 메인 메뉴. 타이틀, 시작 버튼, 별 배경, 보스 애니메이션, 그리드 효과, 언어 선택 UI 처리.
-- **`src/scenes/GameScene.ts`**: **핵심 게임 루프**. 모든 시스템을 초기화하고 조율하며, 매 프레임 `update()`를 통해 하위 시스템들을 업데이트합니다.
+- **`src/scenes/GameScene.ts`**: **핵심 게임 루프**. 모든 시스템을 초기화하고 조율합니다.
+  - **플레이어 공격**: 게이지 완충 시 기 모으기(Charge) 및 순차 미사일(Sequential Missiles) 발사 로직을 관리합니다.
+  - **보스 공격**: 보스의 레이저 공격 타이밍 및 위치(커서 추적)를 제어합니다.
+  - **충돌 감지**: 커서 범위 공격, 레이저 피격, 힐팩 수집 등의 실시간 충돌을 판정합니다.
 - **`src/scenes/GameOverScene.ts`**: 게임 오버 화면. 최종 스탯(최대 콤보, 웨이브, 생존 시간) 표시, 재시작 안내, 페이드 전환.
 
 ### 2. 핵심 게임 로직 (Systems)
@@ -27,8 +30,8 @@
 - **`OrbSystem.ts`**: 플레이어 주변을 회전하는 보호 오브(Orb)의 로직 처리. 업그레이드 레벨에 따른 개수/속도/데미지 계산 및 자석(Magnet) 업그레이드와의 시너지(크기 증가)를 관리합니다.
 - **`GaugeSystem.ts`**: 콤보 수치에 따라 공격 게이지를 충전합니다. 게이지가 100%가 되면 `PLAYER_ATTACK` 이벤트를 발생시킵니다.
 - **`ScoreSystem.ts`**: 접시 파괴 시 점수 계산 및 콤보 배율 적용.
-- **`SoundSystem.ts`**: Web Audio API 기반 사운드 합성 및 BGM 재생 관리 (싱글톤). 마스터 볼륨 제어, 일시정지 상태 복구.
-- **`FeedbackSystem.ts`**: 시각적/청각적 피드백을 조율. `ParticleManager`, `ScreenShake`, `DamageText`를 통합 제어하여 타격감을 생성합니다.
+- **`SoundSystem.ts`**: Phaser Sound API 및 Web Audio API 기반 사운드 시스템. 오디오 파일 재생을 우선하며, 부재 시 코드로 사운드를 합성(Fallback)합니다. 마스터 볼륨 제어, 일시정지 상태 복구 지원.
+- **`FeedbackSystem.ts`**: 시각적/청각적 피드백을 조율. `ParticleManager`, `ScreenShake`, `DamageText`를 통합 제어하여 타격감을 생성합니다. 보스 아머 파괴 및 플레이어 필살기 연출을 총괄합니다.
 - **`HealthPackSystem.ts`**: 기본 확률 및 누적 수집 보너스를 기반으로 힐팩을 스폰합니다. 업그레이드 시스템과 연동됩니다.
 
 ### 3. 엔티티 및 오브젝트 (Entities)
@@ -51,7 +54,7 @@
   - **`OrbRenderer.ts`**: 플레이어 보호 오브의 글로우 및 전기 스파크 연출 렌더러.
   - **`MenuBossRenderer.ts`**: 메인 메뉴 보스의 화려한 애니메이션 렌더링.
   - **`MenuDishRenderer.ts`**: 메인 메뉴에서 배경으로 쓰이는 접시의 렌더링 로직.
-  - **`CursorRenderer.ts`**: 메뉴/인게임 커서 외형 및 게이지 연출 통합 렌더러.
+  - **`CursorRenderer.ts`**: 메뉴/인게임 커서 외형, 공격 게이지, 그리고 자기장 및 전기 충격 범위 인디케이터 통합 렌더러.
 - **`src/ui/`**:
   - `HUD`: 실시간 점수, HP 하트, 보스 HP 바, 웨이브 카운터, 생존 타이머, 피버타임 표시.
   - `InGameUpgradeUI`: 웨이브 사이 업그레이드 선택 화면 (3개 선택지, 호버 프로그레스 바, 레어리티 색상).
