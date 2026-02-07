@@ -15,147 +15,143 @@
       "dishCount": 2,
       "spawnInterval": 1100,
       "dishTypes": [
-        { "type": "basic", "weight": 0.9 },
-        { "type": "bomb", "weight": 0.1 }
+        { "type": "basic", "weight": 1.0 }
       ],
       "bossHp": 380,
       "laser": { "maxCount": 1, "minInterval": 7000, "maxInterval": 12000 }
     },
     {
       "number": 3,
-      "name": "첫 보상",
+      "name": "집중",
       "dishCount": 2,
       "spawnInterval": 1000,
       "dishTypes": [
-        { "type": "basic", "weight": 0.85 },
-        { "type": "golden", "weight": 0.05 },
-        { "type": "bomb", "weight": 0.1 }
+        { "type": "basic", "weight": 1.0 }
       ],
       "bossHp": 480,
       "laser": { "maxCount": 1, "minInterval": 6000, "maxInterval": 10000 }
     },
     {
       "number": 4,
-      "name": "상승",
-      "dishCount": 3,
-      "spawnInterval": 950,
+      "name": "첫 보상",
+      "dishCount": 2,
+      "spawnInterval": 1000,
       "dishTypes": [
-        { "type": "basic", "weight": 0.8 },
-        { "type": "golden", "weight": 0.1 },
-        { "type": "bomb", "weight": 0.1 }
+        { "type": "basic", "weight": 0.95 },
+        { "type": "golden", "weight": 0.05 }
       ],
       "bossHp": 600,
-      "laser": { "maxCount": 1, "minInterval": 5000, "maxInterval": 10000 }
+      "laser": { "maxCount": 1, "minInterval": 6000, "maxInterval": 10000 }
     },
     {
       "number": 5,
       "name": "다양성",
       "dishCount": 3,
-      "spawnInterval": 900,
+      "spawnInterval": 950,
       "dishTypes": [
-        { "type": "basic", "weight": 0.7 },
-        { "type": "golden", "weight": 0.15 },
-        { "type": "bomb", "weight": 0.15 }
+        { "type": "basic", "weight": 0.92 },
+        { "type": "golden", "weight": 0.05 },
+        { "type": "bomb", "weight": 0.03 }
       ],
       "bossHp": 760,
       "laser": { "maxCount": 1, "minInterval": 5000, "maxInterval": 9000 }
     },
     {
       "number": 6,
-      "name": "위험 등장",
+      "name": "긴장",
       "dishCount": 3,
-      "spawnInterval": 850,
+      "spawnInterval": 900,
       "dishTypes": [
-        { "type": "basic", "weight": 0.7 },
-        { "type": "golden", "weight": 0.15 },
-        { "type": "bomb", "weight": 0.15 }
+        { "type": "basic", "weight": 0.80 },
+        { "type": "golden", "weight": 0.10 },
+        { "type": "bomb", "weight": 0.10 }
       ],
       "bossHp": 960,
-      "laser": { "maxCount": 2, "minInterval": 4500, "maxInterval": 8500 }
+      "laser": { "maxCount": 1, "minInterval": 4500, "maxInterval": 8500 }
     },
     {
       "number": 7,
-      "name": "혼돈",
+      "name": "위험 등장",
       "dishCount": 4,
-      "spawnInterval": 750,
+      "spawnInterval": 850,
       "dishTypes": [
-        { "type": "basic", "weight": 0.4 },
-        { "type": "golden", "weight": 0.2 },
-        { "type": "crystal", "weight": 0.2 },
-        { "type": "bomb", "weight": 0.2 }
+        { "type": "basic", "weight": 0.65 },
+        { "type": "golden", "weight": 0.15 },
+        { "type": "crystal", "weight": 0.05 },
+        { "type": "bomb", "weight": 0.15 }
       ],
       "bossHp": 1210,
       "laser": { "maxCount": 2, "minInterval": 4000, "maxInterval": 7000 }
     },
     {
       "number": 8,
-      "name": "폭풍 전야",
+      "name": "혼돈",
       "dishCount": 4,
-      "spawnInterval": 700,
+      "spawnInterval": 800,
       "dishTypes": [
-        { "type": "basic", "weight": 0.35 },
-        { "type": "golden", "weight": 0.2 },
-        { "type": "crystal", "weight": 0.25 },
-        { "type": "bomb", "weight": 0.2 }
+        { "type": "basic", "weight": 0.45 },
+        { "type": "golden", "weight": 0.20 },
+        { "type": "crystal", "weight": 0.15 },
+        { "type": "bomb", "weight": 0.20 }
       ],
       "bossHp": 1520,
       "laser": { "maxCount": 2, "minInterval": 3500, "maxInterval": 6500 }
     },
     {
       "number": 9,
-      "name": "폭풍",
+      "name": "폭풍 전야",
       "dishCount": 5,
-      "spawnInterval": 650,
+      "spawnInterval": 700,
       "dishTypes": [
-        { "type": "basic", "weight": 0.3 },
-        { "type": "golden", "weight": 0.2 },
-        { "type": "crystal", "weight": 0.25 },
+        { "type": "basic", "weight": 0.35 },
+        { "type": "golden", "weight": 0.20 },
+        { "type": "crystal", "weight": 0.20 },
         { "type": "bomb", "weight": 0.25 }
       ],
       "bossHp": 1920,
-      "laser": { "maxCount": 3, "minInterval": 3000, "maxInterval": 6000 }
+      "laser": { "maxCount": 2, "minInterval": 3000, "maxInterval": 6000 }
     },
     {
       "number": 10,
-      "name": "최대",
+      "name": "폭풍",
       "dishCount": 6,
-      "spawnInterval": 600,
+      "spawnInterval": 650,
       "dishTypes": [
-        { "type": "basic", "weight": 0.2 },
-        { "type": "golden", "weight": 0.25 },
-        { "type": "crystal", "weight": 0.3 },
+        { "type": "basic", "weight": 0.30 },
+        { "type": "golden", "weight": 0.20 },
+        { "type": "crystal", "weight": 0.25 },
         { "type": "bomb", "weight": 0.25 }
       ],
       "bossHp": 2420,
-      "laser": { "maxCount": 3, "minInterval": 2500, "maxInterval": 5500 }
+      "laser": { "maxCount": 3, "minInterval": 2800, "maxInterval": 5500 }
     },
     {
       "number": 11,
-      "name": "극한",
+      "name": "최대",
       "dishCount": 7,
-      "spawnInterval": 550,
+      "spawnInterval": 600,
       "dishTypes": [
-        { "type": "basic", "weight": 0.2 },
+        { "type": "basic", "weight": 0.25 },
         { "type": "golden", "weight": 0.25 },
-        { "type": "crystal", "weight": 0.3 },
+        { "type": "crystal", "weight": 0.25 },
         { "type": "bomb", "weight": 0.25 }
       ],
       "bossHp": 3050,
-      "laser": { "maxCount": 3, "minInterval": 2200, "maxInterval": 5000 }
+      "laser": { "maxCount": 3, "minInterval": 2500, "maxInterval": 5000 }
     },
     {
       "number": 12,
-      "name": "마지막",
+      "name": "극한",
       "dishCount": 8,
-      "spawnInterval": 500,
+      "spawnInterval": 550,
       "dishTypes": [
-        { "type": "basic", "weight": 0.2 },
+        { "type": "basic", "weight": 0.20 },
         { "type": "golden", "weight": 0.25 },
-        { "type": "crystal", "weight": 0.3 },
+        { "type": "crystal", "weight": 0.30 },
         { "type": "bomb", "weight": 0.25 }
       ],
       "bossHp": 3840,
-      "laser": { "maxCount": 4, "minInterval": 2000, "maxInterval": 4500 }
+      "laser": { "maxCount": 4, "minInterval": 2200, "maxInterval": 4500 }
     }
   ],
   "fever": {
