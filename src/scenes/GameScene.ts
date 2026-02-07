@@ -698,8 +698,8 @@ export class GameScene extends Phaser.Scene {
         this.damageText.showText(x, y - 40, Data.t('feedback.bomb_removed'), COLORS.CYAN);
       }
 
-      // 피드백 효과 (폭발)
-      this.feedbackSystem.onBombExploded(x, y);
+      // 피드백 효과 (폭발) - 어빌리티에 의한 경우 텍스트 및 강한 효과 생략
+      this.feedbackSystem.onBombExploded(x, y, !!byAbility);
 
       // 풀에서 제거
       this.dishes.remove(dish);

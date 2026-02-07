@@ -106,15 +106,22 @@ export class FeedbackSystem {
     this.soundSystem.playMissSound();
   }
 
-  onBombExploded(x: number, y: number): void {
+  onBombExploded(x: number, y: number, isRemoved: boolean = false): void {
     // 지뢰 폭발: 강한 부정 피드백
-    this.damageText.showText(x, y, 'BOOM!', 0xff0044);
-    // 강한 화면 흔들림
-    this.screenShake.shake(15, 250);
-    // 폭발 파티클
+    // 어빌리티로 제거된 경우 BOOM! 텍스트와 강한 흔들림/폭발음 생략 (이미 REMOVED!가 표시됨)
+    if (!isRemoved) {
+      this.damageText.showText(x, y, Data.t('feedback.bomb_exploded'), 0xff0044);
+      // 강한 화면 흔들림
+      this.screenShake.shake(15, 250);
+      // 폭발 사운드
+      this.soundSystem.playDestroySound('bomb');
+    } else {
+      // 제거 시에는 약한 흔들림만 적용
+      this.screenShake.shake(5, 100);
+    }
+    
+    // 폭발 파티클 (제거 시에도 시각적 효과는 유지하되 양 조절 고려 가능하나 일단 유지)
     this.particleManager.createExplosion(x, y, 0xff0044, 'bomb');
-    // 폭발 사운드
-    this.soundSystem.playDestroySound('bomb');
   }
 
   onHpLost(): void {

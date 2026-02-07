@@ -18,6 +18,7 @@
     "gameover.click_menu": "CLICK TO MENU",
 
     "feedback.bomb_removed": "REMOVED!",
+    "feedback.bomb_exploded": "BOOM!",
     "feedback.interrupted": "INTERRUPTED!",
 
     "damage.combo": "x{0}",
@@ -118,6 +119,7 @@
     "gameover.click_menu": "메뉴로 돌아가기",
 
     "feedback.bomb_removed": "제거됨!",
+    "feedback.bomb_exploded": "쾅!",
     "feedback.interrupted": "차단됨!",
 
     "damage.combo": "x{0}",
