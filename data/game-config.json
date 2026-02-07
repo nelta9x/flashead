@@ -180,7 +180,7 @@
     "heal": { "key": "heal", "path": "assets/audio/heal.wav", "volume": 0.4 },
     "boss_charge": { "key": "boss_charge", "path": "assets/audio/boss_charge.wav", "volume": 0.4 },
     "boss_fire": { "key": "boss_fire", "path": "assets/audio/boss_fire.wav", "volume": 0.4 },
-    "boss_impact": { "key": "boss_impact", "path": "assets/audio/boss_impact.wav", "volume": 0.5 }
+    "boss_impact": { "key": "boss_impact", "path": "assets/audio/boss_impact.wav", "volume": 0.7 }
   },
   "boot": {
     "progressBar": {
