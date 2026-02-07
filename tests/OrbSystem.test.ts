@@ -178,9 +178,15 @@ describe('OrbSystem', () => {
     system.update(100, 1000, 0, 0, mockDishPool);
     expect(mockBomb.forceDestroy).not.toHaveBeenCalled();
 
-    // Case 2: Dangerous and fully spawned
+    // Case 2: Dangerous and fully spawned but TOO FAR
     mockBomb.isFullySpawned.mockReturnValue(true);
+    mockBomb.x = 200; // Orb is at x=100. Distance = 100. (10+10)*1.5 = 30.
     system.update(100, 2000, 0, 0, mockDishPool);
+    expect(mockBomb.forceDestroy).not.toHaveBeenCalled();
+
+    // Case 3: Within 1.5x range
+    mockBomb.x = 125; // Distance = 25. <= 30.
+    system.update(100, 3000, 0, 0, mockDishPool);
     expect(mockBomb.forceDestroy).toHaveBeenCalled();
   });
 });

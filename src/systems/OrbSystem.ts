@@ -95,7 +95,8 @@ export class OrbSystem {
       let hit = false;
       for (const orb of this.orbPositions) {
         const dist = Phaser.Math.Distance.Between(orb.x, orb.y, dish.x, dish.y);
-        if (dist <= orbSize + dish.getSize()) {
+        // 타격 범위를 넉넉하게 잡기 위해 (orbSize + dish.getSize())의 1.5배 적용
+        if (dist <= (orbSize + dish.getSize()) * 1.5) {
           hit = true;
           break;
         }
