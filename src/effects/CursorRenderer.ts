@@ -105,50 +105,55 @@ export class CursorRenderer {
     level: number,
     time: number
   ): void {
-    // 레벨에 따라 스파크 개수와 강도 조절
-    const sparkCount = 3 + level * 2;
-    const sparkLength = 8 + level * 2;
+    // 레벨에 따라 스파크 개수 조절
+    const sparkCount = 2 + level;
     const jitter = 5;
 
-    // 시간에 따른 애니메이션 (깜빡임과 위치 변화)
-    const seed = Math.floor(time / 50); // 50ms마다 변화
+    // 시간에 따른 애니메이션 (50ms마다 변화하여 지지직거리는 느낌)
+    const seed = Math.floor(time / 50);
 
     for (let i = 0; i < sparkCount; i++) {
-      // 결정론적 랜덤을 위해 i와 seed 조합
-      const angle = ((i / sparkCount) * Math.PI * 2) + (Math.sin(seed + i) * 0.5);
+      // 결정론적 각도 (i와 seed를 사용하여 매 프레임 위치가 변하도록 함)
+      const angle = ((i / sparkCount) * Math.PI * 2) + (Math.sin(seed * 1.5 + i) * 0.8);
       
-      // 스파크의 시작점 (커서 원주 위 또는 약간 밖)
-      const startDist = radius + (Math.cos(seed * 1.5 + i) * jitter);
-      const startX = x + Math.cos(angle) * startDist;
-      const startY = y + Math.sin(angle) * startDist;
-
-      // 스파크의 끝점 (지그재그)
-      const midAngle = angle + (Math.random() - 0.5) * 0.5;
-      const midX = startX + Math.cos(midAngle) * (sparkLength * 0.5);
-      const midY = startY + Math.sin(midAngle) * (sparkLength * 0.5);
-
-      const endAngle = midAngle + (Math.random() - 0.5) * 0.8;
-      const endX = midX + Math.cos(endAngle) * (sparkLength * 0.5);
-      const endY = midY + Math.sin(endAngle) * (sparkLength * 0.5);
-
-      // 그리기
-      const alpha = 0.4 + Math.random() * 0.6;
-      this.graphics.lineStyle(2, COLORS.CYAN, alpha);
+      // 중심(x, y)에서 시작하여 원주 근처까지 뻗는 지그재그 줄기
+      const targetDist = radius + (Math.cos(seed * 2 + i) * jitter);
+      const segments = 3;
+      
+      const alpha = 0.4 + (Math.sin(time / 40 + i) * 0.3);
+      this.graphics.lineStyle(1.5, COLORS.CYAN, alpha);
       this.graphics.beginPath();
-      this.graphics.moveTo(startX, startY);
-      this.graphics.lineTo(midX, midY);
-      this.graphics.lineTo(endX, endY);
+      this.graphics.moveTo(x, y);
+
+      let lastX = x;
+      let lastY = y;
+
+      for (let s = 1; s <= segments; s++) {
+        const progress = s / segments;
+        const dist = progress * targetDist;
+        
+        // 지그재그 효과를 위해 각도에 오프셋 추가
+        const offset = s === segments ? 0 : (Math.sin(seed * 5 + i * 2 + s) * 0.4);
+        const sx = x + Math.cos(angle + offset) * dist;
+        const sy = y + Math.sin(angle + offset) * dist;
+
+        this.graphics.lineTo(sx, sy);
+        lastX = sx;
+        lastY = sy;
+      }
+      
       this.graphics.strokePath();
 
-      // 끝점에 작은 점 추가 (빛나는 효과)
-      if (Math.random() > 0.5) {
-        this.graphics.fillStyle(COLORS.WHITE, alpha);
-        this.graphics.fillCircle(endX, endY, 1.5);
+      // 끝점 및 중간 굴절 포인트에 작은 빛 추가
+      if ((seed + i) % 2 === 0) {
+        this.graphics.fillStyle(COLORS.WHITE, alpha * 0.8);
+        this.graphics.fillCircle(lastX, lastY, 1.2);
       }
     }
 
-    // 글로우 효과 (전체적인 푸른 빛)
-    this.graphics.fillStyle(COLORS.CYAN, 0.05 + (Math.sin(time / 100) + 1) * 0.05);
+    // 전체적인 푸른 글로우 효과
+    const glowAlpha = 0.04 + (Math.sin(time / 100) + 1) * 0.03;
+    this.graphics.fillStyle(COLORS.CYAN, glowAlpha);
     this.graphics.fillCircle(x, y, radius + 10);
   }
 
