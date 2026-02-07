@@ -362,9 +362,7 @@ import { COLORS, FONTS } from '../data/constants';
     },
     "10": {
       "shake": 5,
-      "shakeDuration": 200,
-      "slowMotion": 0.3,    // 슬로우모션 속도 (0.3 = 30% 속도)
-      "slowDuration": 500   // 슬로우모션 지속 시간 (ms)
+      "shakeDuration": 200
     }
   }
 }

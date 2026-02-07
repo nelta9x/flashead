@@ -24,10 +24,11 @@
 - **`UpgradeSystem.ts`**: 플레이어 어빌리티 관리 및 업그레이드 효과 적용. `upgrades.json`의 확률 기반으로 선택지를 생성합니다. 다국어 템플릿 치환 로직 포함.
 - **`HealthSystem.ts`**: 플레이어 HP 관리. 데미지 수신 및 `HP_CHANGED` 이벤트를 통해 HUD와 연동됩니다. HP가 0이 되면 `GAME_OVER` 발생.
 - **`MonsterSystem.ts`**: 보스 몬스터의 HP 관리 및 사망 로직. 웨이브 시작 시 `waves.json`의 설정을 기반으로 보스 HP를 설정합니다.
+- **`OrbSystem.ts`**: 플레이어 주변을 회전하는 보호 오브(Orb)의 로직 처리. 업그레이드 레벨에 따른 개수/속도/데미지 계산 및 자석(Magnet) 업그레이드와의 시너지(크기 증가)를 관리합니다.
 - **`GaugeSystem.ts`**: 콤보 수치에 따라 공격 게이지를 충전합니다. 게이지가 100%가 되면 `PLAYER_ATTACK` 이벤트를 발생시킵니다.
 - **`ScoreSystem.ts`**: 접시 파괴 시 점수 계산 및 콤보 배율 적용.
 - **`SoundSystem.ts`**: Web Audio API 기반 사운드 합성 및 BGM 재생 관리 (싱글톤). 마스터 볼륨 제어, 일시정지 상태 복구.
-- **`FeedbackSystem.ts`**: 시각적/청각적 피드백을 조율. `ParticleManager`, `ScreenShake`, `SlowMotion`, `DamageText`를 통합 제어하여 타격감을 생성합니다.
+- **`FeedbackSystem.ts`**: 시각적/청각적 피드백을 조율. `ParticleManager`, `ScreenShake`, `DamageText`를 통합 제어하여 타격감을 생성합니다.
 - **`HealthPackSystem.ts`**: 기본 확률 및 누적 수집 보너스를 기반으로 힐팩을 스폰합니다. 업그레이드 시스템과 연동됩니다.
 
 ### 3. 엔티티 및 오브젝트 (Entities)
@@ -43,11 +44,13 @@
 - **`src/effects/`**:
   - `ParticleManager`: 폭발 및 피격 파티클 생성.
   - `ScreenShake`: 카메라 흔들림 효과.
-  - `SlowMotion`: 게임 속도(TimeScale) 조절, 지속 시간 기반 자동 복구.
   - `CursorTrail`: 커서의 움직임을 따라가는 잔상 효과.
   - `StarBackground`: 별 배경 애니메이션 (반짝임, 수직 스크롤).
   - **`GridRenderer.ts`**: 배경 그리드의 원근감 렌더링 로직 (공유 가능).
+  - **`LaserRenderer.ts`**: 보스의 레이저 공격 경고 및 발사 연출 렌더러.
+  - **`OrbRenderer.ts`**: 플레이어 보호 오브의 글로우 및 전기 스파크 연출 렌더러.
   - **`MenuBossRenderer.ts`**: 메인 메뉴 보스의 화려한 애니메이션 렌더링.
+  - **`MenuDishRenderer.ts`**: 메인 메뉴에서 배경으로 쓰이는 접시의 렌더링 로직.
   - **`CursorRenderer.ts`**: 메뉴/인게임 커서 외형 및 게이지 연출 통합 렌더러.
 - **`src/ui/`**:
   - `HUD`: 실시간 점수, HP 하트, 보스 HP 바, 웨이브 카운터, 생존 타이머, 피버타임 표시.
@@ -102,7 +105,6 @@
 | | `WAVE_COUNTDOWN_TICK` | 카운트다운 틱마다 | `WaveSystem` | `GameScene` |
 | | `WAVE_READY` | 카운트다운 완료, 웨이브 준비됨 | `WaveSystem` | `GameScene` |
 | **업그레이드** | `UPGRADE_SELECTED` | 업그레이드 선택 시 | `InGameUpgradeUI` | `GameScene` |
-| | `UPGRADES_CHANGED` | 업그레이드 목록 변경 시 | `GameScene` | `AbilityPanel` |
 | **점수** | `SCORE_CHANGED` | 점수 갱신 시 | `ScoreSystem` | — |
 | **플레이어 상태** | `HP_CHANGED` | 데미지/회복 발생 시 | `HealthSystem` | `HealthPackSystem`, `GameScene` |
 | | `GAME_OVER` | HP가 0이 될 때 | `HealthSystem` | `GameScene` |
@@ -134,6 +136,7 @@
 4. **이벤트 연결**: 새로운 상태 변화가 있다면 `GameEvents`에 추가하고 `EventBus`로 알립니다.
 5. **GameScene 연동**: `GameScene.initializeSystems()`에서 생성하고 `update()`에서 호출합니다.
 6. **테스트 작성**: `tests/` 디렉토리에 Vitest 기반의 단위 테스트를 추가합니다.
+7. **문서 최신화**: 변경 사항이 구조적이라면(시스템/렌더러 추가, 이벤트 변경 등) 반드시 `CODEMAP.md`를 업데이트합니다.
 
 ---
 

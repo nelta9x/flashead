@@ -699,6 +699,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
   // 즉시 파괴
   forceDestroy(): void {
     if (!this.active) return;
+    this.destroyedByAbility = true;
     this.destroy_dish();
   }
 
@@ -725,6 +726,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
 
     this.currentHp -= totalDamage;
     this.hitFlashPhase = 1;
+    this.destroyedByAbility = true;
 
     EventBus.getInstance().emit(GameEvents.DISH_DAMAGED, {
       dish: this,

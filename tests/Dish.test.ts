@@ -534,4 +534,23 @@ describe('Dish Upgrade Effects', () => {
       );
     });
   });
+
+  describe('forceDestroy', () => {
+    it('should emit DISH_DESTROYED with byAbility: true', async () => {
+      const { Dish } = await import('../src/entities/Dish');
+      const { EventBus } = await import('../src/utils/EventBus');
+
+      const dish = new Dish(mockScene as unknown as Phaser.Scene, 0, 0, 'basic');
+      dish.spawn(100, 100, 'basic', 1);
+
+      dish.forceDestroy();
+
+      expect(EventBus.getInstance().emit).toHaveBeenCalledWith(
+        'dish_destroyed',
+        expect.objectContaining({
+          byAbility: true,
+        })
+      );
+    });
+  });
 });

@@ -677,10 +677,14 @@ export class GameScene extends Phaser.Scene {
 
     // 지뢰(Bomb) 터짐
     if (dish.isDangerous()) {
-      // HP 1 감소
-      this.healthSystem.takeDamage(1);
-      // 콤보 리셋
-      this.comboSystem.reset();
+      // 어빌리티(수호의 오브 등)로 파괴된 경우 데미지 없음
+      if (!byAbility) {
+        // HP 1 감소
+        this.healthSystem.takeDamage(1);
+        // 콤보 리셋
+        this.comboSystem.reset();
+      }
+
       // 피드백 효과 (폭발)
       this.feedbackSystem.onBombExploded(x, y);
 
@@ -941,63 +945,60 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.isGameOver || this.isPaused) return;
 
-    // 슬로우 모션 적용된 델타 타임 계산
-    const scaledDelta = delta * this.time.timeScale;
-
     // 커서 범위 계산 (여러 곳에서 사용하므로 미리 계산)
     const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
     const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 
     // 업그레이드 선택 중에는 생존 시간과 주요 게임 로직 중단
     if (this.isUpgrading) {
-      this.inGameUpgradeUI.update(scaledDelta);
-      this.starBackground.update(scaledDelta, _time, Data.gameConfig.gameGrid.speed);
-      this.gridRenderer.update(scaledDelta);
-      this.cursorTrail.update(scaledDelta, cursorRadius); // 트레일 업데이트 추가
+      this.inGameUpgradeUI.update(delta);
+      this.starBackground.update(delta, _time, Data.gameConfig.gameGrid.speed);
+      this.gridRenderer.update(delta);
+      this.cursorTrail.update(delta, cursorRadius); // 트레일 업데이트 추가
       this.updateAttackRangeIndicator();
       return;
     }
 
     // 시간 업데이트
-    this.gameTime += scaledDelta;
+    this.gameTime += delta;
 
     // 시스템 업데이트
     this.comboSystem.setWave(this.waveSystem.getCurrentWave());
-    this.comboSystem.update(scaledDelta);
-    this.waveSystem.update(scaledDelta);
-    this.upgradeSystem.update(scaledDelta, this.gameTime);
-    this.healthPackSystem.update(scaledDelta, this.gameTime);
+    this.comboSystem.update(delta);
+    this.waveSystem.update(delta);
+    this.upgradeSystem.update(delta, this.gameTime);
+    this.healthPackSystem.update(delta, this.gameTime);
 
     // 접시 업데이트
     this.dishPool.forEach((dish) => {
-      dish.update(scaledDelta);
+      dish.update(delta);
     });
 
     // HUD 업데이트
     this.hud.update(this.gameTime);
 
     // 보스 업데이트
-    this.boss.update(scaledDelta);
+    this.boss.update(delta);
 
     // 커서 트레일 업데이트
-    this.cursorTrail.update(scaledDelta, cursorRadius);
+    this.cursorTrail.update(delta, cursorRadius);
 
     // 인게임 업그레이드 UI 업데이트
-    this.inGameUpgradeUI.update(scaledDelta);
+    this.inGameUpgradeUI.update(delta);
 
     // 그리드 배경 업데이트
-    this.gridRenderer.update(scaledDelta);
+    this.gridRenderer.update(delta);
 
     // 별 배경 업데이트 (그리드보다 10배 느리게 흐름)
-    this.starBackground.update(scaledDelta, _time, Data.gameConfig.gameGrid.speed);
+    this.starBackground.update(delta, _time, Data.gameConfig.gameGrid.speed);
 
     // 자기장 효과 업데이트
-    this.updateMagnetEffect(scaledDelta);
+    this.updateMagnetEffect(delta);
 
     // 구체 어빌리티 업데이트
     const pointer = this.input.activePointer;
     this.orbSystem.update(
-      scaledDelta,
+      delta,
       this.gameTime,
       pointer.worldX,
       pointer.worldY,
@@ -1012,7 +1013,7 @@ export class GameScene extends Phaser.Scene {
     this.updateAttackRangeIndicator();
 
     // 보스 레이저 업데이트
-    this.updateLaser(scaledDelta);
+    this.updateLaser(delta);
   }
 
   private updateMagnetEffect(delta: number): void {
