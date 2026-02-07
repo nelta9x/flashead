@@ -177,5 +177,16 @@
       "particleMultiplier": 4,
       "rainbowParticleMultiplier": 2
     }
+  },
+  "upgradeAbsorption": {
+    "particleCount": 30,
+    "duration": 600,
+    "particleSizeMin": 3,
+    "particleSizeMax": 7,
+    "startSpread": 80,
+    "impactRingSize": 20,
+    "impactRingScale": 4,
+    "impactGlowSize": 35,
+    "impactGlowScale": 2.5
   }
 }

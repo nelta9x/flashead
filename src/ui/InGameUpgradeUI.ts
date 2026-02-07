@@ -319,8 +319,7 @@ export class InGameUpgradeUI {
       startY, 
       pointer.worldX, 
       pointer.worldY, 
-      box.borderColor, 
-      upgrade.id
+      box.borderColor
     );
 
     // UI 숨김 애니메이션

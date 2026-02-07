@@ -477,6 +477,18 @@ export interface BossAttackConfig {
   };
 }
 
+export interface UpgradeAbsorptionConfig {
+  particleCount: number;
+  duration: number;
+  particleSizeMin: number;
+  particleSizeMax: number;
+  startSpread: number;
+  impactRingSize: number;
+  impactRingScale: number;
+  impactGlowSize: number;
+  impactGlowScale: number;
+}
+
 export interface FeedbackConfig {
   damageText: DamageTextConfig;
   comboMilestones: Record<string, ComboMilestoneEffect>;
@@ -489,6 +501,7 @@ export interface FeedbackConfig {
   energyEffect: EnergyEffectConfig;
   cursorTrail: CursorTrailConfig;
   bossAttack: BossAttackConfig;
+  upgradeAbsorption: UpgradeAbsorptionConfig;
 }
 
 // ========== 색상 설정 ==========
