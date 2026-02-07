@@ -253,6 +253,10 @@ export class GameScene extends Phaser.Scene {
       const waveNumber = args[0] as number;
       this.hud.showWaveComplete(waveNumber);
       this.clearAllDishes();
+      
+      // 레이저 정리
+      this.activeLasers = [];
+      this.laserRenderer.clear();
 
       // 다음 웨이브 번호 저장 후 업그레이드 UI만 먼저 표시
       this.pendingWaveNumber = waveNumber + 1;
