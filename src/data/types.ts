@@ -219,6 +219,17 @@ export interface AudioBGMConfig {
 
 export interface AudioConfig {
   bgm: AudioBGMConfig;
+  destroy_basic: AudioBGMConfig;
+  destroy_golden: AudioBGMConfig;
+  destroy_crystal: AudioBGMConfig;
+  destroy_bomb: AudioBGMConfig;
+  hit: AudioBGMConfig;
+  miss: AudioBGMConfig;
+  heal: AudioBGMConfig;
+  player_charge: AudioBGMConfig;
+  boss_charge: AudioBGMConfig;
+  boss_fire: AudioBGMConfig;
+  boss_impact: AudioBGMConfig;
   upgrade_selected?: AudioBGMConfig;
 }
 

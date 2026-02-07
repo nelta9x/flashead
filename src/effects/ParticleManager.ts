@@ -87,8 +87,7 @@ export class ParticleManager {
     const angle = Phaser.Math.Angle.Between(dishX, dishY, cursorX, cursorY);
 
     emitter.setParticleTint(COLORS.MAGENTA);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (emitter as any).setAngle({
+    emitter.setEmitterAngle({
       min: Phaser.Math.RadToDeg(angle) - 20,
       max: Phaser.Math.RadToDeg(angle) + 20,
     });
@@ -164,9 +163,6 @@ export class ParticleManager {
       suctionDelayMax
     } = config;
 
-    // GameScene의 가상 커서 위치 사용
-    const gameScene = this.scene as any;
-    
     // 1. 입자 생성 및 확산 연출 (Slow Spread)
     for (let i = 0; i < particleCount; i++) {
       const size = Phaser.Math.Between(particleSizeMin, particleSizeMax);
@@ -203,7 +199,7 @@ export class ParticleManager {
               const p = target.progress;
               // 확산된 위치에서 실시간 커서 위치로 보간 (Interpolation)
               // GameScene에서 커서 위치 가져오기
-              const cursorPos = gameScene.getCursorPosition ? gameScene.getCursorPosition() : { x: gameScene.input.activePointer.worldX, y: gameScene.input.activePointer.worldY };
+              const cursorPos = this.getCursorPosition();
               particle.x = currentSpreadX + (cursorPos.x - currentSpreadX) * p;
               particle.y = currentSpreadY + (cursorPos.y - currentSpreadY) * p;
               particle.alpha = 0.8 + 0.2 * p;
@@ -213,7 +209,7 @@ export class ParticleManager {
               particle.destroy();
               // 마지막 입자가 도착할 때 현재 커서 위치에 임팩트 실행 및 사운드 재생
               if (i === particleCount - 1) {
-                const finalPos = gameScene.getCursorPosition ? gameScene.getCursorPosition() : { x: gameScene.input.activePointer.worldX, y: gameScene.input.activePointer.worldY };
+                const finalPos = this.getCursorPosition();
                 this.createUpgradeImpact(finalPos.x, finalPos.y, color);
                 if (onComplete) onComplete();
               }
@@ -264,7 +260,6 @@ export class ParticleManager {
 
   createEnergyEffect(x: number, y: number, combo: number, cursorRadius: number): void {
     const config = Data.feedback.energyEffect;
-    const gameScene = this.scene as any;
 
     const comboConfig = Data.feedback.damageText.combo;
     const { thresholds, colors } = comboConfig;
@@ -313,7 +308,7 @@ export class ParticleManager {
 
         const t = target.t;
         const oneMinusT = 1 - t;
-        const cursorPos = gameScene.getCursorPosition ? gameScene.getCursorPosition() : { x: gameScene.input.activePointer.worldX, y: gameScene.input.activePointer.worldY };
+        const cursorPos = this.getCursorPosition();
         const targetX = cursorPos.x;
         const targetY = cursorPos.y;
 
@@ -342,6 +337,19 @@ export class ParticleManager {
         }
       },
     });
+  }
+
+  private getCursorPosition(): { x: number; y: number } {
+    const cursorAwareScene = this.scene as Phaser.Scene & {
+      getCursorPosition?: () => { x: number; y: number };
+    };
+
+    if (cursorAwareScene.getCursorPosition) {
+      return cursorAwareScene.getCursorPosition();
+    }
+
+    const pointer = cursorAwareScene.input.activePointer;
+    return { x: pointer.worldX, y: pointer.worldY };
   }
 
   private completeEnergyEffect(

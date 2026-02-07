@@ -169,7 +169,7 @@ class DataManager {
   public getColor(nameOrHex: string): number {
     // 1. COLORS 키인지 확인 (대소문자 무시)
     const lowerKey = nameOrHex.toLowerCase();
-    const numericValue = this.colors.numeric[nameOrHex] || (this.colors.numeric as any)[lowerKey];
+    const numericValue = this.colors.numeric[nameOrHex] ?? this.colors.numeric[lowerKey];
     if (numericValue !== undefined) return numericValue;
 
     // 2. 헥스 문자열인 경우 숫자로 변환
@@ -190,7 +190,7 @@ class DataManager {
 
     // 2. COLORS 키인지 확인 (대소문자 무시)
     const lowerKey = nameOrHex.toLowerCase();
-    const hexValue = this.colors.hex[nameOrHex] || (this.colors.hex as any)[lowerKey];
+    const hexValue = this.colors.hex[nameOrHex] ?? this.colors.hex[lowerKey];
     if (hexValue !== undefined) return hexValue;
 
     // 3. 폴백

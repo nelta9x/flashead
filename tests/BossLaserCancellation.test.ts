@@ -70,12 +70,68 @@ const mockPhaser = {
   }
 };
 
-(global as any).Phaser = mockPhaser;
+(globalThis as typeof globalThis & { Phaser: typeof mockPhaser }).Phaser = mockPhaser;
 
 vi.mock('phaser', () => ({
   default: mockPhaser,
   ...mockPhaser
 }));
+
+type GameSceneTestContext = {
+  activeLasers: Array<{ id?: number; isWarning: boolean; isFiring: boolean }>;
+  boss: {
+    x: number;
+    y: number;
+    unfreeze: ReturnType<typeof vi.fn>;
+    freeze: ReturnType<typeof vi.fn>;
+    visible: boolean;
+  };
+  damageText: { showText: ReturnType<typeof vi.fn> };
+  laserRenderer: { clear: ReturnType<typeof vi.fn> };
+  feedbackSystem: {
+    onBossDamaged: ReturnType<typeof vi.fn>;
+    onCriticalHit: ReturnType<typeof vi.fn>;
+  };
+  monsterSystem: { isAlive: () => boolean; takeDamage: ReturnType<typeof vi.fn> };
+  upgradeSystem: {
+    getMissileLevel: () => number;
+    getCriticalChanceBonus: () => number;
+    getCursorSizeBonus: () => number;
+    getCursorDamageBonus: () => number;
+  };
+  comboSystem: { getCombo: () => number; increment: ReturnType<typeof vi.fn> };
+  soundSystem: {
+    playPlayerChargeSound: ReturnType<typeof vi.fn>;
+    playBossFireSound: ReturnType<typeof vi.fn>;
+    playHitSound: ReturnType<typeof vi.fn>;
+  };
+  particleManager: {
+    createSparkBurst: ReturnType<typeof vi.fn>;
+    createHitEffect: ReturnType<typeof vi.fn>;
+    createExplosion: ReturnType<typeof vi.fn>;
+  };
+  tweens: {
+    add: ReturnType<typeof vi.fn>;
+    pauseAll: ReturnType<typeof vi.fn>;
+    resumeAll: ReturnType<typeof vi.fn>;
+  };
+  time: { timeScale: number };
+  physics: { pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn> };
+  input: { activePointer: { worldX: number; worldY: number } };
+  isPaused: boolean;
+  isGameOver: boolean;
+  isDockPaused: boolean;
+  isSimulationPaused: boolean;
+  cancelBossChargingLasers: () => void;
+  fireSequentialMissile: (x: number, y: number, index: number, count: number) => void;
+  onDishDamaged: (data: {
+    type: string;
+    isCritical: boolean;
+    damage: number;
+    dish: { getColor: () => number };
+  }) => void;
+  setDockPaused: (paused: boolean) => void;
+};
 
 // EventBus 모킹
 vi.mock('../src/utils/EventBus', () => ({
@@ -94,8 +150,7 @@ vi.mock('../src/utils/EventBus', () => ({
 }));
 
 describe('Boss Laser Cancellation Logic', () => {
-  let mockScene: any;
-  let gameScene: any;
+  let gameScene: GameSceneTestContext;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -104,7 +159,7 @@ describe('Boss Laser Cancellation Logic', () => {
     const { GameScene } = await import('../src/scenes/GameScene');
     
     // GameScene 인스턴스화 (의존성 최소화 모킹)
-    gameScene = new GameScene();
+    gameScene = new GameScene() as unknown as GameSceneTestContext;
     
     // 내부 프로퍼티 수동 설정 (create 호출 대신)
     gameScene.activeLasers = [];
@@ -202,9 +257,6 @@ describe('Boss Laser Cancellation Logic', () => {
   });
 
   it('미사일 치명타 시 cancelBossChargingLasers가 호출되어야 함', () => {
-    // cancelBossChargingLasers 스파이
-    const cancelSpy = vi.spyOn(gameScene, 'cancelBossChargingLasers');
-    
     // 공격 설정
     const attackConfig = Data.gameConfig.playerAttack;
     
@@ -212,8 +264,8 @@ describe('Boss Laser Cancellation Logic', () => {
     vi.spyOn(Math, 'random').mockReturnValue(attackConfig.criticalChance - 0.01);
 
     // 내부 메서드 호출 시뮬레이션 (fireSequentialMissile의 일부 로직)
-    // 실제로는 private이므로 테스트를 위해 간접적으로 확인하거나 any로 접근
-    (gameScene as any).fireSequentialMissile(0, 0, 0, 1);
+    // 실제로는 private이므로 테스트에서는 축약된 타입으로 접근
+    gameScene.fireSequentialMissile(0, 0, 0, 1);
     
     // fireSequentialMissile 내부에 delayedCall이 있으므로 타이머 진행 필요하나, 
     // 여기서는 로직이 복잡하므로 직접 cancelBossChargingLasers가 호출되었는지만 체크하는 식으로 우회하거나
@@ -224,7 +276,7 @@ describe('Boss Laser Cancellation Logic', () => {
     const cancelSpy = vi.spyOn(gameScene, 'cancelBossChargingLasers');
     
     // onDishDamaged 호출 시뮬레이션
-    (gameScene as any).onDishDamaged({
+    gameScene.onDishDamaged({
       type: 'boss',
       isCritical: true,
       damage: 10,
@@ -238,7 +290,7 @@ describe('Boss Laser Cancellation Logic', () => {
     const cancelSpy = vi.spyOn(gameScene, 'cancelBossChargingLasers');
     
     // 일반 접시 치명타
-    (gameScene as any).onDishDamaged({
+    gameScene.onDishDamaged({
       type: 'basic',
       isCritical: true,
       damage: 10,
@@ -254,12 +306,11 @@ describe('Boss Laser Cancellation Logic', () => {
     
     // 포인터 모킹 (GameScene 내부에 pointer로 참조됨)
     const pointer = { worldX: 100, worldY: 100 };
-    (gameScene as any).input = { activePointer: pointer };
+    gameScene.input = { activePointer: pointer };
 
     // delayedCall 모킹: 즉시 실행하도록 설정된 상태임 (Phaser Scene 모킹 부분 확인)
     // performPlayerAttack 시뮬레이션 (핵심 부분만)
     const missileCount = 3;
-    const interval = 300;
     
     // 미사일 발사 시퀀스 실행 (실제 performPlayerAttack의 onComplete 로직 시뮬레이션)
     for (let i = 0; i < missileCount; i++) {
@@ -289,7 +340,7 @@ describe('Boss Laser Cancellation Logic', () => {
     gameScene.isDockPaused = false;
     gameScene.isSimulationPaused = false;
 
-    (gameScene as any).setDockPaused(true);
+    gameScene.setDockPaused(true);
 
     expect(gameScene.time.timeScale).toBe(0);
     expect(gameScene.tweens.pauseAll).toHaveBeenCalled();
@@ -302,10 +353,10 @@ describe('Boss Laser Cancellation Logic', () => {
     gameScene.isDockPaused = false;
     gameScene.isSimulationPaused = false;
 
-    (gameScene as any).setDockPaused(true);
+    gameScene.setDockPaused(true);
     vi.clearAllMocks();
 
-    (gameScene as any).setDockPaused(false);
+    gameScene.setDockPaused(false);
 
     expect(gameScene.time.timeScale).toBe(1);
     expect(gameScene.tweens.resumeAll).toHaveBeenCalled();

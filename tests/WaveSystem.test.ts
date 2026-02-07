@@ -18,6 +18,8 @@ vi.mock('phaser', () => {
 import { WaveSystem } from '../src/systems/WaveSystem';
 import { GameEvents } from '../src/utils/EventBus';
 import Phaser from 'phaser'; // Import mocked Phaser to manipulate mocks
+import type { ObjectPool } from '../src/utils/ObjectPool';
+import type { Dish } from '../src/entities/Dish';
 
 // Mock dependencies
 const mockEmit = vi.fn();
@@ -93,10 +95,13 @@ vi.mock('../src/data/constants', () => ({
 
 describe('WaveSystem', () => {
   let waveSystem: WaveSystem;
-  let mockScene: any;
-  let mockDishPool: any;
-  let mockGetMaxSpawnY: any;
-  let mockGetBoss: any;
+  let mockScene: { spawnDish: ReturnType<typeof vi.fn> };
+  let mockDishPool: {
+    getActiveCount: ReturnType<typeof vi.fn>;
+    getActiveObjects: ReturnType<typeof vi.fn>;
+  };
+  let mockGetMaxSpawnY: () => number;
+  let mockGetBoss: () => { x: number; y: number; visible: boolean } | null;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -113,7 +118,12 @@ describe('WaveSystem', () => {
     mockGetMaxSpawnY = vi.fn().mockReturnValue(600);
     mockGetBoss = vi.fn().mockReturnValue(null);
 
-    waveSystem = new WaveSystem(mockScene, () => mockDishPool, mockGetMaxSpawnY, mockGetBoss);
+    waveSystem = new WaveSystem(
+      mockScene as unknown as Phaser.Scene,
+      () => mockDishPool as unknown as ObjectPool<Dish>,
+      mockGetMaxSpawnY,
+      mockGetBoss
+    );
   });
 
   afterEach(() => {

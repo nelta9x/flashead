@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import Phaser from 'phaser';
 
 // Mock Phaser with a more minimal structure that doesn't trigger OS.js detection
 vi.mock('phaser', () => {
@@ -84,8 +85,8 @@ function createMockGraphics() {
 import { CursorRenderer } from '../src/effects/CursorRenderer';
 
 describe('CursorRenderer', () => {
-  let mockScene: any;
-  let mockGraphics: any;
+  let mockScene: { add: { graphics: () => ReturnType<typeof createMockGraphics> } };
+  let mockGraphics: ReturnType<typeof createMockGraphics>;
   let cursorRenderer: CursorRenderer;
 
   beforeEach(() => {
@@ -96,7 +97,7 @@ describe('CursorRenderer', () => {
         graphics: vi.fn(() => mockGraphics)
       }
     };
-    cursorRenderer = new CursorRenderer(mockScene);
+    cursorRenderer = new CursorRenderer(mockScene as unknown as Phaser.Scene);
   });
 
   it('should render attack indicator without electric effect', () => {

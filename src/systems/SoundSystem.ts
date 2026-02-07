@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Data } from '../data/DataManager';
+import type { AudioConfig } from '../data/types';
 
 /**
  * Web Audio API 기반 프로그래매틱 사운드 시스템
@@ -25,8 +26,10 @@ export class SoundSystem {
   }
 
   public async init(): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    type AudioContextCtor = new () => AudioContext;
+    const AudioContextClass: AudioContextCtor | undefined =
+      window.AudioContext ??
+      (window as Window & { webkitAudioContext?: AudioContextCtor }).webkitAudioContext;
     if (!this.audioContext && AudioContextClass) {
       this.audioContext = new AudioContextClass();
       this.masterGain = this.audioContext.createGain();
@@ -76,9 +79,8 @@ export class SoundSystem {
    * 일반적인 사운드 재생 헬퍼
    * Config에서 키를 찾아 파일 재생을 시도하고, 실패 시 콘솔 경고
    */
-  private playSound(configKey: string): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const audioConfig = (Data.gameConfig.audio as any)[configKey];
+  private playSound(configKey: Exclude<keyof AudioConfig, 'bgm'>): void {
+    const audioConfig = Data.gameConfig.audio[configKey];
     if (!audioConfig) return;
 
     if (this.scene) {

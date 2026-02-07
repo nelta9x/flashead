@@ -523,8 +523,8 @@ describe('Dish Upgrade Effects', () => {
       const dish = new Dish(mockScene as unknown as Phaser.Scene, 0, 0, 'basic');
       dish.spawn(100, 100, 'basic', 1);
 
-      // takeDamage is private, so use any to call it
-      (dish as any).takeDamage(true);
+      // takeDamage is private, so use a narrowed test-only cast to invoke it.
+      (dish as unknown as { takeDamage: (isCritical: boolean) => void }).takeDamage(true);
 
       expect(EventBus.getInstance().emit).toHaveBeenCalledWith(
         'dish_damaged',

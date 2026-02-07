@@ -60,7 +60,8 @@ export class BootScene extends Phaser.Scene {
   private loadAudioAssets(): void {
     const audioConfig = Data.gameConfig.audio;
     // 모든 오디오 설정 항목을 순회하며 로드
-    Object.values(audioConfig).forEach((config: any) => {
+    Object.values(audioConfig).forEach((config) => {
+      if (!config) return;
       if (config.key && config.path) {
         this.load.audio(config.key, config.path);
       }

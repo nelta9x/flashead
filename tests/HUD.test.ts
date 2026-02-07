@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import Phaser from 'phaser';
 
 // Mock DataManager before everything
 vi.mock('../src/data/DataManager', () => ({
@@ -197,17 +198,37 @@ function createMockContainer() {
 
 import { HUD } from '../src/ui/HUD';
 import { HealthSystem } from '../src/systems/HealthSystem';
+import { WaveSystem } from '../src/systems/WaveSystem';
+
+type HudTestSceneStub = {
+  add: {
+    text: ReturnType<typeof vi.fn>;
+    graphics: ReturnType<typeof vi.fn>;
+    container: ReturnType<typeof vi.fn>;
+  };
+  tweens: {
+    add: ReturnType<typeof vi.fn>;
+    isTweening: ReturnType<typeof vi.fn>;
+  };
+};
+
+type WaveSystemStub = {
+  getCurrentWave: ReturnType<typeof vi.fn>;
+  isFever: ReturnType<typeof vi.fn>;
+};
 
 describe('HUD', () => {
-  let mockScene: any;
-  let waveSystem: any;
+  let mockScene: Phaser.Scene;
+  let sceneStub: HudTestSceneStub;
+  let waveSystem: WaveSystem;
+  let waveSystemStub: WaveSystemStub;
   let healthSystem: HealthSystem;
   let hud: HUD;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockScene = {
+    sceneStub = {
       add: {
         text: vi.fn(() => createMockText()),
         graphics: vi.fn(() => createMockGraphics()),
@@ -218,18 +239,20 @@ describe('HUD', () => {
         isTweening: vi.fn(() => false),
       },
     };
+    mockScene = sceneStub as unknown as Phaser.Scene;
 
-    waveSystem = {
+    waveSystemStub = {
       getCurrentWave: vi.fn(() => 1),
       isFever: vi.fn(() => false),
     };
+    waveSystem = waveSystemStub as unknown as WaveSystem;
     healthSystem = new HealthSystem(5);
-    hud = new HUD(mockScene as any, waveSystem as any, healthSystem);
+    hud = new HUD(mockScene, waveSystem, healthSystem);
   });
 
   it('should not render top HP graphics after moving HP to cursor ring', () => {
     // HUD constructor should not draw HP hearts anymore.
-    expect(mockScene.add.graphics).toHaveBeenCalledTimes(0);
+    expect(sceneStub.add.graphics).toHaveBeenCalledTimes(0);
   });
 
   it('should update safely when maxHp increases', () => {
@@ -237,13 +260,13 @@ describe('HUD', () => {
     hud.update(0, { cursorX: 0, cursorY: 0, isUpgradeSelectionVisible: false }, 0);
 
     // HP is rendered by cursor ring now, so no top-heart graphics are created.
-    expect(mockScene.add.graphics).toHaveBeenCalledTimes(0);
+    expect(sceneStub.add.graphics).toHaveBeenCalledTimes(0);
   });
 
   it('should update safely when maxHp decreases', () => {
     healthSystem.setMaxHp(3);
     hud.update(0, { cursorX: 0, cursorY: 0, isUpgradeSelectionVisible: false }, 0);
 
-    expect(mockScene.add.graphics).toHaveBeenCalledTimes(0);
+    expect(sceneStub.add.graphics).toHaveBeenCalledTimes(0);
   });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import Phaser from 'phaser';
 
 // Mock Phaser
 vi.mock('phaser', () => {
@@ -19,6 +20,7 @@ vi.mock('phaser', () => {
 
 import { HealthPackSystem } from '../src/systems/HealthPackSystem';
 import { GameEvents } from '../src/utils/EventBus';
+import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
 
 // Mock constants
 vi.mock('../src/data/constants', () => ({
@@ -86,15 +88,15 @@ vi.mock('../src/utils/ObjectPool', () => {
 const mockGetHealthPackDropBonus = vi.fn(() => 0);
 const mockUpgradeSystem = {
   getHealthPackDropBonus: mockGetHealthPackDropBonus,
-} as any;
+} as unknown as UpgradeSystem;
 
 describe('HealthPackSystem', () => {
   let system: HealthPackSystem;
-  let mockScene: any;
+  let mockScene: Phaser.Scene;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockScene = {};
+    mockScene = {} as Phaser.Scene;
     mockGetHealthPackDropBonus.mockReturnValue(0);
     system = new HealthPackSystem(mockScene, mockUpgradeSystem);
   });

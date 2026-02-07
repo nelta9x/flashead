@@ -277,10 +277,7 @@ export class InGameUpgradeUI {
   update(delta: number): void {
     if (!this.visible) return;
 
-    const gameScene = this.scene as any;
-    const cursorPos = gameScene.getCursorPosition
-      ? gameScene.getCursorPosition()
-      : { x: gameScene.input.activePointer.worldX, y: gameScene.input.activePointer.worldY };
+    const cursorPos = this.getCursorPosition();
     const { BOX_WIDTH, BOX_HEIGHT, HOVER_DURATION } = UPGRADE_UI;
 
     for (const box of this.boxes) {
@@ -339,10 +336,7 @@ export class InGameUpgradeUI {
     // mainContainer는 (0,0)에 있으므로 box 좌표가 곧 월드 좌표와 동일함 (단, 카메라 스크롤 없다는 가정)
     const startX = box.container.x;
     const startY = box.container.y;
-    const gameScene = this.scene as any;
-    const cursorPos = gameScene.getCursorPosition
-      ? gameScene.getCursorPosition()
-      : { x: gameScene.input.activePointer.worldX, y: gameScene.input.activePointer.worldY };
+    const cursorPos = this.getCursorPosition();
 
     this.particleManager.createUpgradeAbsorption(
       startX,
@@ -373,5 +367,18 @@ export class InGameUpgradeUI {
   destroy(): void {
     this.clearBoxes();
     this.mainContainer.destroy();
+  }
+
+  private getCursorPosition(): { x: number; y: number } {
+    const cursorAwareScene = this.scene as Phaser.Scene & {
+      getCursorPosition?: () => { x: number; y: number };
+    };
+
+    if (cursorAwareScene.getCursorPosition) {
+      return cursorAwareScene.getCursorPosition();
+    }
+
+    const pointer = cursorAwareScene.input.activePointer;
+    return { x: pointer.worldX, y: pointer.worldY };
   }
 }
