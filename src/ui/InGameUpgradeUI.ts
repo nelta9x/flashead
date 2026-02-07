@@ -112,12 +112,13 @@ export class InGameUpgradeUI {
     container.add(bg);
 
     // 아이콘 표시 (SVG 스프라이트 또는 텍스트 폴백)
-    const iconY = -BOX_HEIGHT / 2 + 32;
+    const iconY = -BOX_HEIGHT / 2 + 35;
+    const iconSize = 40;
 
     // 텍스처가 존재하는지 확인
     if (this.scene.textures.exists(upgrade.id)) {
       const iconSprite = this.scene.add.image(0, iconY, upgrade.id);
-      iconSprite.setDisplaySize(48, 48);
+      iconSprite.setDisplaySize(iconSize, iconSize);
       iconSprite.setTint(borderColor); // 희귀도 색상 적용
       container.add(iconSprite);
     } else {
@@ -126,7 +127,7 @@ export class InGameUpgradeUI {
       const icon = this.scene.add
         .text(0, iconY, iconSymbol, {
           fontFamily: FONTS.MAIN,
-          fontSize: '32px',
+          fontSize: '30px',
           color: `#${borderColor.toString(16).padStart(6, '0')}`,
         })
         .setOrigin(0.5);
@@ -136,7 +137,7 @@ export class InGameUpgradeUI {
     // 이름
     const textCfg = Data.gameConfig.textSettings;
     const name = this.scene.add
-      .text(0, -BOX_HEIGHT / 2 + 58, Data.t(`upgrade.${upgrade.id}.name`), {
+      .text(0, -BOX_HEIGHT / 2 + 62, Data.t(`upgrade.${upgrade.id}.name`), {
         fontFamily: FONTS.KOREAN,
         fontSize: `${textCfg.upgradeUI.nameSize}px`,
         fontStyle: 'normal',
@@ -145,13 +146,13 @@ export class InGameUpgradeUI {
         align: 'center',
         resolution: textCfg.resolution,
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0);
     container.add(name);
 
     // 효과 미리보기 설명
     const previewDesc = this.upgradeSystem.getPreviewDescription(upgrade.id);
     const descText = this.scene.add
-      .text(0, -BOX_HEIGHT / 2 + 88, previewDesc, {
+      .text(0, -BOX_HEIGHT / 2 + 98, previewDesc, {
         fontFamily: FONTS.KOREAN,
         fontSize: `${textCfg.upgradeUI.descSize}px`,
         fontStyle: 'normal',

@@ -14,7 +14,7 @@
   },
   "upgradeUI": {
     "boxWidth": 200,
-    "boxHeight": 140,
+    "boxHeight": 160,
     "boxSpacing": 30,
     "hoverDuration": 300,
     "boxYOffset": 150
