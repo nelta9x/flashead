@@ -694,8 +694,8 @@ export class GameScene extends Phaser.Scene {
           this.comboSystem.reset();
         }
       } else if (byAbility) {
-        // 어빌리티로 파괴 시 "SAFE!" 텍스트 표시
-        this.damageText.showText(x, y - 40, 'SAFE!', COLORS.CYAN);
+        // 어빌리티로 파괴 시 "REMOVED!" 텍스트 표시
+        this.damageText.showText(x, y - 40, 'REMOVED!', COLORS.CYAN);
       }
 
       // 피드백 효과 (폭발)
