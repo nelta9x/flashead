@@ -99,6 +99,8 @@
   },
   "damage": {
     "playerDamage": 10,
-    "damageInterval": 150
+    "damageInterval": 150,
+    "criticalChance": 0.1,
+    "criticalMultiplier": 1.5
   }
 }

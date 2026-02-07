@@ -11,7 +11,7 @@
       "initialScale": 2.2
     },
     "boss": {
-      "color": "#ff3300",
+      "color": "#ffffff",
       "fontSize": 64,
       "initialScale": 0.2
     },
@@ -152,7 +152,7 @@
     },
     "fire": {
       "duration": 150,
-      "missileInterval": 100,
+      "missileInterval": 200,
       "trailAlpha": 0.8,
       "trailLifespan": 250,
       "trailWidthMultiplier": 1.0,

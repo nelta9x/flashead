@@ -477,12 +477,11 @@ export class GameScene extends Phaser.Scene {
           this.upgradeSystem.getMissileLevel() > 0
             ? this.upgradeSystem.getMissileCount()
             : baseAttack.baseMissileCount;
-        const fireX = pointer.worldX;
-        const fireY = pointer.worldY;
 
         for (let i = 0; i < missileCount; i++) {
           this.time.delayedCall(i * config.fire.missileInterval, () => {
-            this.fireSequentialMissile(fireX, fireY, i, missileCount);
+            // 발사 시점의 실시간 커서 위치 사용
+            this.fireSequentialMissile(pointer.worldX, pointer.worldY, i, missileCount);
           });
         }
       },
@@ -578,21 +577,33 @@ export class GameScene extends Phaser.Scene {
 
         // 미사일 데미지 적용
         const attackConfig = Data.gameConfig.playerAttack;
-        const totalDamage =
+        let totalDamage =
           this.upgradeSystem.getMissileLevel() > 0
             ? this.upgradeSystem.getMissileDamage()
             : attackConfig.baseMissileDamage;
+        
+        // 치명타 판정
+        const isCritical = Math.random() < attackConfig.criticalChance;
+        if (isCritical) {
+          totalDamage *= attackConfig.criticalMultiplier;
+        }
+
         this.monsterSystem.takeDamage(totalDamage, curStartX, curStartY);
+
+        // 치명타 시 보스의 충전 중인 레이저 취소
+        if (isCritical) {
+          this.cancelBossChargingLasers();
+        }
 
         // 타격 피드백 (마지막 발사일수록 더 강하게)
         if (index === total - 1) {
-          this.feedbackSystem.onBossDamaged(finalTargetX, finalTargetY, totalDamage * total);
+          this.feedbackSystem.onBossDamaged(finalTargetX, finalTargetY, totalDamage, isCritical);
           // 마지막 발사 시 카메라 효과 강화
-          this.cameras.main.shake(config.impact.shakeDuration, config.impact.shakeIntensity * 1.5);
+          this.cameras.main.shake(config.impact.shakeDuration, config.impact.shakeIntensity * (isCritical ? 2 : 1.5));
         } else {
           // 중간 발사체 타격 효과
-          this.particleManager.createHitEffect(finalTargetX, finalTargetY, COLORS.WHITE);
-          this.particleManager.createExplosion(finalTargetX, finalTargetY, mainColor, 'basic', 0.5);
+          this.feedbackSystem.onBossDamaged(finalTargetX, finalTargetY, totalDamage, isCritical);
+          this.particleManager.createHitEffect(finalTargetX, finalTargetY, isCritical ? COLORS.YELLOW : COLORS.WHITE);
           this.soundSystem.playHitSound();
         }
       },
@@ -610,11 +621,21 @@ export class GameScene extends Phaser.Scene {
     hpRatio: number;
     isFirstHit: boolean;
     byAbility?: boolean;
+    isCritical?: boolean;
   }): void {
-    const { x, y, damage, hpRatio, byAbility } = data;
+    const { x, y, damage, hpRatio, byAbility, isCritical } = data;
     // 어빌리티 데미지인 경우 콤보 표시 안 함 (0 전달)
     const combo = byAbility ? 0 : this.comboSystem.getCombo();
-    this.feedbackSystem.onDishDamaged(x, y, damage, hpRatio, data.dish.getColor(), combo);
+
+    if (isCritical) {
+      this.feedbackSystem.onCriticalHit(x, y, damage, combo);
+      // 보스 접시 치명타 시 레이저 취소
+      if (data.type === 'boss') {
+        this.cancelBossChargingLasers();
+      }
+    } else {
+      this.feedbackSystem.onDishDamaged(x, y, damage, hpRatio, data.dish.getColor(), combo);
+    }
   }
 
   private onDishMissed(data: {
@@ -1131,20 +1152,9 @@ export class GameScene extends Phaser.Scene {
       const laserConfig = this.waveSystem.getCurrentWaveLaserConfig();
 
       if (laserConfig && laserConfig.maxCount > 0) {
-        // 한 번에 발사할 레이저 수 결정 (1 ~ maxCount)
-        const count = Phaser.Math.Between(1, laserConfig.maxCount);
-
-        // 보스가 살아있으면 첫 번째 레이저는 보스→플레이어 방향
-        let bossLaserFired = false;
+        // 보스가 살아있으면 보스→플레이어 방향 레이저 발사
         if (this.boss.visible && this.monsterSystem.isAlive()) {
           this.triggerBossLaserAttack();
-          bossLaserFired = true;
-        }
-
-        // 나머지는 기존 랜덤 레이저
-        const randomCount = bossLaserFired ? count - 1 : count;
-        for (let i = 0; i < randomCount; i++) {
-          this.triggerLaserAttack();
         }
       }
       this.setNextLaserTime();
@@ -1163,78 +1173,30 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private triggerLaserAttack(): void {
-    const config = Data.gameConfig.monsterAttack.laser;
+  private cancelBossChargingLasers(): void {
+    let cancelledCount = 0;
 
-    // 화면 외곽에서 임의의 시작점과 끝점 선정 (대각선 지원)
-    // "이상한 곳"에 나오지 않도록 최소 거리를 보장하고 중심부를 관통하도록 개선
-    let p1 = { x: 0, y: 0 };
-    let p2 = { x: 0, y: 0 };
-    let distance = 0;
-    const minDistance = Math.min(GAME_WIDTH, GAME_HEIGHT) * config.trajectory.minDistanceRatio;
-
-    let attempts = 0;
-    while (distance < minDistance && attempts < 10) {
-      const side1 = Phaser.Math.Between(0, 3); // 0:상, 1:하, 2:좌, 3:우
-      let side2 = Phaser.Math.Between(0, 3);
-      while (side1 === side2) side2 = Phaser.Math.Between(0, 3);
-
-      const getPointOnSide = (side: number) => {
-        const padding = config.trajectory.spawnPadding;
-        switch (side) {
-          case 0:
-            return { x: Phaser.Math.Between(0, GAME_WIDTH), y: padding };
-          case 1:
-            return { x: Phaser.Math.Between(0, GAME_WIDTH), y: GAME_HEIGHT - padding };
-          case 2:
-            return { x: padding, y: Phaser.Math.Between(0, GAME_HEIGHT) };
-          case 3:
-            return { x: GAME_WIDTH - padding, y: Phaser.Math.Between(0, GAME_HEIGHT) };
-          default:
-            return { x: 0, y: 0 };
-        }
-      };
-
-      p1 = getPointOnSide(side1);
-      p2 = getPointOnSide(side2);
-      distance = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
-      attempts++;
+    // 현재 충전 중(Warning)인 모든 레이저 제거
+    for (let i = this.activeLasers.length - 1; i >= 0; i--) {
+      const laser = this.activeLasers[i];
+      if (laser.isWarning) {
+        this.activeLasers.splice(i, 1);
+        cancelledCount++;
+      }
     }
 
-    const laser = {
-      x1: p1.x,
-      y1: p1.y,
-      x2: p2.x,
-      y2: p2.y,
-      isWarning: true,
-      isFiring: false,
-      startTime: this.gameTime,
-    };
-    this.activeLasers.push(laser);
+    if (cancelledCount > 0) {
+      // 보스 이동 재개 (혹시 멈춰있었다면)
+      this.boss.unfreeze();
 
-    // 사운드: 기 모으는 소리 활용
-    this.soundSystem.playBossChargeSound();
-
-    // 경고 시간 후 발사
-    this.time.delayedCall(config.warningDuration, () => {
-      if (this.isGameOver) return;
-      laser.isWarning = false;
-      laser.isFiring = true;
-
-      // 사운드: 보스 발사 소리 활용
-      this.soundSystem.playBossFireSound();
-
-      // 화면 흔들림
-      this.cameras.main.shake(200, 0.005);
-
-      // 발사 시간 후 중지
-      this.time.delayedCall(config.fireDuration, () => {
-        const index = this.activeLasers.indexOf(laser);
-        if (index > -1) {
-          this.activeLasers.splice(index, 1);
-        }
-      });
-    });
+      // 시각적 피드백: 레이저가 취소되었음을 알림
+      this.damageText.showText(this.boss.x, this.boss.y - 60, 'INTERRUPTED!', COLORS.CYAN);
+      
+      // 렌더러 즉시 갱신 (잔상 제거)
+      if (this.activeLasers.length === 0) {
+        this.laserRenderer.clear();
+      }
+    }
   }
 
   private triggerBossLaserAttack(): void {
@@ -1249,9 +1211,8 @@ export class GameScene extends Phaser.Scene {
     const dy = pointer.y - startY;
     const len = Math.sqrt(dx * dx + dy * dy);
 
-    // 보스와 커서가 거의 같은 위치면 랜덤 레이저로 폴백
-    if (len < 1) {
-      this.triggerLaserAttack();
+    // 보스와 커서가 거의 같은 위치면 발사 취소 (불합리한 피격 방지)
+    if (len < 10) {
       return;
     }
 

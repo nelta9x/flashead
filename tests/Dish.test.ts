@@ -74,6 +74,8 @@ vi.mock('../data/dishes.json', () => ({
     damage: {
       playerDamage: 10,
       damageInterval: 200,
+      criticalChance: 0.1,
+      criticalMultiplier: 1.5,
     },
   },
 }));
@@ -349,6 +351,7 @@ describe('Dish Upgrade Effects', () => {
       const initialHp = dish.getCurrentHp();
 
       // Apply damage with upgrades (base 10 + bonus 5 = 15)
+      vi.spyOn(Math, 'random').mockReturnValue(0.5); // Not a crit
       dish.applyDamageWithUpgrades(10, 5, 0);
 
       expect(dish.getCurrentHp()).toBe(initialHp - 15);
@@ -361,6 +364,7 @@ describe('Dish Upgrade Effects', () => {
       dish.spawn(100, 100, 'basic', 1);
 
       const initialHp = dish.getCurrentHp();
+      vi.spyOn(Math, 'random').mockReturnValue(0.5); // Not a crit
       dish.applyDamageWithUpgrades(10, 0, 0); // base damage only
 
       expect(dish.getCurrentHp()).toBe(initialHp - 10);
@@ -390,7 +394,7 @@ describe('Dish Upgrade Effects', () => {
   });
 
   describe('criticalChance', () => {
-    it('should deal 2x damage when critical hits (100% crit chance)', async () => {
+    it('should deal 1.5x damage when critical hits (100% crit chance)', async () => {
       const { Dish } = await import('../src/entities/Dish');
       const dish = new Dish(mockScene as unknown as Phaser.Scene, 0, 0, 'basic');
 
@@ -404,7 +408,7 @@ describe('Dish Upgrade Effects', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0);
       dish.applyDamageWithUpgrades(10, 0, 1.0); // base 10, no bonus, 100% crit
 
-      expect(dish.getCurrentHp()).toBe(initialHp - 20); // 10 * 2 = 20
+      expect(dish.getCurrentHp()).toBe(initialHp - 15); // 10 * 1.5 = 15
     });
 
     it('should deal normal damage when crit chance is 0', async () => {
@@ -414,6 +418,7 @@ describe('Dish Upgrade Effects', () => {
       dish.spawn(100, 100, 'basic', 1, { criticalChance: 0 });
 
       const initialHp = dish.getCurrentHp();
+      vi.spyOn(Math, 'random').mockReturnValue(0.5); // Not a crit
       dish.applyDamageWithUpgrades(10, 0, 0);
 
       expect(dish.getCurrentHp()).toBe(initialHp - 10);

@@ -278,8 +278,6 @@ export class DamageText {
       duration: 150,
       ease: 'Back.easeOut',
       onComplete: () => {
-        text!.setColor('#ffff00');
-
         this.scene.tweens.add({
           targets: text,
           y: text!.y + 20, // 더 아래로 이동

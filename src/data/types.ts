@@ -43,7 +43,6 @@ export interface LaserAttackConfig {
   warningAlpha: number;
   fireAlpha: number;
   trajectory: {
-    minDistanceRatio: number;
     spawnPadding: number;
   };
   bonus: {
@@ -176,6 +175,8 @@ export interface AudioConfig {
 export interface PlayerAttackConfig {
   baseMissileCount: number;
   baseMissileDamage: number;
+  criticalChance: number;
+  criticalMultiplier: number;
 }
 
 export interface GameOverConfig {
@@ -591,6 +592,8 @@ export interface DishData {
 export interface DishDamageConfig {
   playerDamage: number;
   damageInterval: number;
+  criticalChance: number;
+  criticalMultiplier: number;
 }
 
 export interface DishesConfig {

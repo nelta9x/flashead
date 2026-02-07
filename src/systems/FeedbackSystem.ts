@@ -156,19 +156,25 @@ export class FeedbackSystem {
   }
 
   // 보스 데미지 피드백
-  onBossDamaged(x: number, y: number, damage: number): void {
-    // 1. 크고 화려한 데미지 텍스트
-    this.damageText.showBossDamage(x, y, damage);
+  onBossDamaged(x: number, y: number, damage: number, isCritical: boolean = false): void {
+    // 1. 데미지 텍스트 (치명타면 크리티컬 효과, 아니면 보스 데미지 효과)
+    if (isCritical) {
+      this.onCriticalHit(x, y, damage);
+    } else {
+      this.damageText.showBossDamage(x, y, damage);
+    }
 
     // 2. 강한 화면 흔들림
-    this.screenShake.shake(8, 200);
+    this.screenShake.shake(isCritical ? 12 : 8, 200);
 
     // 3. 화려한 폭발 파티클
-    this.particleManager.createExplosion(x, y, COLORS.RED, 'bomb', 1.5);
-    this.particleManager.createRainbowExplosion(x, y, 1.2);
+    this.particleManager.createExplosion(x, y, isCritical ? COLORS.YELLOW : COLORS.RED, 'bomb', isCritical ? 2.0 : 1.5);
+    if (isCritical) {
+      this.particleManager.createRainbowExplosion(x, y, 1.5);
+    }
 
     // 4. 슬로우 모션 (짧게)
-    this.slowMotion.trigger(0.3, 150);
+    this.slowMotion.trigger(isCritical ? 0.2 : 0.3, 150);
 
     // 5. 사운드
     this.soundSystem.playBossImpactSound();

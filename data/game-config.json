@@ -90,7 +90,6 @@
       "warningAlpha": 0.3,
       "fireAlpha": 0.8,
       "trajectory": {
-        "minDistanceRatio": 0.7,
         "spawnPadding": -100
       },
       "bonus": {
@@ -128,7 +127,9 @@
   },
   "playerAttack": {
     "baseMissileCount": 1,
-    "baseMissileDamage": 100
+    "baseMissileDamage": 100,
+    "criticalChance": 0.1,
+    "criticalMultiplier": 1.5
   },
   "magnet": {
     "minPullDistance": 30

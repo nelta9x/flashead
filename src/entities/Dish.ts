@@ -287,15 +287,21 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     if (!this.active || this.invulnerable) return;
 
     // 업그레이드 적용: 기본 데미지 + 보너스 + 치명타
-    const baseDamage = Data.dishes.damage.playerDamage;
+    const damageConfig = Data.dishes.damage;
+    const baseDamage = damageConfig.playerDamage;
     const damageBonus = this.upgradeOptions.damageBonus || 0;
-    const critChance = this.upgradeOptions.criticalChance || 0;
+    
+    // 기본 치명타 확률 + 업그레이드 확률
+    const critChance = (damageConfig.criticalChance || 0) + (this.upgradeOptions.criticalChance || 0);
+    const critMultiplier = damageConfig.criticalMultiplier || 2;
 
     let damage = baseDamage + damageBonus;
+    let isCritical = false;
 
     // 치명타 판정
     if (Math.random() < critChance) {
-      damage *= 2;
+      damage *= critMultiplier;
+      isCritical = true;
     }
 
     this.currentHp -= damage;
@@ -314,6 +320,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
       maxHp: this.maxHp,
       hpRatio: this.currentHp / this.maxHp,
       isFirstHit,
+      isCritical,
       byAbility: false,
     });
 
@@ -695,11 +702,17 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
   applyDamageWithUpgrades(baseDamage: number, damageBonus: number, criticalChance: number): void {
     if (!this.active || this.invulnerable) return;
 
+    const damageConfig = Data.dishes.damage;
+    const totalCritChance = (damageConfig.criticalChance || 0) + criticalChance;
+    const critMultiplier = damageConfig.criticalMultiplier || 2;
+
     let totalDamage = baseDamage + damageBonus;
+    let isCritical = false;
 
     // 치명타 적용
-    if (criticalChance > 0 && Math.random() < criticalChance) {
-      totalDamage *= 2;
+    if (totalCritChance > 0 && Math.random() < totalCritChance) {
+      totalDamage *= critMultiplier;
+      isCritical = true;
     }
 
     this.currentHp -= totalDamage;
@@ -715,7 +728,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
       maxHp: this.maxHp,
       hpRatio: this.currentHp / this.maxHp,
       isFirstHit: false,
-      isCritical: totalDamage > baseDamage + damageBonus,
+      isCritical,
       byAbility: true,
     });
 
