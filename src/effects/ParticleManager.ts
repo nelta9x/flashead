@@ -254,6 +254,148 @@ export class ParticleManager {
     this.createHitEffect(x, y, color);
   }
 
+  createUpgradeAbsorption(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    color: number,
+    iconTexture: string,
+    onComplete?: () => void
+  ): void {
+    const particleCount = 25;
+    const duration = 600;
+
+    // 1. 입자 흡수 연출 (Particle Stream)
+    for (let i = 0; i < particleCount; i++) {
+      const size = Phaser.Math.Between(3, 6);
+      const particle = this.scene.add.circle(startX, startY, size, color, 1);
+      particle.setDepth(2000);
+
+      // 시작 위치 랜덤 오프셋
+      const offsetX = (Math.random() - 0.5) * 60;
+      const offsetY = (Math.random() - 0.5) * 60;
+      particle.x += offsetX;
+      particle.y += offsetY;
+
+      // 딜레이를 주어 순차적으로 빨려들어가는 느낌
+      const delay = Math.random() * 300;
+
+      this.scene.tweens.add({
+        targets: particle,
+        x: endX,
+        y: endY,
+        scale: 0, // 점점 작아지며 흡수
+        alpha: { from: 1, to: 0.5 },
+        duration: duration,
+        delay: delay,
+        ease: 'Back.easeIn', // 빨려들어가는 가속감
+        onComplete: () => particle.destroy(),
+      });
+    }
+
+    // 2. 아이콘 이동 및 회전 (Icon Orbit & Merge)
+    let icon: Phaser.GameObjects.GameObject;
+
+    if (this.scene.textures.exists(iconTexture)) {
+      icon = this.scene.add.image(startX, startY, iconTexture);
+      (icon as Phaser.GameObjects.Image).setTint(color);
+      (icon as Phaser.GameObjects.Image).setDisplaySize(60, 60);
+    } else {
+      // 텍스처가 없으면 심볼 텍스트 사용 (InGameUpgradeUI 로직 참조)
+      const symbols: Record<string, string> = {
+        damage_up: '⚔',
+        attack_speed: '⚡',
+        dish_slow: '⏱',
+        hp_up: '♥',
+        heal_on_wave: '✚',
+        aoe_destroy: '◎',
+        bomb_shield: '🛡',
+        lifesteal: '♡',
+        combo_heal: '❤',
+        health_pack: '✚',
+        cursor_size: '◯',
+        critical_chance: '✦',
+        aoe_destroy_enhanced: '◉',
+        freeze_aura: '❄',
+        electric_shock: '⚡',
+        bomb_convert: '↻',
+        second_chance: '↺',
+        magnet_pull: '⊕',
+        chain_reaction: '⁂',
+        black_hole: '●',
+        immortal: '∞',
+        time_stop: '⏸',
+        auto_destroy: '⟳',
+        orbiting_orb: '★',
+      };
+      const symbol = symbols[iconTexture] || '★';
+      icon = this.scene.add.text(startX, startY, symbol, {
+        fontSize: '40px',
+        color: '#' + color.toString(16).padStart(6, '0'),
+      });
+      (icon as Phaser.GameObjects.Text).setOrigin(0.5);
+    }
+    
+    icon.setDepth(2001);
+
+    // 아이콘이 커서 주변을 회전하며 들어가는 연출
+    this.scene.tweens.add({
+      targets: icon,
+      x: endX,
+      y: endY,
+      scale: 0, // 흡수되면서 작아짐
+      rotation: Math.PI * 4, // 2바퀴 회전
+      duration: duration + 200, // 입자보다 조금 늦게 도착
+      ease: 'Power2',
+      onComplete: () => {
+        icon.destroy();
+        
+        // 3. 임팩트 효과 (도착 시점)
+        this.createUpgradeImpact(endX, endY, color);
+        
+        if (onComplete) onComplete();
+      },
+    });
+  }
+
+  // 업그레이드 흡수 완료 시 임팩트
+  private createUpgradeImpact(x: number, y: number, color: number): void {
+    // 강렬한 링 퍼짐
+    const ring = this.scene.add.graphics();
+    ring.lineStyle(5, color, 1);
+    ring.strokeCircle(0, 0, 20);
+    ring.setPosition(x, y);
+    ring.setDepth(2002);
+
+    this.scene.tweens.add({
+      targets: ring,
+      scaleX: 4,
+      scaleY: 4,
+      alpha: 0,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => ring.destroy(),
+    });
+
+    // 스타버스트
+    this.createStarburst(x, y, color);
+
+    // 커서 펄스 (커서가 있는 위치에 빛나는 원 생성)
+    const glow = this.scene.add.circle(x, y, 30, color, 0.8);
+    glow.setDepth(2003);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.scene.tweens.add({
+      targets: glow,
+      scale: 2,
+      alpha: 0,
+      duration: 300,
+      ease: 'Sine.easeOut',
+      onComplete: () => glow.destroy(),
+    });
+  }
+
   // 무지개 폭발 이펙트
   createRainbowExplosion(x: number, y: number, particleMultiplier: number = 1): void {
     const emitter = this.emitters.get('explosion');

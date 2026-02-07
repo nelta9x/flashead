@@ -4,6 +4,8 @@ import { Data } from '../data/DataManager';
 import { UpgradeSystem, Upgrade } from '../systems/UpgradeSystem';
 import { EventBus, GameEvents } from '../utils/EventBus';
 
+import { ParticleManager } from '../effects/ParticleManager';
+
 interface UpgradeBox {
   container: Phaser.GameObjects.Container;
   upgrade: Upgrade;
@@ -17,13 +19,15 @@ interface UpgradeBox {
 export class InGameUpgradeUI {
   private scene: Phaser.Scene;
   private upgradeSystem: UpgradeSystem;
+  private particleManager: ParticleManager;
   private boxes: UpgradeBox[] = [];
   private visible: boolean = false;
   private mainContainer!: Phaser.GameObjects.Container;
 
-  constructor(scene: Phaser.Scene, upgradeSystem: UpgradeSystem) {
+  constructor(scene: Phaser.Scene, upgradeSystem: UpgradeSystem, particleManager: ParticleManager) {
     this.scene = scene;
     this.upgradeSystem = upgradeSystem;
+    this.particleManager = particleManager;
     this.createContainer();
   }
 
@@ -279,7 +283,7 @@ export class InGameUpgradeUI {
 
         if (box.hoverProgress >= HOVER_DURATION) {
           // 선택 완료
-          this.selectUpgrade(box.upgrade);
+          this.selectUpgrade(box);
           return;
         }
       } else {
@@ -291,15 +295,33 @@ export class InGameUpgradeUI {
     }
   }
 
-  private selectUpgrade(upgrade: Upgrade): void {
+  private selectUpgrade(box: UpgradeBox): void {
     // 이미 숨김 처리 중이면 무시 (중복 호출 방지)
     if (!this.visible) return;
+
+    const upgrade = box.upgrade;
 
     // 즉시 visible을 false로 설정하여 중복 호출 방지
     this.visible = false;
 
     // 업그레이드 적용
     this.upgradeSystem.applyUpgrade(upgrade);
+
+    // 시각적 연출: 카드 위치에서 커서 위치로 입자 흡수
+    // box.container.x/y는 mainContainer 내부의 상대 좌표이므로 월드 좌표로 변환 필요
+    // mainContainer는 (0,0)에 있으므로 box 좌표가 곧 월드 좌표와 동일함 (단, 카메라 스크롤 없다는 가정)
+    const startX = box.container.x;
+    const startY = box.container.y;
+    const pointer = this.scene.input.activePointer;
+    
+    this.particleManager.createUpgradeAbsorption(
+      startX, 
+      startY, 
+      pointer.worldX, 
+      pointer.worldY, 
+      box.borderColor, 
+      upgrade.id
+    );
 
     // UI 숨김 애니메이션
     this.hideWithAnimation();

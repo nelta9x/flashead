@@ -171,23 +171,7 @@ export class GameScene extends Phaser.Scene {
     this.comboSystem = new ComboSystem();
     this.upgradeSystem = new UpgradeSystem();
 
-    // 인게임 업그레이드 UI (WaveSystem보다 먼저 생성)
-    this.inGameUpgradeUI = new InGameUpgradeUI(this, this.upgradeSystem);
-
-    this.waveSystem = new WaveSystem(
-      this,
-      () => this.dishPool,
-      () =>
-        this.inGameUpgradeUI.isVisible() ? this.inGameUpgradeUI.getBlockedYArea() : SPAWN_AREA.maxY,
-      () => this.boss
-    );
-    this.healthSystem = new HealthSystem();
-    this.healthPackSystem = new HealthPackSystem(this, this.upgradeSystem);
-    this.monsterSystem = new MonsterSystem();
-    this.gaugeSystem = new GaugeSystem(this.comboSystem);
-    this.orbSystem = new OrbSystem(this.upgradeSystem);
-
-    // 이펙트 시스템
+    // 이펙트 시스템 (가장 먼저 초기화)
     this.particleManager = new ParticleManager(this);
     this.screenShake = new ScreenShake(this);
     this.slowMotion = new SlowMotion(this);
@@ -202,6 +186,22 @@ export class GameScene extends Phaser.Scene {
       this.damageText,
       this.soundSystem
     );
+
+    // 인게임 업그레이드 UI (ParticleManager 생성 후)
+    this.inGameUpgradeUI = new InGameUpgradeUI(this, this.upgradeSystem, this.particleManager);
+
+    this.waveSystem = new WaveSystem(
+      this,
+      () => this.dishPool,
+      () =>
+        this.inGameUpgradeUI.isVisible() ? this.inGameUpgradeUI.getBlockedYArea() : SPAWN_AREA.maxY,
+      () => this.boss
+    );
+    this.healthSystem = new HealthSystem();
+    this.healthPackSystem = new HealthPackSystem(this, this.upgradeSystem);
+    this.monsterSystem = new MonsterSystem();
+    this.gaugeSystem = new GaugeSystem(this.comboSystem);
+    this.orbSystem = new OrbSystem(this.upgradeSystem);
 
     // HUD
     this.hud = new HUD(this, this.waveSystem, this.healthSystem);
