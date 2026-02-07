@@ -640,6 +640,13 @@ export class ParticleManager {
     });
   }
 
+import { SoundSystem } from '../systems/SoundSystem';
+
+// 무지개 색상 배열
+const RAINBOW_COLORS = [
+// ... existing code ...
+export class ParticleManager {
+// ... existing code ...
   private createHealSparkles(x: number, y: number, color: number): void {
     // 상승하는 작은 파티클들
     for (let i = 0; i < 8; i++) {
@@ -657,6 +664,116 @@ export class ParticleManager {
         onComplete: () => sparkle.destroy(),
       });
     }
+  }
+
+  createUpgradeAbsorption(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    color: number,
+    onComplete?: () => void
+  ): void {
+    const config = Data.feedback.upgradeAbsorption;
+    const { 
+      particleCount, 
+      duration, 
+      particleSizeMin, 
+      particleSizeMax, 
+      startSpread,
+      spreadDuration,
+      spreadEase,
+      suctionEase,
+      suctionDelayMax
+    } = config;
+
+    // 사운드 재생
+    SoundSystem.getInstance().playUpgradeSound();
+
+    // 1. 입자 흡수 연출 (Particle Stream)
+    for (let i = 0; i < particleCount; i++) {
+      const size = Phaser.Math.Between(particleSizeMin, particleSizeMax);
+      const particle = this.scene.add.circle(startX, startY, size, color, 1);
+      particle.setDepth(2000);
+
+      // 시작 위치 랜덤 오프셋 (스프레드) - 처음엔 확 퍼졌다가
+      const spreadAngle = Math.random() * Math.PI * 2;
+      const spreadDist = Math.random() * startSpread;
+      const spreadX = startX + Math.cos(spreadAngle) * spreadDist;
+      const spreadY = startY + Math.sin(spreadAngle) * spreadDist;
+
+      // 1단계: 퍼지기
+      this.scene.tweens.add({
+        targets: particle,
+        x: spreadX,
+        y: spreadY,
+        duration: spreadDuration,
+        ease: spreadEase,
+        onComplete: () => {
+          // 2단계: 커서로 흡수되기
+          // 딜레이를 주어 순차적으로 빨려들어가는 느낌
+          const delay = Math.random() * suctionDelayMax;
+
+          this.scene.tweens.add({
+            targets: particle,
+            x: endX,
+            y: endY,
+            scale: 0, // 점점 작아지며 흡수
+            alpha: { from: 1, to: 0.5 },
+            duration: duration,
+            delay: delay,
+            ease: suctionEase, // 빨려들어가는 가속감
+            onComplete: () => {
+              particle.destroy();
+              // 마지막 입자가 도착할 즈음 임팩트 실행 (한 번만)
+              if (i === particleCount - 1) {
+                this.createUpgradeImpact(endX, endY, color);
+                if (onComplete) onComplete();
+              }
+            },
+          });
+        }
+      });
+    }
+  }
+
+  // 업그레이드 흡수 완료 시 임팩트
+  private createUpgradeImpact(x: number, y: number, color: number): void {
+    const config = Data.feedback.upgradeAbsorption;
+    
+    // 강렬한 링 퍼짐
+    const ring = this.scene.add.graphics();
+    ring.lineStyle(5, color, 1);
+    ring.strokeCircle(0, 0, config.impactRingSize);
+    ring.setPosition(x, y);
+    ring.setDepth(2002);
+
+    this.scene.tweens.add({
+      targets: ring,
+      scaleX: config.impactRingScale,
+      scaleY: config.impactRingScale,
+      alpha: 0,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => ring.destroy(),
+    });
+
+    // 스타버스트
+    this.createStarburst(x, y, color);
+
+    // 커서 펄스 (커서가 있는 위치에 빛나는 원 생성)
+    const glow = this.scene.add.circle(x, y, config.impactGlowSize, color, 0.8);
+    glow.setDepth(2003);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.scene.tweens.add({
+      targets: glow,
+      scale: config.impactGlowScale,
+      alpha: 0,
+      duration: 300,
+      ease: 'Sine.easeOut',
+      onComplete: () => glow.destroy(),
+    });
   }
 
   // 방어막 효과

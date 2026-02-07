@@ -58,6 +58,29 @@ vi.mock('../src/data/DataManager', () => ({
     upgrades: {
       system: [],
     },
+    feedback: {
+      particles: {
+        basic: { count: 10 },
+        golden: { count: 10 },
+        crystal: { count: 10 },
+        bomb: { count: 10 },
+      },
+      upgradeAbsorption: {
+        particleCount: 10,
+        duration: 100,
+        particleSizeMin: 1,
+        particleSizeMax: 2,
+        startSpread: 10,
+        spreadDuration: 100,
+        spreadEase: 'Linear',
+        suctionEase: 'Linear',
+        suctionDelayMax: 10,
+        impactRingSize: 10,
+        impactRingScale: 1,
+        impactGlowSize: 10,
+        impactGlowScale: 1,
+      },
+    },
   },
 }));
 
