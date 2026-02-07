@@ -257,22 +257,6 @@ export class InGameUpgradeUI {
     const cursorPos = gameScene.getCursorPosition ? gameScene.getCursorPosition() : { x: gameScene.input.activePointer.worldX, y: gameScene.input.activePointer.worldY };
     const { BOX_WIDTH, BOX_HEIGHT, HOVER_DURATION } = UPGRADE_UI;
 
-    // 키보드 숫자 키 입력 처리 (1, 2, 3)
-    if (this.scene.input.keyboard) {
-      if (this.scene.input.keyboard.checkDown(this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE), 250)) {
-        if (this.boxes[0]) this.selectUpgrade(this.boxes[0]);
-        return;
-      }
-      if (this.scene.input.keyboard.checkDown(this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO), 250)) {
-        if (this.boxes[1]) this.selectUpgrade(this.boxes[1]);
-        return;
-      }
-      if (this.scene.input.keyboard.checkDown(this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE), 250)) {
-        if (this.boxes[2]) this.selectUpgrade(this.boxes[2]);
-        return;
-      }
-    }
-
     for (const box of this.boxes) {
       const bounds = new Phaser.Geom.Rectangle(
         box.container.x - BOX_WIDTH / 2,
