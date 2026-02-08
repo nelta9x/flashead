@@ -298,6 +298,18 @@
       "color": "#c8f6ff"
     }
   },
+  "blackHoleVisual": {
+    "depth": -0.5,
+    "fadeInDuration": 680,
+    "fadeInStartScale": 0.5,
+    "fadeInGlowBoost": 1.35,
+    "spawnFlashDuration": 520,
+    "spawnFlashStartScale": 0.4,
+    "spawnFlashEndScale": 1.35,
+    "spawnFlashAlpha": 0.65,
+    "spawnFlashLineWidth": 2.6,
+    "arcBurstCount": 6
+  },
   "audio": {
     "bgm": {
       "key": "bgm",

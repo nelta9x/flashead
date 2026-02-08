@@ -116,6 +116,19 @@ export interface StarsConfig {
   shootingStar?: ShootingStarConfig;
 }
 
+export interface BlackHoleVisualConfig {
+  depth: number;
+  fadeInDuration: number;
+  fadeInStartScale: number;
+  fadeInGlowBoost: number;
+  spawnFlashDuration: number;
+  spawnFlashStartScale: number;
+  spawnFlashEndScale: number;
+  spawnFlashAlpha: number;
+  spawnFlashLineWidth: number;
+  arcBurstCount: number;
+}
+
 export interface NumberRangeConfig {
   min: number;
   max: number;
@@ -461,6 +474,7 @@ export interface GameConfig {
   magnet: MagnetConfig;
   gameGrid: GridConfig;
   stars: StarsConfig;
+  blackHoleVisual: BlackHoleVisualConfig;
   audio: AudioConfig;
 }
 
@@ -852,6 +866,15 @@ export interface OrbitingOrbLevelData {
   size: number;
 }
 
+export interface BlackHoleLevelData {
+  damageInterval: number;
+  damage: number;
+  force: number;
+  spawnInterval: number;
+  spawnCount: number;
+  radius: number;
+}
+
 export type SystemUpgradeLevelData =
   | CursorSizeLevelData
   | CriticalChanceLevelData
@@ -859,7 +882,8 @@ export type SystemUpgradeLevelData =
   | MagnetLevelData
   | MissileLevelData
   | HealthPackLevelData
-  | OrbitingOrbLevelData;
+  | OrbitingOrbLevelData
+  | BlackHoleLevelData;
 
 export interface SystemUpgradeData {
   id: string;

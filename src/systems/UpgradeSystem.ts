@@ -9,6 +9,7 @@ import type {
   MissileLevelData,
   HealthPackLevelData,
   OrbitingOrbLevelData,
+  BlackHoleLevelData,
 } from '../data/types';
 import { EventBus, GameEvents } from '../utils/EventBus';
 
@@ -235,6 +236,15 @@ export class UpgradeSystem {
     return this.getLevelData<OrbitingOrbLevelData>('orbiting_orb');
   }
 
+  // ========== 블랙홀 ==========
+  getBlackHoleLevel(): number {
+    return this.getUpgradeStack('black_hole');
+  }
+
+  getBlackHoleData(): BlackHoleLevelData | null {
+    return this.getLevelData<BlackHoleLevelData>('black_hole');
+  }
+
   // ========== 유틸리티 ==========
   getUpgradeStack(upgradeId: string): number {
     return this.upgradeStacks.get(upgradeId) || 0;
@@ -339,6 +349,9 @@ export class UpgradeSystem {
           if (key === 'size') params[`${prefix}OrbSize`] = val;
           if (key === 'criticalChance') params[`${prefix}CriticalChance`] = val;
           if (key === 'missileThicknessBonus') params[`${prefix}MissileThickness`] = val;
+          if (key === 'damageInterval') params[`${prefix}DamageInterval`] = val;
+          if (key === 'spawnInterval') params[`${prefix}SpawnInterval`] = val;
+          if (key === 'spawnCount') params[`${prefix}SpawnCount`] = val;
         } else {
           params[`${prefix}${key}`] = String(value);
         }
@@ -394,6 +407,11 @@ export class UpgradeSystem {
         return current
           ? Data.formatTemplate('upgrade.preview.orbiting_orb.upgrade', params)
           : Data.formatTemplate('upgrade.preview.orbiting_orb.new', params);
+
+      case 'blackHoleLevel':
+        return current
+          ? Data.formatTemplate('upgrade.preview.black_hole.upgrade', params)
+          : Data.formatTemplate('upgrade.preview.black_hole.new', params);
 
       default:
         return '';

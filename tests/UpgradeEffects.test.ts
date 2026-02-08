@@ -69,6 +69,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       expect(upgrade.getMissileLevel()).toBe(0);
       expect(upgrade.getMissileDamage()).toBe(0);
       expect(upgrade.getMissileCount()).toBe(0);
+      expect(upgrade.getBlackHoleLevel()).toBe(0);
+      expect(upgrade.getBlackHoleData()).toBeNull();
     });
   });
 
@@ -285,6 +287,43 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
     });
   });
 
+  describe('블랙홀 (black_hole)', () => {
+    it('레벨 1 수치 확인', async () => {
+      const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+      const blackHoleUpgrade = UPGRADES.find((u) => u.id === 'black_hole')!;
+
+      upgrade.applyUpgrade(blackHoleUpgrade);
+      expect(upgrade.getBlackHoleLevel()).toBe(1);
+      expect(upgrade.getBlackHoleData()).toEqual({
+        damageInterval: 1200,
+        damage: 1,
+        force: 260,
+        spawnInterval: 7600,
+        spawnCount: 1,
+        radius: 150,
+      });
+    });
+
+    it('레벨 5 수치 확인', async () => {
+      const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+      const blackHoleUpgrade = UPGRADES.find((u) => u.id === 'black_hole')!;
+
+      for (let i = 0; i < 5; i++) upgrade.applyUpgrade(blackHoleUpgrade);
+
+      expect(upgrade.getBlackHoleLevel()).toBe(5);
+      expect(upgrade.getBlackHoleData()).toEqual({
+        damageInterval: 850,
+        damage: 3,
+        force: 440,
+        spawnInterval: 5400,
+        spawnCount: 2,
+        radius: 230,
+      });
+    });
+  });
+
   describe('헬스팩 (health_pack)', () => {
     it('레벨 1 수치 확인 및 이벤트 발생', async () => {
       const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
@@ -368,6 +407,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       expect(upgrade.getMissileLevel()).toBe(0);
       expect(upgrade.getMissileDamage()).toBe(0);
       expect(upgrade.getMissileCount()).toBe(0);
+      expect(upgrade.getBlackHoleLevel()).toBe(0);
+      expect(upgrade.getBlackHoleData()).toBeNull();
     });
   });
 

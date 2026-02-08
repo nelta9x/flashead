@@ -137,6 +137,56 @@
         { "count": 4, "damage": 7, "speed": 150, "radius": 120, "size": 11 },
         { "count": 5, "damage": 7, "speed": 150, "radius": 160, "size": 15 }
       ]
+    },
+    {
+      "id": "black_hole",
+      "name": "블랙홀",
+      "description": "주기적으로 블랙홀을 생성해 접시와 폭탄을 끌어당기고, 영역 내 적에게 낮은 지속 피해를 줍니다.",
+      "descriptionTemplate": "{spawnInterval}ms마다 {spawnCount}개의 블랙홀을 생성해 반경 {radius}px 내 대상을 {force}의 힘으로 끌어당기며, {damageInterval}ms마다 {damage} 피해를 줍니다.",
+      "rarity": "legendary",
+      "effectType": "blackHoleLevel",
+      "levels": [
+        {
+          "damageInterval": 1200,
+          "damage": 1,
+          "force": 260,
+          "spawnInterval": 7600,
+          "spawnCount": 1,
+          "radius": 150
+        },
+        {
+          "damageInterval": 1100,
+          "damage": 1,
+          "force": 300,
+          "spawnInterval": 7000,
+          "spawnCount": 1,
+          "radius": 170
+        },
+        {
+          "damageInterval": 1000,
+          "damage": 2,
+          "force": 340,
+          "spawnInterval": 6400,
+          "spawnCount": 1,
+          "radius": 190
+        },
+        {
+          "damageInterval": 900,
+          "damage": 2,
+          "force": 390,
+          "spawnInterval": 5900,
+          "spawnCount": 2,
+          "radius": 210
+        },
+        {
+          "damageInterval": 850,
+          "damage": 3,
+          "force": 440,
+          "spawnInterval": 5400,
+          "spawnCount": 2,
+          "radius": 230
+        }
+      ]
     }
   ]
 }

@@ -42,6 +42,7 @@
 - **`src/scenes/GameScene.ts`**: **핵심 게임 루프**. 모든 시스템을 초기화하고 조율합니다.
   - **플레이어 공격**: 게이지 완충 시 기 모으기(Charge) 및 순차 미사일(Sequential Missiles) 발사 로직을 관리하며, 시각 연출은 `PlayerAttackRenderer`에 위임합니다.
   - **보스 공격**: 멀티 보스(`Map<string, Boss>`) 기준으로 보스별 레이저 타이밍/취소/재개를 독립 제어합니다.
+  - **블랙홀 어빌리티**: `BlackHoleSystem`의 흡인/피해 로직과 `BlackHoleRenderer`의 시각 연출을 매 프레임 동기화합니다.
   - **보스 타겟팅**: 미사일은 발사 시점의 nearest alive boss를 선택하고, 비행 중 타겟 사망 시 nearest alive boss로 재타겟합니다.
   - **충돌 감지**: 커서 범위 공격, 레이저 피격, 힐팩 수집, 보스 겹침(보스 주기 피해/플레이어 무피해) 등의 실시간 충돌을 판정합니다.
 - **`src/scenes/GameOverScene.ts`**: 게임 오버 화면. 최종 스탯(최대 콤보, 웨이브, 생존 시간) 표시, 재시작 안내, 페이드 전환.
@@ -57,6 +58,7 @@
 - **`HealthSystem.ts`**: 플레이어 HP 관리. 데미지 수신 시 `HP_CHANGED` 이벤트를 발행하며, 현재 HP는 `GameScene -> CursorRenderer` 경로로 커서 통합형 링에 반영됩니다. HP가 0이 되면 `GAME_OVER` 발생.
 - **`MonsterSystem.ts`**: 보스 몬스터 HP/사망 상태를 `bossId`별 `Map`으로 관리합니다. 웨이브 시작 시 `bossTotalHp`를 가중치(`hpWeight`) 기반으로 분배하고, `MONSTER_HP_CHANGED`/`MONSTER_DIED`를 `bossId` 스냅샷 payload로 발행합니다.
 - **`OrbSystem.ts`**: 플레이어 주변을 회전하는 보호 오브(Orb)의 로직 처리. 업그레이드 레벨에 따른 개수/속도/데미지 계산 및 자석(Magnet) 업그레이드와의 시너지(크기 증가)를 관리합니다.
+- **`BlackHoleSystem.ts`**: 블랙홀 어빌리티 로직 처리. 레벨 데이터(`spawnInterval`, `spawnCount`, `radius`, `force`, `damageInterval`, `damage`) 기반으로 주기적 랜덤 블랙홀을 생성/교체하고, 접시·폭탄 흡인 및 접시/보스 피해 틱을 적용합니다.
 - **`GaugeSystem.ts`**: 콤보 수치에 따라 공격 게이지를 충전합니다. 게이지가 100%가 되면 `PLAYER_ATTACK` 이벤트를 발생시킵니다.
 - **`ScoreSystem.ts`**: 접시 파괴 시 점수 계산 및 콤보 배율 적용.
 - **`SoundSystem.ts`**: Phaser Sound API 및 Web Audio API 기반 사운드 시스템. 오디오 파일 재생을 우선하며, 부재 시 코드로 사운드를 합성(Fallback)합니다. 마스터 볼륨 제어, 일시정지 상태 복구 지원.
@@ -86,6 +88,7 @@
   - **`LaserRenderer.ts`**: 보스의 레이저 공격 경고 및 발사 연출 렌더러.
   - **`BossRenderer.ts`**: 인게임 보스 코어/아머/글로우 렌더링 전담 클래스. `Boss` 엔티티가 상태를 전달해 그리기를 위임합니다.
   - **`OrbRenderer.ts`**: 플레이어 보호 오브의 글로우 및 전기 스파크 연출 렌더러.
+  - **`BlackHoleRenderer.ts`**: 블랙홀 코어/링/글로우/아크 노이즈를 렌더링하는 전용 렌더러.
   - **`MenuBossRenderer.ts`**: 메인 메뉴 보스의 화려한 애니메이션 렌더링.
   - **`DishRenderer.ts`**: 접시 외형 렌더링 전담 클래스. `Dish` 엔티티의 인게임 접시 및 `MenuScene` 배경 접시를 공용 렌더링합니다.
   - **`HealthPackRenderer.ts`**: 힐팩 외형 렌더링 전담 클래스.

@@ -537,6 +537,7 @@ export class AbilitySummaryWidget {
       missile: '✹',
       health_pack: '✚',
       orbiting_orb: '◎',
+      black_hole: '●',
     };
 
     return symbols[abilityId] || '★';

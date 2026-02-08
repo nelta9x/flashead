@@ -29,11 +29,13 @@ import { LaserRenderer } from '../effects/LaserRenderer';
 import { CursorRenderer } from '../effects/CursorRenderer';
 import { OrbRenderer } from '../effects/OrbRenderer';
 import { PlayerAttackRenderer } from '../effects/PlayerAttackRenderer';
+import { BlackHoleRenderer } from '../effects/BlackHoleRenderer';
 import { FeedbackSystem } from '../systems/FeedbackSystem';
 import { SoundSystem } from '../systems/SoundSystem';
 import { MonsterSystem } from '../systems/MonsterSystem';
 import { GaugeSystem } from '../systems/GaugeSystem';
 import { OrbSystem } from '../systems/OrbSystem';
+import { BlackHoleSystem } from '../systems/BlackHoleSystem';
 import { InGameUpgradeUI } from '../ui/InGameUpgradeUI';
 import { WaveCountdownUI } from '../ui/WaveCountdownUI';
 import { HudFrameContext } from '../ui/hud/types';
@@ -54,6 +56,7 @@ export class GameScene extends Phaser.Scene {
   private monsterSystem!: MonsterSystem;
   private gaugeSystem!: GaugeSystem;
   private orbSystem!: OrbSystem;
+  private blackHoleSystem!: BlackHoleSystem;
 
   // UI & 이펙트
   private hud!: HUD;
@@ -84,6 +87,7 @@ export class GameScene extends Phaser.Scene {
   private cursorRenderer!: CursorRenderer;
   private laserRenderer!: LaserRenderer;
   private orbRenderer!: OrbRenderer;
+  private blackHoleRenderer!: BlackHoleRenderer;
   private playerAttackRenderer: PlayerAttackRenderer | null = null;
 
   // BGM
@@ -173,6 +177,11 @@ export class GameScene extends Phaser.Scene {
     this.orbRenderer = new OrbRenderer(this);
     this.orbRenderer.setDepth(1001);
 
+    // 블랙홀 렌더러 생성
+    this.blackHoleRenderer = new BlackHoleRenderer(this);
+    // 접시(기본 depth 0) 뒤에 렌더링되도록 배경 레이어로 배치
+    this.blackHoleRenderer.setDepth(Data.gameConfig.blackHoleVisual.depth);
+
     // 레이저 렌더러 생성
     this.laserRenderer = new LaserRenderer(this);
     this.playerAttackRenderer = new PlayerAttackRenderer(this);
@@ -228,6 +237,13 @@ export class GameScene extends Phaser.Scene {
     this.monsterSystem = new MonsterSystem();
     this.gaugeSystem = new GaugeSystem(this.comboSystem);
     this.orbSystem = new OrbSystem(this.upgradeSystem);
+    this.blackHoleSystem = new BlackHoleSystem(
+      this.upgradeSystem,
+      () => this.dishPool,
+      () => this.getAliveVisibleBossSnapshotsWithRadius(),
+      (bossId, amount, sourceX, sourceY) =>
+        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY)
+    );
 
     // HUD
     this.hud = new HUD(this, this.waveSystem, this.healthSystem, this.upgradeSystem);
@@ -439,6 +455,34 @@ export class GameScene extends Phaser.Scene {
       visibleBosses.push({ id: bossId, x: boss.x, y: boss.y, visible: true });
     });
     return visibleBosses;
+  }
+
+  private getAliveVisibleBossSnapshotsWithRadius(): Array<{
+    id: string;
+    x: number;
+    y: number;
+    radius: number;
+  }> {
+    const snapshots: Array<{ id: string; x: number; y: number; radius: number }> = [];
+    const baseRadius = Math.max(Data.boss.visual.core.radius, Data.boss.visual.armor.radius);
+
+    this.bosses.forEach((boss, bossId) => {
+      if (!boss.visible) return;
+      if (!this.monsterSystem.isAlive(bossId)) return;
+
+      const scaleX = Number.isFinite(boss.scaleX) ? Math.abs(boss.scaleX) : 1;
+      const scaleY = Number.isFinite(boss.scaleY) ? Math.abs(boss.scaleY) : 1;
+      const scale = Math.max(scaleX, scaleY, 1);
+
+      snapshots.push({
+        id: bossId,
+        x: boss.x,
+        y: boss.y,
+        radius: Math.max(1, baseRadius * scale),
+      });
+    });
+
+    return snapshots;
   }
 
   private syncBossesForWave(_waveNumber: number): void {
@@ -1185,6 +1229,8 @@ export class GameScene extends Phaser.Scene {
     if (this.cursorTrail) this.cursorTrail.destroy();
     if (this.gaugeSystem) this.gaugeSystem.destroy();
     if (this.orbRenderer) this.orbRenderer.destroy();
+    if (this.blackHoleRenderer) this.blackHoleRenderer.destroy();
+    if (this.blackHoleSystem) this.blackHoleSystem.clear();
     this.playerAttackRenderer?.destroy();
     this.playerAttackRenderer = null;
   }
@@ -1287,6 +1333,10 @@ export class GameScene extends Phaser.Scene {
 
     // 자기장 효과 업데이트
     this.updateMagnetEffect(delta);
+
+    // 블랙홀 어빌리티 업데이트
+    this.blackHoleSystem.update(delta, this.gameTime);
+    this.blackHoleRenderer.render(this.blackHoleSystem.getBlackHoles(), this.gameTime);
 
     // 구체 어빌리티 업데이트
     this.orbSystem.update(

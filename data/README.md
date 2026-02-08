@@ -128,6 +128,18 @@ import { COLORS, FONTS } from '../data/constants';
   },
   "magnet": {
     "minPullDistance": 30   // 최소 당김 거리 (레벨별 수치는 upgrades.json의 magnet.levels에서 관리)
+  },
+  "blackHoleVisual": {
+    "depth": -0.5,              // 렌더링 depth (접시보다 뒤는 0 미만)
+    "fadeInDuration": 680,      // 블랙홀 생성 후 페이드 인 시간 (ms)
+    "fadeInStartScale": 0.5,    // 페이드 인 시작 스케일 (1 = 최종 크기)
+    "fadeInGlowBoost": 1.35,    // 페이드 인 중 글로우 증폭 계수
+    "spawnFlashDuration": 520,  // 스폰 플래시 지속 시간 (ms)
+    "spawnFlashStartScale": 0.4, // 스폰 플래시 시작 반경 배율
+    "spawnFlashEndScale": 1.35, // 스폰 플래시 종료 반경 배율
+    "spawnFlashAlpha": 0.65,    // 스폰 플래시 투명도
+    "spawnFlashLineWidth": 2.6, // 스폰 플래시 라인 두께
+    "arcBurstCount": 6          // 스폰 시 방사 버스트 선 개수
   }
 }
 ```
@@ -332,13 +344,13 @@ import { COLORS, FONTS } from '../data/constants';
 ```json
 {
   "system": [
-    {
-      "id": "cursor_size",
-      "name": "넓은 타격",
-      "description": "커서 판정 범위 및 데미지 증가",
-      "descriptionTemplate": "커서 판정 범위가 {sizeBonus}% 증가하고, 데미지가 {damage} 증가하며, 미사일 굵기가 {missileThicknessBonus}% 증가합니다.",
-      "rarity": "common",
-      "effectType": "cursorSizeBonus",
+{
+  "id": "cursor_size",
+  "name": "넓은 타격",
+  "description": "커서 판정 범위 및 데미지 증가",
+  "descriptionTemplate": "커서 판정 범위가 {sizeBonus}% 증가하고, 데미지가 {damage} 증가하며, 미사일 굵기가 {missileThicknessBonus}% 증가합니다.",
+  "rarity": "common",
+  "effectType": "cursorSizeBonus",
       "levels": [
         { "sizeBonus": 0.3, "damage": 2, "missileThicknessBonus": 0.3 },
         { "sizeBonus": 0.6, "damage": 4, "missileThicknessBonus": 0.6 },
@@ -370,6 +382,33 @@ import { COLORS, FONTS } from '../data/constants';
 | | `force` | 끌어당기는 힘 (px/sec) |
 | `missile` | `damage` | 미사일 데미지 |
 | | `count` | 미사일 발사 수 |
+| `black_hole` | `damageInterval` | 블랙홀 피해 틱 간격 (ms) |
+| | `damage` | 블랙홀 피해 틱 당 피해량 |
+| | `force` | 블랙홀 끌어당김 힘 (px/sec) |
+| | `spawnInterval` | 블랙홀 재생성 주기 (ms, 주기마다 기존 교체) |
+| | `spawnCount` | 주기당 생성 개수 |
+| | `radius` | 블랙홀 반경 (px) |
+
+`black_hole`는 중심 좌표와 반경이 모두 화면 안에 들어오도록 생성됩니다.
+
+예시:
+```json
+{
+  "id": "black_hole",
+  "rarity": "legendary",
+  "effectType": "blackHoleLevel",
+  "levels": [
+    {
+      "damageInterval": 1200,
+      "damage": 1,
+      "force": 260,
+      "spawnInterval": 7600,
+      "spawnCount": 1,
+      "radius": 150
+    }
+  ]
+}
+```
 
 ---
 
