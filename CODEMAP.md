@@ -22,7 +22,7 @@
   - 연결 지점: `src/scenes/GameScene.ts`의 `updateAttackRangeIndicator()`에서 현재/최대 HP를 `CursorRenderer.renderAttackIndicator()`로 전달
   - 설정 파일: `data/game-config.json`의 `player.hpRing`
 - **보스 HP 표시**
-  - 렌더링 위치: `src/entities/Boss.ts`의 메뉴 스타일 아머 렌더링(`drawArmor()`, `drawGlow()`)
+  - 렌더링 위치: `src/effects/BossRenderer.ts` (호출 지점: `src/entities/Boss.ts`)
   - 데이터 소스: `MonsterSystem`가 발행하는 `MONSTER_HP_CHANGED` (`current`, `max`, `ratio`)
   - 세그먼트 계산: `src/entities/bossHpSegments.ts`의 `resolveBossHpSegmentState()`
   - 설정 파일: `data/boss.json`의 `visual.armor`, `visual.armor.hpSegments`
@@ -65,7 +65,7 @@
   - `spawn()`: 초기화 및 애니메이션 시작.
   - `applyDamage()`: HP 감소 및 파괴 로직.
   - `update()`: 생존 시간 체크 및 이동 로직.
-- **`Boss.ts`**: 보스 몬스터. `MONSTER_HP_CHANGED`의 `current/max` 기반으로 아머 실루엣 조각 수를 계산해 체력을 표현합니다(`100 HP = 1 slot`, 올림). `MONSTER_DIED` 이벤트를 구독합니다.
+- **`Boss.ts`**: 보스 몬스터의 로직 엔티티. `MONSTER_HP_CHANGED`의 `current/max` 기반으로 아머 슬롯 수를 계산하고, 시각화는 `BossRenderer`에 위임합니다. `MONSTER_DIED` 이벤트를 구독합니다.
 - **`HealthPack.ts`**: 낙하하는 힐 아이템 오브젝트. 커서와 충돌 시 `HEALTH_PACK_COLLECTED` 이벤트를 발생시킵니다.
 
 ### 4. 시각 효과 및 UI (Effects & UI)
@@ -77,6 +77,7 @@
   - `StarBackground`: 별 배경 애니메이션 (반짝임, 수직 스크롤).
   - **`GridRenderer.ts`**: 배경 그리드의 원근감 렌더링 로직 (공유 가능).
   - **`LaserRenderer.ts`**: 보스의 레이저 공격 경고 및 발사 연출 렌더러.
+  - **`BossRenderer.ts`**: 인게임 보스 코어/아머/글로우 렌더링 전담 클래스. `Boss` 엔티티가 상태를 전달해 그리기를 위임합니다.
   - **`OrbRenderer.ts`**: 플레이어 보호 오브의 글로우 및 전기 스파크 연출 렌더러.
   - **`MenuBossRenderer.ts`**: 메인 메뉴 보스의 화려한 애니메이션 렌더링.
   - **`MenuDishRenderer.ts`**: 메인 메뉴에서 배경으로 쓰이는 접시의 렌더링 로직.

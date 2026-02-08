@@ -3,6 +3,7 @@ import { COLORS } from '../data/constants';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { FeedbackSystem } from '../systems/FeedbackSystem';
 import { resolveBossHpSegmentState } from './bossHpSegments';
+import { BossRenderer } from '../effects/BossRenderer';
 
 interface MonsterHpChangedEventData {
   current?: number;
@@ -14,10 +15,7 @@ interface MonsterHpChangedEventData {
 
 export class Boss extends Phaser.GameObjects.Container {
   private feedbackSystem: FeedbackSystem | null = null;
-  private core: Phaser.GameObjects.Arc;
-  private coreLight: Phaser.GameObjects.Arc;
-  private glowGraphics: Phaser.GameObjects.Graphics;
-  private armorGraphics: Phaser.GameObjects.Graphics;
+  private readonly renderer: BossRenderer;
   private hpRatio: number = 1;
   private timeElapsed: number = 0;
   private movementTime: number = 0;
@@ -59,31 +57,7 @@ export class Boss extends Phaser.GameObjects.Container {
     this.baseX = x;
     this.baseY = y;
 
-    // 네온 글로우를 그릴 그래픽스 (가산 혼합)
-    this.glowGraphics = scene.add.graphics();
-    this.glowGraphics.setBlendMode(Phaser.BlendModes.ADD);
-    this.add(this.glowGraphics);
-
-    // 중앙 코어 생성
-    this.core = scene.add.arc(
-      0,
-      0,
-      config.core.radius,
-      0,
-      360,
-      false,
-      COLORS.RED,
-      config.core.initialAlpha
-    );
-    this.add(this.core);
-
-    // 코어 내부 강한 광원
-    this.coreLight = scene.add.arc(0, 0, config.core.radius * 0.4, 0, 360, false, 0xffffff, 0.8);
-    this.add(this.coreLight);
-
-    // 아머를 그릴 그래픽스
-    this.armorGraphics = scene.add.graphics();
-    this.add(this.armorGraphics);
+    this.renderer = new BossRenderer(scene, this);
 
     this.setVisible(false);
     this.setAlpha(0);
@@ -165,20 +139,7 @@ export class Boss extends Phaser.GameObjects.Container {
     const reaction = Data.boss.feedback.hitReaction;
     if (!reaction) return;
 
-    this.scene.tweens.add({
-      targets: [this.core, this.coreLight],
-      fillAlpha: 1,
-      duration: reaction.flashDuration,
-      yoyo: true,
-      onStart: () => {
-        this.core.setFillStyle(0xffffff);
-        this.coreLight.setFillStyle(0xffffff);
-      },
-      onComplete: () => {
-        this.core.setFillStyle(COLORS.RED, Data.boss.visual.core.initialAlpha);
-        this.coreLight.setFillStyle(0xffffff, 0.8);
-      },
-    });
+    this.renderer.playHitFlash(reaction.flashDuration);
 
     if (sourceX !== undefined && sourceY !== undefined) {
       // 피격 방향 계산 (소스에서 보스 방향)
@@ -246,7 +207,7 @@ export class Boss extends Phaser.GameObjects.Container {
       this.y,
       config.innerRadius,
       config.radius,
-      this.resolveColor(config.bodyColor, COLORS.RED)
+      BossRenderer.resolveColor(config.bodyColor, COLORS.RED)
     );
   }
 
@@ -297,24 +258,12 @@ export class Boss extends Phaser.GameObjects.Container {
       this.updateMovement(delta);
     }
 
-    // 코어 연출
-    const corePulse =
-      config.visual.core.initialAlpha +
-      Math.sin(this.timeElapsed * config.visual.core.pulseSpeed * (1 + dangerLevel)) *
-        config.visual.core.pulseIntensity;
-    this.core.setAlpha(corePulse);
-    this.core.setScale(1 + dangerLevel * 0.1);
-
-    // 코어 내부 광원 펄스 (더 빠르게)
-    const lightPulse = 0.8 + Math.sin(this.timeElapsed * config.visual.core.pulseSpeed * 2) * 0.2;
-    this.coreLight.setAlpha(lightPulse);
-
-    // 그래픽스 갱신
-    this.glowGraphics.clear();
-    this.armorGraphics.clear();
-
-    this.drawGlow();
-    this.drawArmor();
+    this.renderer.render({
+      hpRatio: this.hpRatio,
+      timeElapsed: this.timeElapsed,
+      armorPieceCount: this.armorPieceCount,
+      filledArmorPieceCount: this.currentArmorCount,
+    });
 
     // 최종 위치 = 기본 위치 + 피격 흔들림 오프셋 + 밀려남 오프셋
     this.x = this.baseX + this.shakeOffsetX + this.pushOffsetX;
@@ -336,91 +285,6 @@ export class Boss extends Phaser.GameObjects.Container {
     this.frozen = false;
   }
 
-  private drawGlow(): void {
-    const config = Data.boss.visual;
-    const dangerLevel = 1 - this.hpRatio;
-    const pulseFactor = 1 + Math.sin(this.timeElapsed * config.core.pulseSpeed) * 0.1;
-
-    // 1. 코어 글로우 (여러 겹)
-    if (config.core.glowLevels) {
-      config.core.glowLevels.forEach((level) => {
-        this.glowGraphics.fillStyle(COLORS.RED, level.alpha * pulseFactor);
-        this.glowGraphics.fillCircle(
-          0,
-          0,
-          config.core.radius * level.radius * (1 + dangerLevel * 0.2)
-        );
-      });
-    }
-
-    // 2. 아머 테두리 글로우
-    const armor = config.armor;
-    const rotation = this.timeElapsed * armor.rotationSpeed;
-    const pieceAngle = (Math.PI * 2) / this.armorPieceCount;
-    const pieceSpan = this.getArmorPieceSpan(armor.gap, this.armorPieceCount);
-    const glowAlpha = (armor.glowAlpha ?? 0.4) * pulseFactor;
-    const glowWidth = armor.glowWidth ?? 4;
-
-    for (let i = 0; i < this.currentArmorCount; i++) {
-      const centerAngle = rotation + (i + 0.5) * pieceAngle;
-      const startAngle = centerAngle - pieceSpan * 0.5;
-      const endAngle = centerAngle + pieceSpan * 0.5;
-      if (endAngle <= startAngle) {
-        continue;
-      }
-      this.glowGraphics.lineStyle(glowWidth, COLORS.RED, glowAlpha);
-      this.traceArmorPiecePath(this.glowGraphics, startAngle, endAngle, armor.innerRadius, armor.radius);
-      this.glowGraphics.strokePath();
-    }
-  }
-
-  private drawArmor(): void {
-    const config = Data.boss.visual.armor;
-    const rotation = this.timeElapsed * config.rotationSpeed;
-    const pieceAngle = (Math.PI * 2) / this.armorPieceCount;
-    const pieceSpan = this.getArmorPieceSpan(config.gap, this.armorPieceCount);
-
-    const filledBodyColor = this.resolveColor(config.bodyColor, COLORS.RED);
-    const filledBorderColor = this.resolveColor(config.borderColor, COLORS.RED);
-    const depletedBodyColor = this.resolveColor(config.depletedBodyColor, filledBodyColor);
-    const depletedBorderColor = this.resolveColor(config.depletedBorderColor, filledBorderColor);
-    const depletedBodyAlpha = config.depletedBodyAlpha ?? Math.max(0.12, config.bodyAlpha * 0.35);
-    const depletedBorderAlpha = config.depletedBorderAlpha ?? 0.35;
-
-    for (let i = 0; i < this.armorPieceCount; i++) {
-      const centerAngle = rotation + (i + 0.5) * pieceAngle;
-      const startAngle = centerAngle - pieceSpan * 0.5;
-      const endAngle = centerAngle + pieceSpan * 0.5;
-      if (endAngle <= startAngle) {
-        continue;
-      }
-
-      const isFilled = i < this.currentArmorCount;
-      const bodyColor = isFilled ? filledBodyColor : depletedBodyColor;
-      const bodyAlpha = isFilled ? config.bodyAlpha : depletedBodyAlpha;
-      const borderColor = isFilled ? filledBorderColor : depletedBorderColor;
-      const borderAlpha = isFilled ? 1 : depletedBorderAlpha;
-      const detailAlpha = isFilled ? 0.4 : Math.min(0.25, depletedBorderAlpha * 0.7);
-
-      // 아머 본체
-      this.armorGraphics.fillStyle(bodyColor, bodyAlpha);
-      this.traceArmorPiecePath(this.armorGraphics, startAngle, endAngle, config.innerRadius, config.radius);
-      this.armorGraphics.fillPath();
-
-      // 아머 테두리
-      this.armorGraphics.lineStyle(2, borderColor, borderAlpha);
-      this.traceArmorPiecePath(this.armorGraphics, startAngle, endAngle, config.innerRadius, config.radius);
-      this.armorGraphics.strokePath();
-
-      // 아머 내부 디테일 라인
-      this.armorGraphics.lineStyle(1, borderColor, detailAlpha);
-      const midRadius = (config.radius + config.innerRadius) / 2;
-      this.armorGraphics.beginPath();
-      this.armorGraphics.arc(0, 0, midRadius, startAngle, endAngle);
-      this.armorGraphics.strokePath();
-    }
-  }
-
   private refreshArmorSegments(): void {
     const segmentState = resolveBossHpSegmentState(this.currentHp, this.maxHp, {
       defaultPieces: this.defaultArmorPieces,
@@ -431,51 +295,5 @@ export class Boss extends Phaser.GameObjects.Container {
     this.filledHpSlotCount = segmentState.filledPieces;
     this.armorPieceCount = Math.max(1, this.hpSlotCount);
     this.currentArmorCount = Phaser.Math.Clamp(this.filledHpSlotCount, 0, this.armorPieceCount);
-  }
-
-  private getClampedArmorGap(configuredGap: number, pieceCount: number): number {
-    const safePieceCount = Math.max(1, pieceCount);
-    const pieceAngle = (Math.PI * 2) / safePieceCount;
-    const maxGap = pieceAngle * 0.45;
-    return Phaser.Math.Clamp(configuredGap, 0, maxGap);
-  }
-
-  private getArmorPieceSpan(configuredGap: number, pieceCount: number): number {
-    const safePieceCount = Math.max(1, pieceCount);
-    const slotAngle = (Math.PI * 2) / safePieceCount;
-    const gap = this.getClampedArmorGap(configuredGap, safePieceCount);
-    return Math.max(slotAngle - gap * 2, slotAngle * 0.2);
-  }
-
-  private traceArmorPiecePath(
-    graphics: Phaser.GameObjects.Graphics,
-    startAngle: number,
-    endAngle: number,
-    innerRadius: number,
-    outerRadius: number
-  ): void {
-    graphics.beginPath();
-    graphics.arc(0, 0, outerRadius, startAngle, endAngle, false);
-    graphics.lineTo(Math.cos(endAngle) * innerRadius, Math.sin(endAngle) * innerRadius);
-    graphics.arc(0, 0, innerRadius, endAngle, startAngle, true);
-    graphics.closePath();
-  }
-
-  private resolveColor(colorValue: string | undefined, fallback: number): number {
-    if (!colorValue) {
-      return fallback;
-    }
-
-    if (colorValue.startsWith('0x') || colorValue.startsWith('0X')) {
-      const parsedHex = Number.parseInt(colorValue.slice(2), 16);
-      return Number.isNaN(parsedHex) ? fallback : parsedHex;
-    }
-
-    if (colorValue.startsWith('#')) {
-      const parsedHex = Number.parseInt(colorValue.slice(1), 16);
-      return Number.isNaN(parsedHex) ? fallback : parsedHex;
-    }
-
-    return Data.getColor(colorValue);
   }
 }
