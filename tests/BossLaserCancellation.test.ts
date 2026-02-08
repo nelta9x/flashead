@@ -26,7 +26,7 @@ const mockPhaser = {
       circle: () => ({ setDepth: () => ({}), setPosition: () => ({}), setScale: () => ({}), destroy: vi.fn(), displayWidth: 10, x: 0, y: 0 }),
       particles: () => ({ setDepth: () => ({}), setPosition: () => ({}), destroy: vi.fn() })
     };
-    time = { delayedCall: (delay: number, cb: Function) => cb(), addEvent: vi.fn() };
+    time = { delayedCall: (_delay: number, cb: Function) => cb(), addEvent: vi.fn() };
     physics = { add: { existing: vi.fn() }, pause: vi.fn(), resume: vi.fn() };
     cameras = { main: { shake: vi.fn(), fadeIn: vi.fn(), fadeOut: vi.fn(), once: vi.fn() } };
     input = { setDefaultCursor: vi.fn(), keyboard: { on: vi.fn() }, activePointer: { x: 0, y: 0, worldX: 0, worldY: 0 } };
@@ -70,7 +70,7 @@ const mockPhaser = {
   }
 };
 
-(globalThis as typeof globalThis & { Phaser: typeof mockPhaser }).Phaser = mockPhaser;
+(globalThis as { Phaser?: unknown }).Phaser = mockPhaser;
 
 vi.mock('phaser', () => ({
   default: mockPhaser,
@@ -82,41 +82,41 @@ type GameSceneTestContext = {
   boss: {
     x: number;
     y: number;
-    unfreeze: ReturnType<typeof vi.fn>;
-    freeze: ReturnType<typeof vi.fn>;
+    unfreeze: () => void;
+    freeze: () => void;
     visible: boolean;
   };
-  damageText: { showText: ReturnType<typeof vi.fn> };
-  laserRenderer: { clear: ReturnType<typeof vi.fn> };
+  damageText: { showText: (...args: unknown[]) => void };
+  laserRenderer: { clear: (...args: unknown[]) => void };
   feedbackSystem: {
-    onBossDamaged: ReturnType<typeof vi.fn>;
-    onCriticalHit: ReturnType<typeof vi.fn>;
+    onBossDamaged: (...args: unknown[]) => void;
+    onCriticalHit: (...args: unknown[]) => void;
   };
-  monsterSystem: { isAlive: () => boolean; takeDamage: ReturnType<typeof vi.fn> };
+  monsterSystem: { isAlive: () => boolean; takeDamage: (...args: unknown[]) => void };
   upgradeSystem: {
     getMissileLevel: () => number;
     getCriticalChanceBonus: () => number;
     getCursorSizeBonus: () => number;
     getCursorDamageBonus: () => number;
   };
-  comboSystem: { getCombo: () => number; increment: ReturnType<typeof vi.fn> };
+  comboSystem: { getCombo: () => number; increment: (...args: unknown[]) => void };
   soundSystem: {
-    playPlayerChargeSound: ReturnType<typeof vi.fn>;
-    playBossFireSound: ReturnType<typeof vi.fn>;
-    playHitSound: ReturnType<typeof vi.fn>;
+    playPlayerChargeSound: (...args: unknown[]) => void;
+    playBossFireSound: (...args: unknown[]) => void;
+    playHitSound: (...args: unknown[]) => void;
   };
   particleManager: {
-    createSparkBurst: ReturnType<typeof vi.fn>;
-    createHitEffect: ReturnType<typeof vi.fn>;
-    createExplosion: ReturnType<typeof vi.fn>;
+    createSparkBurst: (...args: unknown[]) => void;
+    createHitEffect: (...args: unknown[]) => void;
+    createExplosion: (...args: unknown[]) => void;
   };
   tweens: {
-    add: ReturnType<typeof vi.fn>;
-    pauseAll: ReturnType<typeof vi.fn>;
-    resumeAll: ReturnType<typeof vi.fn>;
+    add: (config: { onComplete?: () => void; onUpdate?: (...args: unknown[]) => void }) => void;
+    pauseAll: (...args: unknown[]) => void;
+    resumeAll: (...args: unknown[]) => void;
   };
   time: { timeScale: number };
-  physics: { pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn> };
+  physics: { pause: (...args: unknown[]) => void; resume: (...args: unknown[]) => void };
   input: { activePointer: { worldX: number; worldY: number } };
   isPaused: boolean;
   isGameOver: boolean;

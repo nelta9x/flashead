@@ -28,6 +28,7 @@ import { GridRenderer } from '../effects/GridRenderer';
 import { LaserRenderer } from '../effects/LaserRenderer';
 import { CursorRenderer } from '../effects/CursorRenderer';
 import { OrbRenderer } from '../effects/OrbRenderer';
+import { PlayerAttackRenderer } from '../effects/PlayerAttackRenderer';
 import { FeedbackSystem } from '../systems/FeedbackSystem';
 import { SoundSystem } from '../systems/SoundSystem';
 import { MonsterSystem } from '../systems/MonsterSystem';
@@ -82,6 +83,7 @@ export class GameScene extends Phaser.Scene {
   private cursorRenderer!: CursorRenderer;
   private laserRenderer!: LaserRenderer;
   private orbRenderer!: OrbRenderer;
+  private playerAttackRenderer: PlayerAttackRenderer | null = null;
 
   // BGM
   private bgm: Phaser.Sound.BaseSound | null = null;
@@ -174,6 +176,7 @@ export class GameScene extends Phaser.Scene {
 
     // 레이저 렌더러 생성
     this.laserRenderer = new LaserRenderer(this);
+    this.playerAttackRenderer = new PlayerAttackRenderer(this);
 
     // 별 배경 추가
     const gridConfig = Data.gameConfig.gameGrid;
@@ -414,6 +417,13 @@ export class GameScene extends Phaser.Scene {
     this.feedbackSystem.onHealthPackCollected(x, y);
   }
 
+  private getPlayerAttackRenderer(): PlayerAttackRenderer {
+    if (!this.playerAttackRenderer) {
+      this.playerAttackRenderer = new PlayerAttackRenderer(this);
+    }
+    return this.playerAttackRenderer;
+  }
+
   private performPlayerAttack(): void {
     const config = Data.feedback.bossAttack;
 
@@ -427,35 +437,11 @@ export class GameScene extends Phaser.Scene {
     // 사운드 재생: 플레이어 전용 충전음 (8비트 톤)
     this.soundSystem.playPlayerChargeSound();
 
-    // 발사체 생성 (빛나는 구체 느낌)
-    const projectile = this.add.circle(
-      this.cursorX,
-      this.cursorY,
-      config.charge.initialRadius,
-      mainColor
+    const chargeVisual = this.getPlayerAttackRenderer().createChargeVisual(
+      mainColor,
+      accentColor,
+      config.charge
     );
-    projectile.setDepth(2000);
-    this.physics.add.existing(projectile);
-
-    // 글로우 효과 (외부 광원)
-    const glow = this.add.graphics();
-    glow.setDepth(1999);
-
-    // 기 모으는 파티클 이미터 (주변에서 중심으로 모여듦)
-    const chargeParticles = this.add.particles(0, 0, 'particle', {
-      speed: { min: -100, max: -300 }, // 음수 속도로 중심으로 모이게 함
-      scale: { start: 0.8, end: 0 },
-      lifespan: 400,
-      blendMode: 'ADD',
-      tint: accentColor,
-      emitting: true,
-      frequency: config.charge.particleFrequency,
-    });
-    chargeParticles.setDepth(1998);
-
-    // 찌지직거리는 전기 스파크용 그래픽
-    const lightning = this.add.graphics();
-    lightning.setDepth(2001);
 
     // 기 모으기 애니메이션
     this.tweens.add({
@@ -465,56 +451,10 @@ export class GameScene extends Phaser.Scene {
       ease: 'Linear',
       onUpdate: (_tween, target) => {
         const p = target.progress;
-        const curX = this.cursorX;
-        const curY = this.cursorY;
-
-        // 위치 동기화
-        projectile.setPosition(curX, curY);
-        projectile.setScale(1 + p * (config.charge.maxScale - 1)); // 점점 커짐
-        chargeParticles.setPosition(curX, curY);
-
-        // 글로우 연출
-        glow.clear();
-        glow.fillStyle(mainColor, config.charge.glowInitialAlpha * p);
-        glow.fillCircle(
-          curX,
-          curY,
-          config.charge.glowInitialRadius +
-            p * (config.charge.glowMaxRadius - config.charge.glowInitialRadius)
-        );
-        glow.fillStyle(COLORS.WHITE, 0.5 * p);
-        glow.fillCircle(curX, curY, 10 + p * 20);
-
-        // 찌지직! 전기 스파크 연출 (p가 높을수록 빈번)
-        lightning.clear();
-        if (
-          Math.random() <
-          config.charge.lightningChanceBase + p * config.charge.lightningChanceP
-        ) {
-          lightning.lineStyle(2, accentColor, 0.8);
-          const segments = config.charge.lightningSegments;
-          let lastX = curX + (Math.random() - 0.5) * 100 * (1 - p / 2);
-          let lastY = curY + (Math.random() - 0.5) * 100 * (1 - p / 2);
-
-          lightning.beginPath();
-          lightning.moveTo(lastX, lastY);
-          for (let i = 1; i <= segments; i++) {
-            const tx = curX + (Math.random() - 0.5) * 10 * p;
-            const ty = curY + (Math.random() - 0.5) * 10 * p;
-            const nextX = lastX + (tx - lastX) * (i / segments) + (Math.random() - 0.5) * 20;
-            const nextY = lastY + (ty - lastY) * (i / segments) + (Math.random() - 0.5) * 20;
-            lightning.lineTo(nextX, nextY);
-            lastX = nextX;
-            lastY = nextY;
-          }
-          lightning.strokePath();
-        }
+        chargeVisual.update(p, this.cursorX, this.cursorY);
       },
       onComplete: () => {
-        glow.destroy();
-        lightning.destroy();
-        chargeParticles.destroy();
-        projectile.destroy(); // 기존 충전용 구체 제거
+        chargeVisual.destroy();
 
         // 2. Fire Phase (순차적 발사!)
         const baseAttack = Data.gameConfig.playerAttack;
@@ -559,8 +499,13 @@ export class GameScene extends Phaser.Scene {
     const targetOffsetY = Phaser.Math.Between(-tracking.y, tracking.y);
 
     // 미사일 객체 생성
-    const missile = this.add.circle(curStartX, curStartY, 8 + 4 * intensity, mainColor);
-    missile.setDepth(2000);
+    const missile = this.getPlayerAttackRenderer().createMissile(
+      curStartX,
+      curStartY,
+      8 + 4 * intensity,
+      mainColor,
+      2000
+    );
 
     // 사운드: 점점 피치가 높아지는 발사음
     this.soundSystem.playBossFireSound(); // Note: SoundSystem에 피치 조절 기능이 없으므로 기본음 사용
@@ -590,35 +535,31 @@ export class GameScene extends Phaser.Scene {
         const curX = missile.x;
         const curY = missile.y;
 
-        const trail = this.add.graphics();
-        trail.setDepth(1997);
-
         // 강렬함에 따라 트레일 두께 조절
         const baseWidth = missile.displayWidth * config.fire.trailWidthMultiplier;
         const trailWidth = baseWidth * (0.8 + 0.5 * intensity);
 
-        trail.lineStyle(trailWidth, mainColor, config.fire.trailAlpha);
-        trail.lineBetween(lastTrailX, lastTrailY, curX, curY);
-
-        trail.lineStyle(trailWidth * 0.4, innerTrailColor, config.fire.trailAlpha * 1.5);
-        trail.lineBetween(lastTrailX, lastTrailY, curX, curY);
+        this.getPlayerAttackRenderer().spawnMissileTrail({
+          fromX: lastTrailX,
+          fromY: lastTrailY,
+          toX: curX,
+          toY: curY,
+          trailWidth,
+          mainColor,
+          innerColor: innerTrailColor,
+          trailAlpha: config.fire.trailAlpha,
+          trailLifespan: config.fire.trailLifespan,
+        });
 
         lastTrailX = curX;
         lastTrailY = curY;
-
-        this.tweens.add({
-          targets: trail,
-          alpha: 0,
-          duration: config.fire.trailLifespan,
-          onComplete: () => trail.destroy(),
-        });
       },
       onComplete: () => {
         // 폭발 시점의 보스 위치 재계산
         const finalTargetX = this.boss.x + targetOffsetX;
         const finalTargetY = this.boss.y + targetOffsetY;
 
-        missile.destroy();
+        this.getPlayerAttackRenderer().destroyProjectile(missile);
 
         // 미사일 데미지 적용
         const attackConfig = Data.gameConfig.playerAttack;
@@ -879,72 +820,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showBombWarningAndSpawn(x: number, y: number, speedMultiplier: number): void {
-    const warningDuration = 500; // 0.5초 경고
-    const warningRadius = 50;
-
-    // 경고 그래픽 생성
-    const warningGraphics = this.add.graphics();
-    warningGraphics.setDepth(500);
-
-    // 경고 애니메이션
-    let elapsed = 0;
-    const blinkInterval = 100; // 깜빡임 간격
-
-    const updateWarning = () => {
-      warningGraphics.clear();
-
-      // 깜빡임 효과
-      const blinkPhase = Math.floor(elapsed / blinkInterval) % 2;
-      const alpha = blinkPhase === 0 ? 0.6 : 0.3;
-
-      // 크기가 커지는 효과
-      const progress = elapsed / warningDuration;
-      const currentRadius = warningRadius * (0.5 + progress * 0.5);
-
-      // 빨간 경고 원
-      warningGraphics.fillStyle(COLORS.RED, alpha * 0.3);
-      warningGraphics.fillCircle(x, y, currentRadius);
-
-      // 빨간 테두리
-      warningGraphics.lineStyle(3, COLORS.RED, alpha);
-      warningGraphics.strokeCircle(x, y, currentRadius);
-
-      // 경고 X 표시
-      const crossSize = currentRadius * 0.5;
-      warningGraphics.lineStyle(4, COLORS.RED, alpha);
-      warningGraphics.beginPath();
-      warningGraphics.moveTo(x - crossSize, y - crossSize);
-      warningGraphics.lineTo(x + crossSize, y + crossSize);
-      warningGraphics.moveTo(x + crossSize, y - crossSize);
-      warningGraphics.lineTo(x - crossSize, y + crossSize);
-      warningGraphics.strokePath();
-    };
-
-    // 초기 그리기
-    updateWarning();
-
-    // 애니메이션 타이머
-    const warningTimer = this.time.addEvent({
-      delay: 16, // ~60fps
-      callback: () => {
-        elapsed += 16;
-        if (elapsed < warningDuration) {
-          updateWarning();
-        }
+    this.getPlayerAttackRenderer().showBombWarning(
+      x,
+      y,
+      {
+        duration: 500,
+        radius: 50,
+        blinkInterval: 100,
       },
-      loop: true,
-    });
-
-    // 경고 후 폭탄 스폰
-    this.time.delayedCall(warningDuration, () => {
-      warningTimer.destroy();
-      warningGraphics.destroy();
-
-      // 게임 오버가 아닐 때만 스폰
-      if (!this.isGameOver) {
-        this.spawnDishImmediate('bomb', x, y, speedMultiplier);
+      () => {
+        if (!this.isGameOver) {
+          this.spawnDishImmediate('bomb', x, y, speedMultiplier);
+        }
       }
-    });
+    );
   }
 
   private pauseGame(): void {
@@ -993,6 +882,8 @@ export class GameScene extends Phaser.Scene {
     if (this.cursorTrail) this.cursorTrail.destroy();
     if (this.gaugeSystem) this.gaugeSystem.destroy();
     if (this.orbRenderer) this.orbRenderer.destroy();
+    this.playerAttackRenderer?.destroy();
+    this.playerAttackRenderer = null;
   }
 
   update(_time: number, delta: number): void {

@@ -148,11 +148,7 @@ export class Boss extends Phaser.GameObjects.Container {
       const pushY = Math.sin(angle) * reaction.pushDistance;
 
       // 기존 리액션 트윈 제거
-      this.scene.tweens.killTweensOf(this, false, 'pushOffsetX');
-      this.scene.tweens.killTweensOf(this, false, 'pushOffsetY');
-      this.scene.tweens.killTweensOf(this, false, 'shakeOffsetX');
-      this.scene.tweens.killTweensOf(this, false, 'shakeOffsetY');
-      this.scene.tweens.killTweensOf(this, false, 'rotation');
+      this.scene.tweens.killTweensOf(this);
 
       // 스턴 상태 활성화 (이동 멈춤)
       this.isHitStunned = true;

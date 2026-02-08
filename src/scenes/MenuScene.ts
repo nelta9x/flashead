@@ -8,7 +8,7 @@ import { StarBackground } from '../effects/StarBackground';
 import { GridRenderer } from '../effects/GridRenderer';
 import { MenuBossRenderer } from '../effects/MenuBossRenderer';
 import { CursorRenderer } from '../effects/CursorRenderer';
-import { MenuDishRenderer } from '../effects/MenuDishRenderer';
+import { DishRenderer } from '../effects/DishRenderer';
 
 export class MenuScene extends Phaser.Scene {
   private titleText!: Phaser.GameObjects.Text;
@@ -343,7 +343,7 @@ export class MenuScene extends Phaser.Scene {
     dish.y = y;
 
     const color = parseInt(config.color.replace('#', ''), 16);
-    MenuDishRenderer.renderDish(dish, config.radius, color);
+    DishRenderer.renderMenuDish(dish, config.radius, color);
 
     this.menuDishes.add(dish);
   }

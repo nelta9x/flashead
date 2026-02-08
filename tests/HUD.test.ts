@@ -202,19 +202,19 @@ import { WaveSystem } from '../src/systems/WaveSystem';
 
 type HudTestSceneStub = {
   add: {
-    text: ReturnType<typeof vi.fn>;
-    graphics: ReturnType<typeof vi.fn>;
-    container: ReturnType<typeof vi.fn>;
+    text: (...args: unknown[]) => unknown;
+    graphics: (...args: unknown[]) => unknown;
+    container: (...args: unknown[]) => unknown;
   };
   tweens: {
-    add: ReturnType<typeof vi.fn>;
-    isTweening: ReturnType<typeof vi.fn>;
+    add: (...args: unknown[]) => unknown;
+    isTweening: (...args: unknown[]) => boolean;
   };
 };
 
 type WaveSystemStub = {
-  getCurrentWave: ReturnType<typeof vi.fn>;
-  isFever: ReturnType<typeof vi.fn>;
+  getCurrentWave: () => number;
+  isFever: () => boolean;
 };
 
 describe('HUD', () => {

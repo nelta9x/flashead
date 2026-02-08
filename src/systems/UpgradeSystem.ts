@@ -1,6 +1,7 @@
 import { Data } from '../data/DataManager';
 import type {
   SystemUpgradeData,
+  SystemUpgradeLevelData,
   CursorSizeLevelData,
   CriticalChanceLevelData,
   ElectricShockLevelData,
@@ -146,7 +147,7 @@ export class UpgradeSystem {
   }
 
   // ========== 레벨 데이터 헬퍼 ==========
-  private getLevelData<T>(upgradeId: string): T | null {
+  public getLevelData<T>(upgradeId: string): T | null {
     const level = this.getUpgradeStack(upgradeId);
     if (level <= 0) return null;
     const upgradeData = Data.upgrades.system.find((u) => u.id === upgradeId);
@@ -266,23 +267,8 @@ export class UpgradeSystem {
     if (!upgradeData.levels) return Data.t(`upgrade.${upgradeId}.desc`);
 
     const index = Math.min(stack, upgradeData.levels.length) - 1;
-    const levelData = upgradeData.levels[index] as Record<string, number | string>;
-
-    // 값 포맷팅 (chance, sizeBonus 등은 %로 변환)
-    const params: Record<string, number | string> = {};
-    for (const [key, value] of Object.entries(levelData)) {
-      if (typeof value === 'number') {
-        params[key] =
-          key === 'chance' ||
-          key === 'sizeBonus' ||
-          key === 'dropChanceBonus' ||
-          key === 'criticalChance'
-            ? Math.round(value * 100)
-            : value;
-      } else {
-        params[key] = value;
-      }
-    }
+    const levelData = upgradeData.levels[index];
+    const params = this.extractTemplateParams(levelData);
 
     // 로케일 파일의 템플릿 사용
     return Data.formatTemplate(`upgrade.${upgradeId}.desc_template`, params);
@@ -322,23 +308,17 @@ export class UpgradeSystem {
 
   private formatLevelPreview(
     effectType: string,
-    current: Record<string, unknown> | null,
-    next: Record<string, unknown>
+    current: SystemUpgradeLevelData | null,
+    next: SystemUpgradeLevelData
   ): string {
     const params: Record<string, number | string> = {};
 
     // Helper to process params
-    const process = (prefix: string, data: Record<string, unknown>) => {
-      for (const [key, value] of Object.entries(data)) {
+    const process = (prefix: string, data: SystemUpgradeLevelData) => {
+      const entries = Object.entries(data as unknown as Record<string, unknown>);
+      for (const [key, value] of entries) {
         if (typeof value === 'number') {
-          // 특수 필드는 % 변환
-          const val =
-            key === 'chance' ||
-            key === 'sizeBonus' ||
-            key === 'dropChanceBonus' ||
-            key === 'criticalChance'
-              ? Math.round(value * 100)
-              : value;
+          const val = this.normalizeTemplateNumericValue(key, value);
           params[`${prefix}${key}`] = val;
 
           // 매핑을 위한 별칭 (템플릿 키와 일치시키기 위해)
@@ -359,25 +339,13 @@ export class UpgradeSystem {
     };
 
     if (current) process('cur', current);
-    process(current ? 'next' : '', next); // new일때는 prefix 없이 사용하거나 next?
-    // Wait, for 'new', I used keys like {sizeBonus} without prefix in locales.json.
-    // For 'upgrade', I used {curSize}, {nextSize}.
+    process(current ? 'next' : '', next);
 
-    // 재조정: new일 때는 prefix 없음. upgrade일 때는 cur/next prefix.
     if (!current) {
-      // Reset params to remove 'next' prefix for simple keys if needed,
-      // but my helper added 'nextSize'.
-      // I need to add raw keys for 'new' case.
-      for (const [key, value] of Object.entries(next)) {
+      const entries = Object.entries(next as unknown as Record<string, unknown>);
+      for (const [key, value] of entries) {
         if (typeof value === 'number') {
-          const val =
-            key === 'chance' ||
-            key === 'sizeBonus' ||
-            key === 'dropChanceBonus' ||
-            key === 'criticalChance'
-              ? Math.round(value * 100)
-              : value;
-          params[key] = val;
+          params[key] = this.normalizeTemplateNumericValue(key, value);
         }
       }
     }
@@ -405,7 +373,7 @@ export class UpgradeSystem {
 
       case 'missileLevel':
         if (!current) return Data.formatTemplate('upgrade.preview.missile.new', params);
-        if (current.damage !== next.damage) {
+        if (this.getNumericField(current, 'damage') !== this.getNumericField(next, 'damage')) {
           return Data.formatTemplate('upgrade.preview.missile.upgrade', params);
         }
         return Data.formatTemplate('upgrade.preview.missile.upgrade_count', params);
@@ -423,5 +391,35 @@ export class UpgradeSystem {
       default:
         return '';
     }
+  }
+
+  private normalizeTemplateNumericValue(key: string, value: number): number {
+    if (
+      key === 'chance' ||
+      key === 'sizeBonus' ||
+      key === 'dropChanceBonus' ||
+      key === 'criticalChance'
+    ) {
+      return Math.round(value * 100);
+    }
+    return value;
+  }
+
+  private extractTemplateParams(levelData: SystemUpgradeLevelData): Record<string, number | string> {
+    const params: Record<string, number | string> = {};
+    const entries = Object.entries(levelData as unknown as Record<string, unknown>);
+    for (const [key, value] of entries) {
+      if (typeof value === 'number') {
+        params[key] = this.normalizeTemplateNumericValue(key, value);
+      } else if (typeof value === 'string') {
+        params[key] = value;
+      }
+    }
+    return params;
+  }
+
+  private getNumericField(data: SystemUpgradeLevelData, key: string): number | null {
+    const value = (data as unknown as Record<string, unknown>)[key];
+    return typeof value === 'number' ? value : null;
   }
 }

@@ -2,6 +2,10 @@
 
 이 문서는 개발자와 AI 에이전트가 프로젝트의 구조를 빠르게 파악하고 필요한 기능을 찾을 수 있도록 돕기 위해 작성되었습니다.
 
+- 디자인 철학 참고:
+  - `GAME_DESIGN_PHILOSOPHY.md` (인게임 통합 UI, 최소 UI 노출)
+  - `VISUAL_STYLE_GUIDELINES.md` (보스 HP 실루엣, 형태/스타일 제약)
+
 ## 🏗️ 전체 아키텍처 및 흐름
 
 ### 0. 설계 원칙: 외형과 로직의 분리
@@ -36,7 +40,7 @@
 - **`src/scenes/BootScene.ts`**: 초기 로딩 화면. 에셋 프리로딩(오디오, SVG 아이콘), 프로그레스 바 표시.
 - **`src/scenes/MenuScene.ts`**: 메인 메뉴. 타이틀, 시작 버튼, 별 배경, 보스 애니메이션, 그리드 효과, 언어 선택 UI 처리.
 - **`src/scenes/GameScene.ts`**: **핵심 게임 루프**. 모든 시스템을 초기화하고 조율합니다.
-  - **플레이어 공격**: 게이지 완충 시 기 모으기(Charge) 및 순차 미사일(Sequential Missiles) 발사 로직을 관리합니다.
+  - **플레이어 공격**: 게이지 완충 시 기 모으기(Charge) 및 순차 미사일(Sequential Missiles) 발사 로직을 관리하며, 시각 연출은 `PlayerAttackRenderer`에 위임합니다.
   - **보스 공격**: 보스의 레이저 공격 타이밍 및 위치(커서 추적)를 제어합니다.
   - **충돌 감지**: 커서 범위 공격, 레이저 피격, 힐팩 수집 등의 실시간 충돌을 판정합니다.
 - **`src/scenes/GameOverScene.ts`**: 게임 오버 화면. 최종 스탯(최대 콤보, 웨이브, 생존 시간) 표시, 재시작 안내, 페이드 전환.
@@ -65,8 +69,9 @@
   - `spawn()`: 초기화 및 애니메이션 시작.
   - `applyDamage()`: HP 감소 및 파괴 로직.
   - `update()`: 생존 시간 체크 및 이동 로직.
+  - 외형 렌더링: `DishRenderer`에 위임 (인게임/메뉴 공용 스타일).
 - **`Boss.ts`**: 보스 몬스터의 로직 엔티티. `MONSTER_HP_CHANGED`의 `current/max` 기반으로 아머 슬롯 수를 계산하고, 시각화는 `BossRenderer`에 위임합니다. `MONSTER_DIED` 이벤트를 구독합니다.
-- **`HealthPack.ts`**: 낙하하는 힐 아이템 오브젝트. 커서와 충돌 시 `HEALTH_PACK_COLLECTED` 이벤트를 발생시킵니다.
+- **`HealthPack.ts`**: 낙하하는 힐 아이템 오브젝트. 커서와 충돌 시 `HEALTH_PACK_COLLECTED` 이벤트를 발생시키며, 외형 렌더링은 `HealthPackRenderer`에 위임합니다.
 
 ### 4. 시각 효과 및 UI (Effects & UI)
 
@@ -80,7 +85,9 @@
   - **`BossRenderer.ts`**: 인게임 보스 코어/아머/글로우 렌더링 전담 클래스. `Boss` 엔티티가 상태를 전달해 그리기를 위임합니다.
   - **`OrbRenderer.ts`**: 플레이어 보호 오브의 글로우 및 전기 스파크 연출 렌더러.
   - **`MenuBossRenderer.ts`**: 메인 메뉴 보스의 화려한 애니메이션 렌더링.
-  - **`MenuDishRenderer.ts`**: 메인 메뉴에서 배경으로 쓰이는 접시의 렌더링 로직.
+  - **`DishRenderer.ts`**: 접시 외형 렌더링 전담 클래스. `Dish` 엔티티의 인게임 접시 및 `MenuScene` 배경 접시를 공용 렌더링합니다.
+  - **`HealthPackRenderer.ts`**: 힐팩 외형 렌더링 전담 클래스.
+  - **`PlayerAttackRenderer.ts`**: 플레이어 필살기(충전 글로우/전기 스파크/미사일 트레일/폭탄 경고) 연출 렌더러.
   - **`CursorRenderer.ts`**: 메뉴/인게임 커서 외형, 공격 게이지, 자기장/전기 충격 범위, 그리고 플레이어 HP 세그먼트 링을 통합 렌더링.
 - **`src/ui/`**:
   - `HUD`: HUD 오케스트레이터. 매 프레임 컨텍스트(커서 위치, 업그레이드 선택 상태)를 받아 표시 정책을 적용하며, 도크바 hover 진행도(기본 1.2초 누적 정지)를 씬에 제공합니다.

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { COLORS } from '../data/constants';
 import { Data } from '../data/DataManager';
 import { Poolable } from '../utils/ObjectPool';
 import { EventBus, GameEvents } from '../utils/EventBus';
+import { HealthPackRenderer } from '../effects/HealthPackRenderer';
 
 export class HealthPack extends Phaser.GameObjects.Container implements Poolable {
   active: boolean = false;
@@ -99,41 +99,10 @@ export class HealthPack extends Phaser.GameObjects.Container implements Poolable
   }
 
   private drawHealthPack(): void {
-    this.graphics.clear();
-
-    const size = Data.healthPack.visualSize;
-    const pulse = 1 + Math.sin(this.pulsePhase) * 0.1; // 펄스 효과
-    const crossWidth = size * 0.35;
-    const crossLength = size * 0.8;
-
-    // 글로우 효과
-    this.graphics.fillStyle(COLORS.GREEN, 0.3);
-    this.graphics.fillCircle(0, 0, size * pulse + 8);
-
-    // 외부 원
-    this.graphics.fillStyle(COLORS.GREEN, 0.5);
-    this.graphics.fillCircle(0, 0, size * pulse);
-
-    // 십자가 (+) 아이콘
-    this.graphics.fillStyle(COLORS.WHITE, 1);
-    // 가로 막대
-    this.graphics.fillRect(
-      (-crossLength * pulse) / 2,
-      (-crossWidth * pulse) / 2,
-      crossLength * pulse,
-      crossWidth * pulse
-    );
-    // 세로 막대
-    this.graphics.fillRect(
-      (-crossWidth * pulse) / 2,
-      (-crossLength * pulse) / 2,
-      crossWidth * pulse,
-      crossLength * pulse
-    );
-
-    // 테두리
-    this.graphics.lineStyle(2, COLORS.GREEN, 1);
-    this.graphics.strokeCircle(0, 0, size * pulse);
+    HealthPackRenderer.render(this.graphics, {
+      size: Data.healthPack.visualSize,
+      pulsePhase: this.pulsePhase,
+    });
   }
 
   update(delta: number): void {

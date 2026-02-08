@@ -49,6 +49,22 @@ export interface WaveTransitionConfig {
   countFrom: number;
 }
 
+export interface WaveCountdownUIConfig {
+  label: {
+    fontSize: number;
+    yOffset: number;
+    color: string;
+  };
+  number: {
+    fontSize: number;
+    yOffset: number;
+    color: string;
+    stroke: string;
+    strokeThickness: number;
+    goColor: string;
+  };
+}
+
 export interface LaserAttackConfig {
   width: number;
   warningDuration: number;
@@ -410,6 +426,7 @@ export interface GameConfig {
   player: PlayerConfig;
   upgradeUI: UpgradeUIConfig;
   waveTransition: WaveTransitionConfig;
+  waveCountdownUI: WaveCountdownUIConfig;
   gameOver: GameOverConfig;
   boot: BootConfig;
   hud: HudConfig;
@@ -496,6 +513,7 @@ export interface HealthPackConfig {
   bonusSpawnChancePerCollection: number;
   baseSpawnChance: number;
   checkInterval: number;
+  spawnChanceByHp?: Record<string, number>;
 }
 
 // ========== 피드백 효과 ==========

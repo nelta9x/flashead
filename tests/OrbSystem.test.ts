@@ -54,7 +54,7 @@ describe('OrbSystem', () => {
     getMagnetLevel: ReturnType<typeof vi.fn>;
     getSystemUpgrade: ReturnType<typeof vi.fn>;
   };
-  let mockDishPool: { forEach: ReturnType<typeof vi.fn> };
+  let mockDishPool: { forEach: (callback: (dish: Dish) => void) => void };
   let mockDishes: MockDish[];
 
   beforeEach(() => {
