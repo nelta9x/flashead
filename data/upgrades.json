@@ -76,7 +76,7 @@
         { "radius": 360, "damage": 3 },
         { "radius": 400, "damage": 4 },
         { "radius": 440, "damage": 5 },
-        { "radius": 480, "damage": 6 }
+        { "radius": 600, "damage": 5 }
       ]
     },
     {

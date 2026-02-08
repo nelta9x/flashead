@@ -180,8 +180,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const electricUpgrade = UPGRADES.find((u) => u.id === 'electric_shock')!;
 
       for (let i = 0; i < 5; i++) upgrade.applyUpgrade(electricUpgrade);
-      expect(upgrade.getElectricShockRadius()).toBe(480);
-      expect(upgrade.getElectricShockDamage()).toBe(6);
+      expect(upgrade.getElectricShockRadius()).toBe(600);
+      expect(upgrade.getElectricShockDamage()).toBe(5);
     });
   });
 
