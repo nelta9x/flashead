@@ -152,7 +152,7 @@
           "force": 260,
           "spawnInterval": 7600,
           "spawnCount": 1,
-          "radius": 150
+          "radius": 230
         },
         {
           "damageInterval": 1100,
@@ -160,15 +160,15 @@
           "force": 300,
           "spawnInterval": 7000,
           "spawnCount": 1,
-          "radius": 170
+          "radius": 250
         },
         {
           "damageInterval": 1000,
           "damage": 2,
           "force": 340,
           "spawnInterval": 6400,
-          "spawnCount": 1,
-          "radius": 190
+          "spawnCount": 2,
+          "radius": 270
         },
         {
           "damageInterval": 900,
@@ -176,7 +176,7 @@
           "force": 390,
           "spawnInterval": 5900,
           "spawnCount": 2,
-          "radius": 210
+          "radius": 290
         },
         {
           "damageInterval": 850,
@@ -184,7 +184,7 @@
           "force": 440,
           "spawnInterval": 5400,
           "spawnCount": 2,
-          "radius": 230
+          "radius": 310
         }
       ]
     }

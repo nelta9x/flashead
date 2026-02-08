@@ -301,7 +301,7 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
         force: 260,
         spawnInterval: 7600,
         spawnCount: 1,
-        radius: 150,
+        radius: 230,
       });
     });
 
@@ -319,7 +319,7 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
         force: 440,
         spawnInterval: 5400,
         spawnCount: 2,
-        radius: 230,
+        radius: 310,
       });
     });
   });
