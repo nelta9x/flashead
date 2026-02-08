@@ -166,6 +166,41 @@ describe('OrbSystem', () => {
     expect(mockDish.applyDamage).toHaveBeenCalledTimes(1);
   });
 
+  it('should use hitInterval from upgrade data (orbiting_orb) for cooldown', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 10,
+      speed: 0,
+      radius: 100,
+      size: 10,
+    });
+    mockUpgradeSystem.getSystemUpgrade.mockReturnValue({ hitInterval: 900 });
+
+    const mockDish = {
+      active: true,
+      x: 100,
+      y: 0,
+      getSize: () => 10,
+      isDangerous: () => false,
+      applyDamage: vi.fn(),
+    };
+    mockDishes.push(mockDish);
+
+    // First hit at t=1000
+    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    expect(mockDish.applyDamage).toHaveBeenCalledTimes(1);
+
+    // 800ms later: still in cooldown when hitInterval=900
+    mockDish.applyDamage.mockClear();
+    system.update(100, 1800, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    expect(mockDish.applyDamage).not.toHaveBeenCalled();
+
+    // 900ms later: cooldown expired
+    system.update(100, 1900, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    expect(mockDish.applyDamage).toHaveBeenCalledTimes(1);
+  });
+
   it('should apply magnet synergy to size', () => {
     mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
     mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({

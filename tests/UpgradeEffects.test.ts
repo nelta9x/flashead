@@ -71,6 +71,38 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
     });
   });
 
+  describe('확률/데이터 연동 검증', () => {
+    it('orbiting_orb hitInterval should be loaded from data', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+
+      expect(upgrade.getSystemUpgrade('orbiting_orb')?.hitInterval).toBe(900);
+    });
+
+    it('health_pack 스택은 희귀도 진행 카운트에서 제외되어야 함', async () => {
+      const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
+      const { Data } = await import('../src/data/DataManager');
+      const upgrade = new UpgradeSystem();
+
+      const hpUpgrade = UPGRADES.find((u) => u.id === 'health_pack')!;
+      const cursorUpgrade = UPGRADES.find((u) => u.id === 'cursor_size')!;
+      const raritySpy = vi.spyOn(Data, 'getRarityWeights');
+
+      // health_pack은 카운트 제외
+      upgrade.applyUpgrade(hpUpgrade);
+      upgrade.applyUpgrade(hpUpgrade);
+      upgrade.getRandomUpgrades(3);
+      expect(raritySpy).toHaveBeenLastCalledWith(0);
+
+      // 일반 업그레이드는 카운트 포함
+      upgrade.applyUpgrade(cursorUpgrade);
+      upgrade.applyUpgrade(cursorUpgrade);
+      upgrade.applyUpgrade(cursorUpgrade);
+      upgrade.getRandomUpgrades(3);
+      expect(raritySpy).toHaveBeenLastCalledWith(3);
+    });
+  });
+
   describe('커서 크기 (cursor_size)', () => {
     it('레벨 1 수치 확인', async () => {
       const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');

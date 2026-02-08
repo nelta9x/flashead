@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Data } from '../src/data/DataManager';
 
 describe('DataManager', () => {
@@ -71,6 +71,23 @@ describe('DataManager', () => {
       expect(Data.gameConfig.upgradeUI.boxHeight).toBeDefined();
       expect(Data.gameConfig.hud.hpDisplay.heartSize).toBe(12);
       expect(Data.mainMenu.startPrompt.fontSize).toBeDefined();
+    });
+  });
+
+  describe('Rarity Weights', () => {
+    it('should map total upgrade counts to the correct rarity stage thresholds', () => {
+      const weights = Data.upgrades.rarityWeights;
+
+      expect(Data.getRarityWeights(0)).toEqual(weights.early);
+      expect(Data.getRarityWeights(2)).toEqual(weights.early);
+
+      expect(Data.getRarityWeights(3)).toEqual(weights.mid);
+      expect(Data.getRarityWeights(5)).toEqual(weights.mid);
+
+      expect(Data.getRarityWeights(6)).toEqual(weights.late);
+      expect(Data.getRarityWeights(8)).toEqual(weights.late);
+
+      expect(Data.getRarityWeights(9)).toEqual(weights.endgame);
     });
   });
 });
