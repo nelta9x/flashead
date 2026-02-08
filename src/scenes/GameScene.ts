@@ -659,7 +659,8 @@ export class GameScene extends Phaser.Scene {
       ease: 'Linear',
       onUpdate: (_tween, target) => {
         const p = target.progress;
-        chargeVisual.update(p, this.cursorX, this.cursorY);
+        const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + this.upgradeSystem.getCursorSizeBonus());
+        chargeVisual.update(p, this.cursorX, this.cursorY, cursorRadius);
       },
       onComplete: () => {
         chargeVisual.destroy();

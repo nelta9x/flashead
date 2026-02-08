@@ -661,6 +661,19 @@ export interface BossAttackConfig {
     lightningChanceBase: number;
     lightningChanceP: number;
     lightningSegments: number;
+    energyConverge: {
+      color: string;
+      particleCount: number;
+      outerRadiusMultiplier: number;
+      outerRadiusPadding: number;
+      innerRadius: number;
+      minParticleRadius: number;
+      maxParticleRadius: number;
+      swirlTurns: number;
+      alphaMin: number;
+      alphaMax: number;
+      wobbleRadius: number;
+    };
   };
   fire: {
     duration: number;

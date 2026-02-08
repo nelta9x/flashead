@@ -140,7 +140,20 @@
       "glowMaxRadius": 60,
       "lightningChanceBase": 0.3,
       "lightningChanceP": 0.5,
-      "lightningSegments": 3
+      "lightningSegments": 3,
+      "energyConverge": {
+        "color": "#ffffff",
+        "particleCount": 24,
+        "outerRadiusMultiplier": 1.8,
+        "outerRadiusPadding": 26,
+        "innerRadius": 12,
+        "minParticleRadius": 1.5,
+        "maxParticleRadius": 4.2,
+        "swirlTurns": 1.3,
+        "alphaMin": 0.2,
+        "alphaMax": 0.85,
+        "wobbleRadius": 8
+      }
     },
     "fire": {
       "duration": 150,

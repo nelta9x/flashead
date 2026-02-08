@@ -474,6 +474,42 @@ import { COLORS, FONTS } from '../data/constants';
 }
 ```
 
+#### 보스 공격 충전 에너지 수렴 (`bossAttack.charge.energyConverge`)
+
+미사일 공격 충전 단계에서 커서 바깥쪽 백색 에너지가 안쪽으로 모이는 연출입니다.
+
+```json
+{
+  "bossAttack": {
+    "charge": {
+      "energyConverge": {
+        "color": "#ffffff",
+        "particleCount": 24,
+        "outerRadiusMultiplier": 1.8,
+        "outerRadiusPadding": 26,
+        "innerRadius": 12,
+        "minParticleRadius": 1.5,
+        "maxParticleRadius": 4.2,
+        "swirlTurns": 1.3,
+        "alphaMin": 0.2,
+        "alphaMax": 0.85,
+        "wobbleRadius": 8
+      }
+    }
+  }
+}
+```
+
+- `color`: 수렴 입자 색상
+- `particleCount`: 수렴 입자 개수
+- `outerRadiusMultiplier`: 시작 반경 계산 시 `cursorRadius * multiplier` 계수
+- `outerRadiusPadding`: 시작 반경 계산 시 `cursorRadius + padding` 여유값
+- `innerRadius`: 충전 완료 시 입자가 모이는 반경
+- `minParticleRadius`/`maxParticleRadius`: 입자 크기 범위
+- `swirlTurns`: 충전 동안 입자가 회전하는 총 바퀴 수
+- `alphaMin`/`alphaMax`: 충전 진행도에 따른 알파 범위
+- `wobbleRadius`: 수렴 중 진동(노이즈) 반경
+
 ---
 
 ### spawn.json

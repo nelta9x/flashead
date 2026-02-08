@@ -5,16 +5,30 @@ export interface ChargeVisualConfig {
   initialRadius: number;
   maxScale: number;
   glowInitialAlpha: number;
+  glowMaxAlpha: number;
   glowInitialRadius: number;
   glowMaxRadius: number;
   lightningChanceBase: number;
   lightningChanceP: number;
   lightningSegments: number;
   particleFrequency: number;
+  energyConverge: {
+    color: string;
+    particleCount: number;
+    outerRadiusMultiplier: number;
+    outerRadiusPadding: number;
+    innerRadius: number;
+    minParticleRadius: number;
+    maxParticleRadius: number;
+    swirlTurns: number;
+    alphaMin: number;
+    alphaMax: number;
+    wobbleRadius: number;
+  };
 }
 
 export interface ChargeVisualHandle {
-  update(progress: number, x: number, y: number): void;
+  update(progress: number, x: number, y: number, cursorRadius: number): void;
   destroy(): void;
 }
 
@@ -34,6 +48,14 @@ export interface BombWarningConfig {
   duration: number;
   radius: number;
   blinkInterval: number;
+}
+
+interface EnergyConvergeParticleSeed {
+  angle: number;
+  phase: number;
+  radius: number;
+  alphaScale: number;
+  swirlDirection: number;
 }
 
 export class PlayerAttackRenderer {
@@ -60,6 +82,10 @@ export class PlayerAttackRenderer {
     glow.setDepth(1999);
     this.activeGraphics.add(glow);
 
+    const convergeEnergy = this.scene.add.graphics();
+    convergeEnergy.setDepth(2002);
+    this.activeGraphics.add(convergeEnergy);
+
     const chargeParticles = this.scene.add.particles(0, 0, 'particle', {
       speed: { min: -100, max: -300 },
       scale: { start: 0.8, end: 0 },
@@ -76,16 +102,40 @@ export class PlayerAttackRenderer {
     lightning.setDepth(2001);
     this.activeGraphics.add(lightning);
 
+    const convergeConfig = config.energyConverge;
+    const convergeColor = Phaser.Display.Color.HexStringToColor(convergeConfig.color).color;
+    const minParticleRadius = Math.min(
+      convergeConfig.minParticleRadius,
+      convergeConfig.maxParticleRadius
+    );
+    const maxParticleRadius = Math.max(
+      convergeConfig.minParticleRadius,
+      convergeConfig.maxParticleRadius
+    );
+    const particleCount = Math.max(0, Math.floor(convergeConfig.particleCount));
+    const convergeSeeds: EnergyConvergeParticleSeed[] = Array.from(
+      { length: particleCount },
+      () => ({
+        angle: Math.random() * Math.PI * 2,
+        phase: Math.random() * Math.PI * 2,
+        radius: minParticleRadius + Math.random() * (maxParticleRadius - minParticleRadius),
+        alphaScale: 0.7 + Math.random() * 0.3,
+        swirlDirection: Math.random() < 0.5 ? -1 : 1,
+      })
+    );
+
     return {
-      update: (progress: number, x: number, y: number) => {
+      update: (progress: number, x: number, y: number, cursorRadius: number) => {
         const clampedProgress = Phaser.Math.Clamp(progress, 0, 1);
 
         projectile.setPosition(x, y);
         projectile.setScale(1 + clampedProgress * (config.maxScale - 1));
         chargeParticles.setPosition(x, y);
 
+        const glowAlpha =
+          config.glowInitialAlpha + clampedProgress * (config.glowMaxAlpha - config.glowInitialAlpha);
         glow.clear();
-        glow.fillStyle(mainColor, config.glowInitialAlpha * clampedProgress);
+        glow.fillStyle(mainColor, glowAlpha * clampedProgress);
         glow.fillCircle(
           x,
           y,
@@ -93,6 +143,33 @@ export class PlayerAttackRenderer {
         );
         glow.fillStyle(COLORS.WHITE, 0.5 * clampedProgress);
         glow.fillCircle(x, y, 10 + clampedProgress * 20);
+
+        convergeEnergy.clear();
+        const startRadius = Math.max(
+          cursorRadius * convergeConfig.outerRadiusMultiplier,
+          cursorRadius + convergeConfig.outerRadiusPadding
+        );
+        const convergeRadius =
+          startRadius + (convergeConfig.innerRadius - startRadius) * clampedProgress;
+        const baseAlpha =
+          convergeConfig.alphaMin +
+          (convergeConfig.alphaMax - convergeConfig.alphaMin) * clampedProgress;
+        const swirlRotation = convergeConfig.swirlTurns * Math.PI * 2 * clampedProgress;
+
+        convergeSeeds.forEach((seed) => {
+          const wobble =
+            Math.sin(seed.phase + clampedProgress * Math.PI * 2) *
+            convergeConfig.wobbleRadius *
+            (1 - clampedProgress);
+          const currentRadius = Math.max(0, convergeRadius + wobble);
+          const angle = seed.angle + seed.swirlDirection * swirlRotation;
+          const particleX = x + Math.cos(angle) * currentRadius;
+          const particleY = y + Math.sin(angle) * currentRadius;
+          const particleAlpha = Phaser.Math.Clamp(baseAlpha * seed.alphaScale, 0, 1);
+
+          convergeEnergy.fillStyle(convergeColor, particleAlpha);
+          convergeEnergy.fillCircle(particleX, particleY, seed.radius);
+        });
 
         lightning.clear();
         if (
@@ -122,10 +199,12 @@ export class PlayerAttackRenderer {
       destroy: () => {
         projectile.destroy();
         glow.destroy();
+        convergeEnergy.destroy();
         lightning.destroy();
         chargeParticles.destroy();
         this.activeProjectiles.delete(projectile);
         this.activeGraphics.delete(glow);
+        this.activeGraphics.delete(convergeEnergy);
         this.activeGraphics.delete(lightning);
         this.activeEmitters.delete(chargeParticles);
       },
