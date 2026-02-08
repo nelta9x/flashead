@@ -44,11 +44,9 @@
       "rarity": "common",
       "effectType": "cursorSizeBonus",
       "levels": [
-        { "sizeBonus": 0.25, "damage": 1 },
-        { "sizeBonus": 0.5, "damage": 2 },
-        { "sizeBonus": 0.75, "damage": 3 },
-        { "sizeBonus": 1.0, "damage": 4 },
-        { "sizeBonus": 1.25, "damage": 6 }
+        { "sizeBonus": 0.25, "damage": 3 },
+        { "sizeBonus": 0.5, "damage": 5 },
+        { "sizeBonus": 1.0, "damage": 15 }
       ]
     },
     {
