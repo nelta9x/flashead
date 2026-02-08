@@ -316,11 +316,11 @@ import { COLORS, FONTS } from '../data/constants';
       "rarity": "common",
       "effectType": "cursorSizeBonus",
       "levels": [
-        { "sizeBonus": 0.3, "damage": 2 },
-        { "sizeBonus": 0.6, "damage": 4 },
-        { "sizeBonus": 0.9, "damage": 6 },
-        { "sizeBonus": 1.2, "damage": 8 },
-        { "sizeBonus": 1.5, "damage": 10 }
+        { "sizeBonus": 0.3, "damage": 2, "missileThicknessBonus": 0.3 },
+        { "sizeBonus": 0.6, "damage": 4, "missileThicknessBonus": 0.6 },
+        { "sizeBonus": 0.9, "damage": 6, "missileThicknessBonus": 0.9 },
+        { "sizeBonus": 1.2, "damage": 8, "missileThicknessBonus": 1.2 },
+        { "sizeBonus": 1.5, "damage": 10, "missileThicknessBonus": 1.5 }
       ]
     }
   ]
@@ -339,6 +339,7 @@ import { COLORS, FONTS } from '../data/constants';
 |----------|------|------|
 | `cursor_size` | `sizeBonus` | 커서 크기 증가 비율 (0.3 = 30%) |
 | | `damage` | 추가 데미지 |
+| | `missileThicknessBonus` | 미사일 두께 증가 비율 (0.3 = 30%) |
 | `electric_shock` | `radius` | 충격 범위 (px) |
 | | `damage` | 데미지 |
 | `magnet` | `radius` | 끌어당김 범위 (px) |

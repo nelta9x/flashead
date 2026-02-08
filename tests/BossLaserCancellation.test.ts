@@ -100,6 +100,7 @@ type GameSceneTestContext = {
     getMissileLevel: () => number;
     getCriticalChanceBonus: () => number;
     getCursorSizeBonus: () => number;
+    getCursorMissileThicknessBonus: () => number;
     getCursorDamageBonus: () => number;
   };
   comboSystem: { getCombo: () => number; increment: (...args: unknown[]) => void };
@@ -201,6 +202,7 @@ describe('Boss Laser Cancellation Logic', () => {
       getMissileLevel: () => 0,
       getCriticalChanceBonus: () => 0,
       getCursorSizeBonus: () => 0,
+      getCursorMissileThicknessBonus: () => 0,
       getCursorDamageBonus: () => 0
     };
     gameScene.comboSystem = {

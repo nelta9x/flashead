@@ -165,6 +165,10 @@ export class UpgradeSystem {
     return this.getLevelData<CursorSizeLevelData>('cursor_size')?.damage ?? 0;
   }
 
+  getCursorMissileThicknessBonus(): number {
+    return this.getLevelData<CursorSizeLevelData>('cursor_size')?.missileThicknessBonus ?? 0;
+  }
+
   // ========== 치명타 확률 ==========
   getCriticalChanceLevel(): number {
     return this.getUpgradeStack('critical_chance');
@@ -397,6 +401,7 @@ export class UpgradeSystem {
     if (
       key === 'chance' ||
       key === 'sizeBonus' ||
+      key === 'missileThicknessBonus' ||
       key === 'dropChanceBonus' ||
       key === 'criticalChance'
     ) {

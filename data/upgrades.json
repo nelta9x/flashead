@@ -44,9 +44,9 @@
       "rarity": "common",
       "effectType": "cursorSizeBonus",
       "levels": [
-        { "sizeBonus": 0.25, "damage": 3 },
-        { "sizeBonus": 0.5, "damage": 5 },
-        { "sizeBonus": 1.0, "damage": 15 }
+        { "sizeBonus": 0.25, "damage": 3, "missileThicknessBonus": 0.25 },
+        { "sizeBonus": 0.5, "damage": 5, "missileThicknessBonus": 0.5 },
+        { "sizeBonus": 1.0, "damage": 15, "missileThicknessBonus": 1.0 }
       ]
     },
     {

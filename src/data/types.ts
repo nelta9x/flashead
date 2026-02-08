@@ -802,6 +802,7 @@ export interface StatEffect {
 export interface CursorSizeLevelData {
   sizeBonus: number;
   damage: number;
+  missileThicknessBonus: number;
 }
 export interface CriticalChanceLevelData {
   criticalChance: number;

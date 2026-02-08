@@ -489,6 +489,10 @@ export class GameScene extends Phaser.Scene {
     // 회차가 거듭될수록 더 빠르고 강렬해짐
     const intensity = (index + 1) / total;
     const speed = config.fire.duration * (1 - intensity * 0.3); // 최대 30% 더 빨라짐
+    const missileThicknessMultiplier = Math.max(
+      0.1,
+      1 + this.upgradeSystem.getCursorMissileThicknessBonus()
+    );
 
     // 궤적 변화: 시작점에 약간의 랜덤 오프셋 부여
     const offsetRange = 30 * intensity;
@@ -504,7 +508,7 @@ export class GameScene extends Phaser.Scene {
     const missile = this.getPlayerAttackRenderer().createMissile(
       curStartX,
       curStartY,
-      8 + 4 * intensity,
+      (8 + 4 * intensity) * missileThicknessMultiplier,
       mainColor,
       2000
     );
