@@ -125,8 +125,8 @@
     {
       "id": "orbiting_orb",
       "name": "수호의 구체",
-      "description": "커서 주변을 회전하는 구체 생성 (자기장 레벨에 비례해 크기 증가)",
-      "descriptionTemplate": "구체 {count}개가 초당 {speed}회전하며 {damage} 피해를 줍니다.",
+      "description": "커서 주변을 회전하는 구체 생성 (자기장 레벨에 비례해 크기 증가, 폭탄 접시 제거 가능)",
+      "descriptionTemplate": "구체 {count}개가 초당 {speed}회전하며 {damage} 피해를 주고 폭탄 접시를 제거합니다.",
       "rarity": "rare",
       "effectType": "orbitingOrbLevel",
       "hitInterval": 900,
