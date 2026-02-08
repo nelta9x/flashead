@@ -39,6 +39,7 @@
 | **플레이어 HP 링 스타일** | `game-config.json` | `player.hpRing` |
 | **보스 HP 세그먼트 스케일** | `boss.json` | `visual.armor.hpSegments` |
 | **폰트 설정** | `game-config.json` | `fonts` |
+| **메인 메뉴 언어 안전영역** | `main-menu.json` | `languageUI.safeAreaPaddingX`, `languageUI.safeAreaPaddingTop`, `languageUI.safeAreaPaddingBottom` |
 | **커서 크기** | `game-config.json` | `player.cursorHitbox.baseRadius` |
 | **웨이브 지속 시간** | `waves.json` | `duration` |
 | **콤보 이펙트 강도** | `feedback.json` | `comboMilestones` |

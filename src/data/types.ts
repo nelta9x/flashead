@@ -148,6 +148,9 @@ export interface LanguageUIConfig {
   spacing: number;
   activeScale: number;
   inactiveAlpha: number;
+  safeAreaPaddingX: number;
+  safeAreaPaddingTop: number;
+  safeAreaPaddingBottom: number;
 }
 
 export interface MenuConfig {

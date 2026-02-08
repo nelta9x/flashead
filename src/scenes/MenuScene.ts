@@ -26,6 +26,9 @@ export class MenuScene extends Phaser.Scene {
   private cursorTime: number = 0;
   private lastDishSpawnTime: number = 0;
   private bestWaveText!: Phaser.GameObjects.Text;
+  private languageSafeArea: Phaser.Geom.Rectangle | null = null;
+  private nativeMouseDownHandler: ((event: MouseEvent) => void) | null = null;
+  private nativeKeyDownHandler: ((event: KeyboardEvent) => void) | null = null;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -141,6 +144,61 @@ export class MenuScene extends Phaser.Scene {
         t.setAlpha(isThisActive ? 1 : config.inactiveAlpha);
       });
     });
+
+    this.updateLanguageSafeArea(container);
+  }
+
+  private updateLanguageSafeArea(container: Phaser.GameObjects.Container): void {
+    const config = Data.mainMenu.languageUI;
+    const bounds = container.getBounds();
+
+    this.languageSafeArea = new Phaser.Geom.Rectangle(
+      bounds.x - config.safeAreaPaddingX,
+      bounds.y - config.safeAreaPaddingTop,
+      bounds.width + config.safeAreaPaddingX * 2,
+      bounds.height + config.safeAreaPaddingTop + config.safeAreaPaddingBottom
+    );
+  }
+
+  private isInsideLanguageSafeArea(x: number, y: number): boolean {
+    return this.languageSafeArea?.contains(x, y) ?? false;
+  }
+
+  private getGamePointFromClientPosition(
+    clientX: number,
+    clientY: number
+  ): { x: number; y: number } | null {
+    const canvas = this.scale.canvas;
+    if (!canvas) return null;
+
+    const bounds = canvas.getBoundingClientRect();
+    if (
+      clientX < bounds.left ||
+      clientX > bounds.right ||
+      clientY < bounds.top ||
+      clientY > bounds.bottom ||
+      bounds.width <= 0 ||
+      bounds.height <= 0
+    ) {
+      return null;
+    }
+
+    const x = ((clientX - bounds.left) / bounds.width) * this.scale.width;
+    const y = ((clientY - bounds.top) / bounds.height) * this.scale.height;
+
+    return { x, y };
+  }
+
+  private cleanupNativeInputListeners(): void {
+    if (this.nativeMouseDownHandler) {
+      window.removeEventListener('mousedown', this.nativeMouseDownHandler);
+      this.nativeMouseDownHandler = null;
+    }
+
+    if (this.nativeKeyDownHandler) {
+      window.removeEventListener('keydown', this.nativeKeyDownHandler);
+      this.nativeKeyDownHandler = null;
+    }
   }
 
   private updateMenuCursor(delta: number): void {
@@ -350,16 +408,34 @@ export class MenuScene extends Phaser.Scene {
 
   private setupInputHandlers(): void {
     // 입력을 감지하기 위한 이벤트 리스너 등록
-    this.input.keyboard?.on('keydown', () => this.startGame());
-    this.input.on('pointerdown', () => this.startGame());
+    this.input.keyboard?.on('keydown', () => {
+      void this.startGame();
+    });
 
-    const onNativeInput = () => {
-      this.startGame();
-      window.removeEventListener('mousedown', onNativeInput);
-      window.removeEventListener('keydown', onNativeInput);
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.isInsideLanguageSafeArea(pointer.x, pointer.y)) return;
+      void this.startGame();
+    });
+
+    this.cleanupNativeInputListeners();
+
+    this.nativeMouseDownHandler = (event: MouseEvent) => {
+      const gamePoint = this.getGamePointFromClientPosition(event.clientX, event.clientY);
+      if (!gamePoint) return;
+      if (this.isInsideLanguageSafeArea(gamePoint.x, gamePoint.y)) return;
+      void this.startGame();
     };
-    window.addEventListener('mousedown', onNativeInput);
-    window.addEventListener('keydown', onNativeInput);
+
+    this.nativeKeyDownHandler = () => {
+      void this.startGame();
+    };
+
+    window.addEventListener('mousedown', this.nativeMouseDownHandler);
+    window.addEventListener('keydown', this.nativeKeyDownHandler);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.cleanupNativeInputListeners();
+    });
   }
 
   update(time: number, delta: number): void {
@@ -374,6 +450,7 @@ export class MenuScene extends Phaser.Scene {
   private async startGame(): Promise<void> {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.cleanupNativeInputListeners();
 
     // 사운드 시스템 활성화 및 대기
     const ss = SoundSystem.getInstance();

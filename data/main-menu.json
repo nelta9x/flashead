@@ -96,7 +96,10 @@
     "fontSize": "18px",
     "spacing": 20,
     "activeScale": 1.1,
-    "inactiveAlpha": 0.5
+    "inactiveAlpha": 0.5,
+    "safeAreaPaddingX": 28,
+    "safeAreaPaddingTop": 10,
+    "safeAreaPaddingBottom": 18
   },
   "startPrompt": {
     "yOffset": 150,
