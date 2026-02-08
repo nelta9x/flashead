@@ -141,13 +141,29 @@ type BossStub = {
 };
 
 type GameSceneTestContext = {
-  activeLasers: Array<{ bossId: string; isWarning: boolean; isFiring: boolean }>;
+  activeLasers: Array<{
+    bossId: string;
+    isWarning: boolean;
+    isFiring: boolean;
+    x1?: number;
+    y1?: number;
+    x2?: number;
+    y2?: number;
+    startTime?: number;
+  }>;
   bosses: Map<string, BossStub>;
   damageText: { showText: (...args: unknown[]) => void };
   laserRenderer: { clear: (...args: unknown[]) => void };
   feedbackSystem: {
     onBossDamaged: (...args: unknown[]) => void;
+    onBossContactDamaged: (...args: unknown[]) => void;
     onCriticalHit: (...args: unknown[]) => void;
+    onHpLost: (...args: unknown[]) => void;
+  };
+  healthSystem: {
+    takeDamage: (...args: unknown[]) => void;
+    getHp: () => number;
+    getMaxHp: () => number;
   };
   monsterSystem: {
     isAlive: (bossId?: string) => boolean;
@@ -170,6 +186,7 @@ type GameSceneTestContext = {
     playPlayerChargeSound: (...args: unknown[]) => void;
     playBossFireSound: (...args: unknown[]) => void;
     playHitSound: (...args: unknown[]) => void;
+    playBossImpactSound: (...args: unknown[]) => void;
   };
   particleManager: {
     createSparkBurst: (...args: unknown[]) => void;
@@ -199,6 +216,7 @@ type GameSceneTestContext = {
   };
   input: { activePointer: { worldX: number; worldY: number } };
   cameras: { main: { shake: (...args: unknown[]) => void } };
+  gameTime: number;
   cursorX: number;
   cursorY: number;
   isPaused: boolean;
@@ -220,6 +238,8 @@ type GameSceneTestContext = {
     toY: number,
     pathRadius: number
   ) => void;
+  updateBossOverlapDamage: (cursorRadius: number) => void;
+  checkLaserCollisions: (_delta: number) => void;
   onDishDamaged: (data: {
     type: string;
     isCritical: boolean;
@@ -251,6 +271,9 @@ describe('Boss Laser Cancellation Logic', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    aliveBossIds.clear();
+    aliveBossIds.add('boss_left');
+    aliveBossIds.add('boss_right');
 
     const { GameScene } = await import('../src/scenes/GameScene');
 
@@ -265,7 +288,14 @@ describe('Boss Laser Cancellation Logic', () => {
     gameScene.laserRenderer = { clear: vi.fn() };
     gameScene.feedbackSystem = {
       onBossDamaged: vi.fn(),
+      onBossContactDamaged: vi.fn(),
       onCriticalHit: vi.fn(),
+      onHpLost: vi.fn(),
+    };
+    gameScene.healthSystem = {
+      takeDamage: vi.fn(),
+      getHp: () => 5,
+      getMaxHp: () => 5,
     };
     gameScene.monsterSystem = {
       isAlive: (bossId?: string) => {
@@ -294,6 +324,7 @@ describe('Boss Laser Cancellation Logic', () => {
       playPlayerChargeSound: vi.fn(),
       playBossFireSound: vi.fn(),
       playHitSound: vi.fn(),
+      playBossImpactSound: vi.fn(),
     };
     gameScene.particleManager = {
       createSparkBurst: vi.fn(),
@@ -329,6 +360,7 @@ describe('Boss Laser Cancellation Logic', () => {
     };
     gameScene.input = { activePointer: { worldX: 0, worldY: 0 } };
     gameScene.cameras = { main: { shake: vi.fn() } };
+    gameScene.gameTime = 0;
     gameScene.cursorX = 900;
     gameScene.cursorY = 100;
     gameScene.isPaused = false;
@@ -506,6 +538,120 @@ describe('Boss Laser Cancellation Logic', () => {
     gameScene.destroyDishesAlongMissileSegment(0, 0, 640, 100, 10);
 
     expect(spawnedBomb.forceDestroy).toHaveBeenCalledWith(true);
+  });
+
+  it('applies immediate boss damage when cursor overlaps boss', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    gameScene.cursorX = 360;
+    gameScene.cursorY = 100;
+    gameScene.gameTime = 1000;
+    const takeDamageSpy = vi.spyOn(gameScene.monsterSystem, 'takeDamage');
+
+    gameScene.updateBossOverlapDamage(30);
+
+    expect(takeDamageSpy).toHaveBeenCalledTimes(1);
+    expect(takeDamageSpy).toHaveBeenCalledWith('boss_left', expect.any(Number), 360, 100);
+    randomSpy.mockRestore();
+  });
+
+  it('does not apply boss damage when cursor is not overlapping', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    gameScene.cursorX = 0;
+    gameScene.cursorY = 0;
+    gameScene.gameTime = 1000;
+    const takeDamageSpy = vi.spyOn(gameScene.monsterSystem, 'takeDamage');
+
+    gameScene.updateBossOverlapDamage(30);
+
+    expect(takeDamageSpy).not.toHaveBeenCalled();
+    randomSpy.mockRestore();
+  });
+
+  it('does not apply additional boss damage before overlap tick interval', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    gameScene.cursorX = 360;
+    gameScene.cursorY = 100;
+    gameScene.gameTime = 1000;
+    const takeDamageSpy = vi.spyOn(gameScene.monsterSystem, 'takeDamage');
+
+    gameScene.updateBossOverlapDamage(30);
+    gameScene.updateBossOverlapDamage(30);
+
+    expect(takeDamageSpy).toHaveBeenCalledTimes(1);
+    randomSpy.mockRestore();
+  });
+
+  it('applies immediate damage again when overlap breaks and re-enters', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    gameScene.cursorX = 360;
+    gameScene.cursorY = 100;
+    gameScene.gameTime = 1000;
+    const takeDamageSpy = vi.spyOn(gameScene.monsterSystem, 'takeDamage');
+
+    gameScene.updateBossOverlapDamage(30);
+
+    gameScene.cursorX = 0;
+    gameScene.cursorY = 0;
+    gameScene.gameTime = 1001;
+    gameScene.updateBossOverlapDamage(30);
+
+    gameScene.cursorX = 360;
+    gameScene.cursorY = 100;
+    gameScene.gameTime = 1002;
+    gameScene.updateBossOverlapDamage(30);
+
+    expect(takeDamageSpy).toHaveBeenCalledTimes(2);
+    randomSpy.mockRestore();
+  });
+
+  it('does not damage player HP through boss overlap path', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    gameScene.cursorX = 360;
+    gameScene.cursorY = 100;
+    gameScene.gameTime = 1000;
+    const hpDamageSpy = vi.spyOn(gameScene.healthSystem, 'takeDamage');
+
+    gameScene.updateBossOverlapDamage(30);
+
+    expect(hpDamageSpy).not.toHaveBeenCalled();
+    randomSpy.mockRestore();
+  });
+
+  it('shows boss overlap damage feedback text when overlap damage is applied', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    gameScene.cursorX = 360;
+    gameScene.cursorY = 100;
+    gameScene.gameTime = 1000;
+    const feedbackSpy = vi.spyOn(gameScene.feedbackSystem, 'onBossContactDamaged');
+
+    gameScene.updateBossOverlapDamage(30);
+
+    expect(feedbackSpy).toHaveBeenCalledTimes(1);
+    expect(feedbackSpy).toHaveBeenCalledWith(360, 100, expect.any(Number), false);
+    randomSpy.mockRestore();
+  });
+
+  it('keeps laser collision damage behavior unchanged', () => {
+    gameScene.cursorX = 320;
+    gameScene.cursorY = 100;
+    gameScene.gameTime = 1000;
+    gameScene.activeLasers = [
+      {
+        bossId: 'boss_left',
+        isWarning: false,
+        isFiring: true,
+        x1: 0,
+        y1: 100,
+        x2: 640,
+        y2: 100,
+        startTime: 0,
+      },
+    ];
+    const hpDamageSpy = vi.spyOn(gameScene.healthSystem, 'takeDamage');
+
+    gameScene.checkLaserCollisions(16);
+
+    expect(hpDamageSpy).toHaveBeenCalledWith(1);
   });
 
   it('does not destroy unspawned bombs on missile path', () => {

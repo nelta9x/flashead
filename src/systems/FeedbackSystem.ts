@@ -166,6 +166,11 @@ export class FeedbackSystem {
     this.soundSystem.playBossImpactSound();
   }
 
+  // 보스 겹침 데미지 피드백 (텍스트 중심, 과한 연출/사운드 없음)
+  onBossContactDamaged(x: number, y: number, damage: number, isCritical: boolean = false): void {
+    this.damageText.showDamage(x, y, damage, isCritical ? 'critical' : 'normal');
+  }
+
   // 보스 아머 파괴 피드백
   onBossArmorBreak(
     x: number,

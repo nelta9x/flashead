@@ -112,6 +112,7 @@ export class GameScene extends Phaser.Scene {
     isWarning: boolean;
     startTime: number;
   }> = [];
+  private bossOverlapLastHitTimeByBossId: Map<string, number> = new Map();
 
   constructor() {
     super({ key: 'GameScene' });
@@ -125,6 +126,7 @@ export class GameScene extends Phaser.Scene {
     this.gameTime = 0;
     this.activeLasers = [];
     this.laserNextTimeByBossId.clear();
+    this.bossOverlapLastHitTimeByBossId.clear();
     this.time.timeScale = 1;
     this.tweens.resumeAll();
 
@@ -447,9 +449,17 @@ export class GameScene extends Phaser.Scene {
       if (activeBossIds.has(bossId)) return;
       boss.deactivate();
       this.laserNextTimeByBossId.delete(bossId);
+      this.bossOverlapLastHitTimeByBossId.delete(bossId);
     });
 
     this.activeLasers = this.activeLasers.filter((laser) => activeBossIds.has(laser.bossId));
+    const staleOverlapBossIds: string[] = [];
+    this.bossOverlapLastHitTimeByBossId.forEach((_lastHitTime, bossId) => {
+      if (!activeBossIds.has(bossId)) {
+        staleOverlapBossIds.push(bossId);
+      }
+    });
+    staleOverlapBossIds.forEach((bossId) => this.bossOverlapLastHitTimeByBossId.delete(bossId));
 
     const spawnPositions = this.rollBossSpawnPositions(
       bossConfigs,
@@ -1171,6 +1181,7 @@ export class GameScene extends Phaser.Scene {
     this.waveCountdownUI.destroy();
     this.bosses.forEach((boss) => boss.destroy());
     this.bosses.clear();
+    this.bossOverlapLastHitTimeByBossId.clear();
     if (this.cursorTrail) this.cursorTrail.destroy();
     if (this.gaugeSystem) this.gaugeSystem.destroy();
     if (this.orbRenderer) this.orbRenderer.destroy();
@@ -1259,6 +1270,8 @@ export class GameScene extends Phaser.Scene {
     this.bosses.forEach((boss) => {
       boss.update(delta);
     });
+
+    this.updateBossOverlapDamage(cursorRadius);
 
     // 커서 트레일 업데이트
     this.cursorTrail.update(delta, cursorRadius, this.cursorX, this.cursorY);
@@ -1365,6 +1378,55 @@ export class GameScene extends Phaser.Scene {
 
       dish.setInCursorRange(dist <= hitDistance);
     });
+  }
+
+  private updateBossOverlapDamage(cursorRadius: number): void {
+    const damageConfig = Data.dishes.damage;
+    const baseDamage = Math.max(0, damageConfig.playerDamage + this.upgradeSystem.getCursorDamageBonus());
+    const criticalChance = Phaser.Math.Clamp(
+      (damageConfig.criticalChance ?? 0) + this.upgradeSystem.getCriticalChanceBonus(),
+      0,
+      1
+    );
+    const criticalMultiplier = damageConfig.criticalMultiplier ?? 1;
+    const tickInterval = damageConfig.damageInterval;
+    const overlapBossIds = new Set<string>();
+
+    this.bosses.forEach((boss, bossId) => {
+      if (!boss.visible) return;
+      if (!this.monsterSystem.isAlive(bossId)) return;
+
+      const scaleX = Number.isFinite(boss.scaleX) ? Math.abs(boss.scaleX) : 1;
+      const scaleY = Number.isFinite(boss.scaleY) ? Math.abs(boss.scaleY) : 1;
+      const bossScale = Math.max(scaleX, scaleY, Number.EPSILON);
+      const bossRadius = Data.boss.visual.armor.radius * bossScale;
+      const distance = Phaser.Math.Distance.Between(this.cursorX, this.cursorY, boss.x, boss.y);
+      if (distance > cursorRadius + bossRadius) return;
+
+      overlapBossIds.add(bossId);
+
+      const lastHitTime = this.bossOverlapLastHitTimeByBossId.get(bossId);
+      if (lastHitTime !== undefined && this.gameTime - lastHitTime < tickInterval) return;
+      if (baseDamage <= 0) return;
+
+      let damage = baseDamage;
+      const isCritical = Math.random() < criticalChance;
+      if (isCritical) {
+        damage *= criticalMultiplier;
+      }
+
+      this.monsterSystem.takeDamage(bossId, damage, this.cursorX, this.cursorY);
+      this.feedbackSystem.onBossContactDamaged(boss.x, boss.y, damage, isCritical);
+      this.bossOverlapLastHitTimeByBossId.set(bossId, this.gameTime);
+    });
+
+    const staleBossIds: string[] = [];
+    this.bossOverlapLastHitTimeByBossId.forEach((_lastHitTime, bossId) => {
+      if (!overlapBossIds.has(bossId)) {
+        staleBossIds.push(bossId);
+      }
+    });
+    staleBossIds.forEach((bossId) => this.bossOverlapLastHitTimeByBossId.delete(bossId));
   }
 
   private updateAttackRangeIndicator(): void {

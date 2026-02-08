@@ -256,6 +256,8 @@ import { COLORS, FONTS } from '../data/constants';
 }
 ```
 
+`dishes.damage`는 접시 커서 공격뿐 아니라, 인게임에서 커서가 보스와 겹칠 때의 보스 주기 피해(기본 피해/치명타/틱 간격)에도 동일하게 사용됩니다.
+
 ---
 
 ### combo.json
