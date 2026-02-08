@@ -509,7 +509,7 @@ import { COLORS, FONTS } from '../data/constants';
       "hpSegments": {
         "minPieces": 1,          // 최소 슬롯 수
         "maxPieces": 9999,       // 슬롯 상한 (사실상 제한 해제)
-        "targetHpPerPiece": 100  // 슬롯 1칸당 HP (100당 1칸, 나머지는 올림)
+        "targetHpPerPiece": 100 // 슬롯 1칸당 HP (100당 1칸, 나머지는 올림)
       }
     },
     "shockwave": {

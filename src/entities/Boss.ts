@@ -368,14 +368,9 @@ export class Boss extends Phaser.GameObjects.Container {
       if (endAngle <= startAngle) {
         continue;
       }
-      const points = this.getArmorPiecePoints(
-        startAngle,
-        endAngle,
-        armor.innerRadius,
-        armor.radius
-      );
       this.glowGraphics.lineStyle(glowWidth, COLORS.RED, glowAlpha);
-      this.glowGraphics.strokePoints(points, true);
+      this.traceArmorPiecePath(this.glowGraphics, startAngle, endAngle, armor.innerRadius, armor.radius);
+      this.glowGraphics.strokePath();
     }
   }
 
@@ -400,12 +395,6 @@ export class Boss extends Phaser.GameObjects.Container {
         continue;
       }
 
-      const points = this.getArmorPiecePoints(
-        startAngle,
-        endAngle,
-        config.innerRadius,
-        config.radius
-      );
       const isFilled = i < this.currentArmorCount;
       const bodyColor = isFilled ? filledBodyColor : depletedBodyColor;
       const bodyAlpha = isFilled ? config.bodyAlpha : depletedBodyAlpha;
@@ -415,11 +404,13 @@ export class Boss extends Phaser.GameObjects.Container {
 
       // 아머 본체
       this.armorGraphics.fillStyle(bodyColor, bodyAlpha);
-      this.armorGraphics.fillPoints(points, true);
+      this.traceArmorPiecePath(this.armorGraphics, startAngle, endAngle, config.innerRadius, config.radius);
+      this.armorGraphics.fillPath();
 
       // 아머 테두리
       this.armorGraphics.lineStyle(2, borderColor, borderAlpha);
-      this.armorGraphics.strokePoints(points, true);
+      this.traceArmorPiecePath(this.armorGraphics, startAngle, endAngle, config.innerRadius, config.radius);
+      this.armorGraphics.strokePath();
 
       // 아머 내부 디테일 라인
       this.armorGraphics.lineStyle(1, borderColor, detailAlpha);
@@ -453,38 +444,21 @@ export class Boss extends Phaser.GameObjects.Container {
     const safePieceCount = Math.max(1, pieceCount);
     const slotAngle = (Math.PI * 2) / safePieceCount;
     const gap = this.getClampedArmorGap(configuredGap, safePieceCount);
-    const rawSpan = Math.max(slotAngle - gap * 2, slotAngle * 0.2);
-
-    // 슬롯 수가 작아져도 메뉴 보스의 둥근 실루엣 느낌을 유지하기 위해
-    // 기본 아머(10조각) 기준 폭을 상한으로 사용한다.
-    const defaultSlotAngle = (Math.PI * 2) / this.defaultArmorPieces;
-    const defaultGap = this.getClampedArmorGap(configuredGap, this.defaultArmorPieces);
-    const defaultSpan = Math.max(defaultSlotAngle - defaultGap * 2, defaultSlotAngle * 0.2);
-
-    return Math.min(rawSpan, defaultSpan);
+    return Math.max(slotAngle - gap * 2, slotAngle * 0.2);
   }
 
-  private getArmorPiecePoints(
+  private traceArmorPiecePath(
+    graphics: Phaser.GameObjects.Graphics,
     startAngle: number,
     endAngle: number,
     innerRadius: number,
     outerRadius: number
-  ): Array<{ x: number; y: number }> {
-    const p1x = Math.cos(startAngle) * innerRadius;
-    const p1y = Math.sin(startAngle) * innerRadius;
-    const p2x = Math.cos(endAngle) * innerRadius;
-    const p2y = Math.sin(endAngle) * innerRadius;
-    const p3x = Math.cos(endAngle) * outerRadius;
-    const p3y = Math.sin(endAngle) * outerRadius;
-    const p4x = Math.cos(startAngle) * outerRadius;
-    const p4y = Math.sin(startAngle) * outerRadius;
-
-    return [
-      { x: p1x, y: p1y },
-      { x: p2x, y: p2y },
-      { x: p3x, y: p3y },
-      { x: p4x, y: p4y },
-    ];
+  ): void {
+    graphics.beginPath();
+    graphics.arc(0, 0, outerRadius, startAngle, endAngle, false);
+    graphics.lineTo(Math.cos(endAngle) * innerRadius, Math.sin(endAngle) * innerRadius);
+    graphics.arc(0, 0, innerRadius, endAngle, startAngle, true);
+    graphics.closePath();
   }
 
   private resolveColor(colorValue: string | undefined, fallback: number): number {
