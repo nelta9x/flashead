@@ -1019,7 +1019,7 @@ export class GameScene extends Phaser.Scene {
 
       // 보너스 피드백
       if (isLaserFiring) {
-        this.damageText.showText(x, y - 40, 'LASER BONUS!', COLORS.YELLOW);
+        this.damageText.showText(x, y - 40, Data.t('feedback.laser_bonus'), COLORS.YELLOW);
         this.soundSystem.playBossImpactSound(); // 보너스 느낌의 소리
       }
     }

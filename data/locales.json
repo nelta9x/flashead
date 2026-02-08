@@ -22,6 +22,7 @@
     "feedback.bomb_removed": "REMOVED!",
     "feedback.bomb_exploded": "BOOM!",
     "feedback.interrupted": "INTERRUPTED!",
+    "feedback.laser_bonus": "LASER BONUS COMBO!",
     "feedback.miss": "MISS!",
 
     "damage.combo": "x{0}",
@@ -124,6 +125,7 @@
     "feedback.bomb_removed": "제거됨!",
     "feedback.bomb_exploded": "쾅!",
     "feedback.interrupted": "차단됨!",
+    "feedback.laser_bonus": "레이저 보너스 콤보!",
     "feedback.miss": "놓침!",
 
     "damage.combo": "x{0}",
