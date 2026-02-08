@@ -37,6 +37,7 @@ import { OrbSystem } from '../systems/OrbSystem';
 import { InGameUpgradeUI } from '../ui/InGameUpgradeUI';
 import { WaveCountdownUI } from '../ui/WaveCountdownUI';
 import { HudFrameContext } from '../ui/hud/types';
+import { WaveBossConfig } from '../data/types';
 
 export class GameScene extends Phaser.Scene {
   private dishPool!: ObjectPool<Dish>;
@@ -56,7 +57,7 @@ export class GameScene extends Phaser.Scene {
 
   // UI & 이펙트
   private hud!: HUD;
-  private boss!: Boss;
+  private bosses: Map<string, Boss> = new Map();
   private inGameUpgradeUI!: InGameUpgradeUI;
   private waveCountdownUI!: WaveCountdownUI;
   private particleManager!: ParticleManager;
@@ -100,8 +101,9 @@ export class GameScene extends Phaser.Scene {
   };
 
   // 보스 레이저 공격 관련
-  private laserNextTime: number = 0;
+  private laserNextTimeByBossId: Map<string, number> = new Map();
   private activeLasers: Array<{
+    bossId: string;
     x1: number;
     y1: number;
     x2: number;
@@ -122,6 +124,7 @@ export class GameScene extends Phaser.Scene {
     this.isSimulationPaused = false;
     this.gameTime = 0;
     this.activeLasers = [];
+    this.laserNextTimeByBossId.clear();
     this.time.timeScale = 1;
     this.tweens.resumeAll();
 
@@ -145,12 +148,6 @@ export class GameScene extends Phaser.Scene {
 
     // 입력 설정
     this.setupInput();
-
-    // 첫 레이저 시간 설정
-    this.setNextLaserTime();
-
-    // 게임 시작: 첫 웨이브 바로 시작 (카운트다운 없음)
-    this.waveSystem.startWave(1);
 
     // 카메라 페이드 인
     this.cameras.main.fadeIn(500);
@@ -182,6 +179,9 @@ export class GameScene extends Phaser.Scene {
     const gridConfig = Data.gameConfig.gameGrid;
     this.starBackground = new StarBackground(this, Data.gameConfig.stars);
     this.starBackground.setDepth(gridConfig.depth - 1);
+
+    // 게임 시작: 첫 웨이브 바로 시작 (카운트다운 없음)
+    this.waveSystem.startWave(1);
   }
 
   private initializeSystems(): void {
@@ -219,7 +219,7 @@ export class GameScene extends Phaser.Scene {
           : SPAWN_AREA.maxY;
         return this.getDockSafeSpawnMaxY(baseMaxY);
       },
-      () => this.boss
+      () => this.getVisibleBossSnapshots()
     );
     this.healthSystem = new HealthSystem();
     this.healthPackSystem = new HealthPackSystem(this, this.upgradeSystem);
@@ -263,10 +263,6 @@ export class GameScene extends Phaser.Scene {
   private initializeEntities(): void {
     // 오브젝트 풀 생성
     this.dishPool = new ObjectPool<Dish>(() => new Dish(this, 0, 0, 'basic'), 10, 50);
-
-    // 보스 생성 (화면 상단 중앙)
-    this.boss = new Boss(this, GAME_WIDTH / 2, 100, this.feedbackSystem);
-    this.boss.setDepth(Data.boss.depth);
   }
 
   private setupEventListeners(): void {
@@ -298,14 +294,22 @@ export class GameScene extends Phaser.Scene {
       this.feedbackSystem.onComboMilestone(milestone);
     });
 
+    // 웨이브 시작 시 보스 동기화
+    EventBus.getInstance().on(GameEvents.WAVE_STARTED, (...args: unknown[]) => {
+      const waveNumber = args[0] as number;
+      this.syncBossesForWave(waveNumber);
+    });
+
     // 웨이브 완료
     EventBus.getInstance().on(GameEvents.WAVE_COMPLETED, (...args: unknown[]) => {
       const waveNumber = args[0] as number;
       this.hud.showWaveComplete(waveNumber);
       this.clearAllDishes();
-      
+
       // 레이저 정리
       this.activeLasers = [];
+      this.laserNextTimeByBossId.clear();
+      this.bosses.forEach((boss) => boss.unfreeze());
       this.laserRenderer.clear();
 
       // 다음 웨이브 번호 저장 후 업그레이드 UI만 먼저 표시
@@ -320,9 +324,9 @@ export class GameScene extends Phaser.Scene {
     // 업그레이드 선택 완료
     EventBus.getInstance().on(GameEvents.UPGRADE_SELECTED, () => {
       if (this.isGameOver) return;
-      
+
       this.isUpgrading = false;
-      
+
       // 업그레이드 선택 후에만 다음 웨이브 카운트다운 시작
       this.time.delayedCall(300, () => {
         if (this.isGameOver) return;
@@ -406,7 +410,9 @@ export class GameScene extends Phaser.Scene {
 
     // 몬스터 사망 -> 웨이브 클리어
     EventBus.getInstance().on(GameEvents.MONSTER_DIED, () => {
-      this.waveSystem.forceCompleteWave();
+      if (this.monsterSystem.areAllDead()) {
+        this.waveSystem.forceCompleteWave();
+      }
     });
   }
 
@@ -424,8 +430,156 @@ export class GameScene extends Phaser.Scene {
     return this.playerAttackRenderer;
   }
 
+  private getVisibleBossSnapshots(): Array<{ id: string; x: number; y: number; visible: boolean }> {
+    const visibleBosses: Array<{ id: string; x: number; y: number; visible: boolean }> = [];
+    this.bosses.forEach((boss, bossId) => {
+      if (!boss.visible) return;
+      visibleBosses.push({ id: bossId, x: boss.x, y: boss.y, visible: true });
+    });
+    return visibleBosses;
+  }
+
+  private syncBossesForWave(_waveNumber: number): void {
+    const bossConfigs = this.waveSystem.getCurrentWaveBosses();
+    const activeBossIds = new Set(bossConfigs.map((boss) => boss.id));
+
+    this.bosses.forEach((boss, bossId) => {
+      if (activeBossIds.has(bossId)) return;
+      boss.deactivate();
+      this.laserNextTimeByBossId.delete(bossId);
+    });
+
+    this.activeLasers = this.activeLasers.filter((laser) => activeBossIds.has(laser.bossId));
+
+    const spawnPositions = this.rollBossSpawnPositions(
+      bossConfigs,
+      this.waveSystem.getCurrentWaveBossSpawnMinDistance()
+    );
+
+    for (const bossConfig of bossConfigs) {
+      let boss = this.bosses.get(bossConfig.id);
+      if (!boss) {
+        boss = new Boss(
+          this,
+          GAME_WIDTH / 2,
+          Data.boss.spawn.y,
+          bossConfig.id,
+          this.feedbackSystem
+        );
+        boss.setDepth(Data.boss.depth);
+        this.bosses.set(bossConfig.id, boss);
+      }
+
+      const spawnPosition = spawnPositions.get(bossConfig.id);
+      if (!spawnPosition) continue;
+      boss.spawnAt(spawnPosition.x, spawnPosition.y);
+      this.monsterSystem.publishBossHpSnapshot(bossConfig.id);
+      this.setNextLaserTime(bossConfig.id);
+    }
+
+    if (this.activeLasers.length === 0) {
+      this.laserRenderer?.clear();
+    }
+  }
+
+  private rollBossSpawnPositions(
+    bossConfigs: WaveBossConfig[],
+    minDistance: number
+  ): Map<string, { x: number; y: number }> {
+    const positions = new Map<string, { x: number; y: number }>();
+    if (bossConfigs.length === 0) return positions;
+
+    const requiredDistance = Math.max(0, minDistance);
+    const maxAttempts = 80;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      positions.clear();
+      for (const bossConfig of bossConfigs) {
+        const minX = Math.min(bossConfig.spawnRange.minX, bossConfig.spawnRange.maxX);
+        const maxX = Math.max(bossConfig.spawnRange.minX, bossConfig.spawnRange.maxX);
+        const minY = Math.min(bossConfig.spawnRange.minY, bossConfig.spawnRange.maxY);
+        const maxY = Math.max(bossConfig.spawnRange.minY, bossConfig.spawnRange.maxY);
+        positions.set(bossConfig.id, {
+          x: Phaser.Math.Between(minX, maxX),
+          y: Phaser.Math.Between(minY, maxY),
+        });
+      }
+
+      const entries = Array.from(positions.entries());
+      let valid = true;
+      for (let i = 0; i < entries.length && valid; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+          const posA = entries[i][1];
+          const posB = entries[j][1];
+          const distance = Phaser.Math.Distance.Between(posA.x, posA.y, posB.x, posB.y);
+          if (distance < requiredDistance) {
+            valid = false;
+            break;
+          }
+        }
+      }
+
+      if (valid) {
+        return new Map(positions);
+      }
+    }
+
+    positions.clear();
+    bossConfigs.forEach((bossConfig, index) => {
+      const minX = Math.min(bossConfig.spawnRange.minX, bossConfig.spawnRange.maxX);
+      const maxX = Math.max(bossConfig.spawnRange.minX, bossConfig.spawnRange.maxX);
+      const minY = Math.min(bossConfig.spawnRange.minY, bossConfig.spawnRange.maxY);
+      const maxY = Math.max(bossConfig.spawnRange.minY, bossConfig.spawnRange.maxY);
+      const centerX = Math.floor((minX + maxX) / 2);
+      const centerY = Math.floor((minY + maxY) / 2);
+      positions.set(bossConfig.id, {
+        x: Phaser.Math.Clamp(centerX + index * Math.max(0, Math.floor(requiredDistance * 0.2)), minX, maxX),
+        y: centerY,
+      });
+    });
+
+    return positions;
+  }
+
+  private getAliveVisibleBossById(bossId: string): Boss | null {
+    const boss = this.bosses.get(bossId);
+    if (!boss) return null;
+    if (!boss.visible) return null;
+    if (!this.monsterSystem.isAlive(bossId)) return null;
+    return boss;
+  }
+
+  private findNearestAliveBoss(x: number, y: number): Boss | null {
+    let nearestBoss: Boss | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    this.bosses.forEach((boss, bossId) => {
+      if (!boss.visible) return;
+      if (!this.monsterSystem.isAlive(bossId)) return;
+
+      const distance = Phaser.Math.Distance.Between(x, y, boss.x, boss.y);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestBoss = boss;
+      }
+    });
+
+    return nearestBoss;
+  }
+
+  private getBossLaserConfig(bossId: string): { maxCount: number; minInterval: number; maxInterval: number } | null {
+    const bossConfig = this.waveSystem
+      .getCurrentWaveBosses()
+      .find((candidate) => candidate.id === bossId);
+    if (!bossConfig) return null;
+    return bossConfig.laser;
+  }
+
   private performPlayerAttack(): void {
+    if (this.isGameOver) return;
+
     const config = Data.feedback.bossAttack;
+    const attackWave = this.waveSystem.getCurrentWave();
 
     // 색상 변환
     const mainColor = Phaser.Display.Color.HexStringToColor(config.mainColor).color;
@@ -455,6 +609,8 @@ export class GameScene extends Phaser.Scene {
       },
       onComplete: () => {
         chargeVisual.destroy();
+        if (this.isGameOver) return;
+        if (this.waveSystem.getCurrentWave() !== attackWave) return;
 
         // 2. Fire Phase (순차적 발사!)
         const baseAttack = Data.gameConfig.playerAttack;
@@ -465,8 +621,20 @@ export class GameScene extends Phaser.Scene {
 
         for (let i = 0; i < missileCount; i++) {
           this.time.delayedCall(i * config.fire.missileInterval, () => {
+            if (this.isGameOver) return;
+            if (this.waveSystem.getCurrentWave() !== attackWave) return;
+
+            const nearestBoss = this.findNearestAliveBoss(this.cursorX, this.cursorY);
+            if (!nearestBoss) return;
+
             // 발사 시점의 실시간 커서 위치 사용 (this.cursorX/Y가 매번 현재 위치를 참조함)
-            this.fireSequentialMissile(this.cursorX, this.cursorY, i, missileCount);
+            this.fireSequentialMissile(
+              this.cursorX,
+              this.cursorY,
+              i,
+              missileCount,
+              nearestBoss.getBossId()
+            );
           });
         }
       },
@@ -478,9 +646,11 @@ export class GameScene extends Phaser.Scene {
     startX: number,
     startY: number,
     index: number,
-    total: number
+    total: number,
+    initialTargetBossId: string
   ): void {
     if (this.isGameOver) return;
+    const missileWave = this.waveSystem.getCurrentWave();
 
     const config = Data.feedback.bossAttack;
     const mainColor = Phaser.Display.Color.HexStringToColor(config.mainColor).color;
@@ -501,8 +671,19 @@ export class GameScene extends Phaser.Scene {
 
     // 타겟 오프셋 (보스 중심에서 약간씩 빗나가게 하여 뭉치지 않게 함)
     const tracking = config.fire.trackingOffset || { x: 20, y: 10 };
-    const targetOffsetX = Phaser.Math.Between(-tracking.x, tracking.x);
-    const targetOffsetY = Phaser.Math.Between(-tracking.y, tracking.y);
+    let targetBossId = initialTargetBossId;
+    let targetOffsetX = Phaser.Math.Between(-tracking.x, tracking.x);
+    let targetOffsetY = Phaser.Math.Between(-tracking.y, tracking.y);
+
+    let trackedBoss = this.getAliveVisibleBossById(targetBossId);
+    if (!trackedBoss) {
+      trackedBoss = this.findNearestAliveBoss(curStartX, curStartY);
+      if (!trackedBoss) return;
+      targetBossId = trackedBoss.getBossId();
+    }
+
+    let fallbackTargetX = trackedBoss.x + targetOffsetX;
+    let fallbackTargetY = trackedBoss.y + targetOffsetY;
 
     // 미사일 객체 생성
     const missile = this.getPlayerAttackRenderer().createMissile(
@@ -529,12 +710,28 @@ export class GameScene extends Phaser.Scene {
       ease: 'Expo.In',
       onUpdate: (_tween, target) => {
         if (this.isGameOver) return;
+        if (this.waveSystem.getCurrentWave() !== missileWave) return;
 
         const p = target.progress;
 
-        // 보스의 현재 위치를 실시간으로 추적
-        const curTargetX = this.boss.x + targetOffsetX;
-        const curTargetY = this.boss.y + targetOffsetY;
+        // 타겟 보스가 죽으면 현재 미사일 위치 기준 nearest 보스로 재타겟
+        let activeTargetBoss = this.getAliveVisibleBossById(targetBossId);
+        if (!activeTargetBoss) {
+          const retargetedBoss = this.findNearestAliveBoss(missile.x, missile.y);
+          if (retargetedBoss) {
+            targetBossId = retargetedBoss.getBossId();
+            targetOffsetX = Phaser.Math.Between(-tracking.x, tracking.x);
+            targetOffsetY = Phaser.Math.Between(-tracking.y, tracking.y);
+            activeTargetBoss = retargetedBoss;
+          }
+        }
+
+        const curTargetX =
+          activeTargetBoss ? activeTargetBoss.x + targetOffsetX : fallbackTargetX;
+        const curTargetY =
+          activeTargetBoss ? activeTargetBoss.y + targetOffsetY : fallbackTargetY;
+        fallbackTargetX = curTargetX;
+        fallbackTargetY = curTargetY;
 
         // 시작점과 현재 보스 위치 사이를 보간
         missile.x = curStartX + (curTargetX - curStartX) * p;
@@ -568,10 +765,24 @@ export class GameScene extends Phaser.Scene {
       onComplete: () => {
         this.getPlayerAttackRenderer().destroyProjectile(missile);
         if (this.isGameOver) return;
+        if (this.waveSystem.getCurrentWave() !== missileWave) return;
+
+        // 최종 타겟 확인 (사망 시점이면 nearest alive 재획득)
+        let finalTargetBoss = this.getAliveVisibleBossById(targetBossId);
+        if (!finalTargetBoss) {
+          finalTargetBoss = this.findNearestAliveBoss(missile.x, missile.y);
+          if (!finalTargetBoss) {
+            // 생존 보스가 없으면 시각 효과만 종료
+            return;
+          }
+          targetBossId = finalTargetBoss.getBossId();
+          targetOffsetX = Phaser.Math.Between(-tracking.x, tracking.x);
+          targetOffsetY = Phaser.Math.Between(-tracking.y, tracking.y);
+        }
 
         // 폭발 시점의 보스 위치 재계산
-        const finalTargetX = this.boss.x + targetOffsetX;
-        const finalTargetY = this.boss.y + targetOffsetY;
+        const finalTargetX = finalTargetBoss.x + targetOffsetX;
+        const finalTargetY = finalTargetBoss.y + targetOffsetY;
 
         // 미사일 데미지 적용
         const attackConfig = Data.gameConfig.playerAttack;
@@ -590,11 +801,11 @@ export class GameScene extends Phaser.Scene {
           totalDamage *= attackConfig.criticalMultiplier;
         }
 
-        this.monsterSystem.takeDamage(totalDamage, curStartX, curStartY);
+        this.monsterSystem.takeDamage(targetBossId, totalDamage, curStartX, curStartY);
 
         // 치명타 시 보스의 충전 중인 레이저 취소
         if (isCritical) {
-          this.cancelBossChargingLasers();
+          this.cancelBossChargingLasers(targetBossId);
         }
 
         // 타격 피드백 (마지막 발사일수록 더 강하게)
@@ -694,7 +905,10 @@ export class GameScene extends Phaser.Scene {
       this.feedbackSystem.onCriticalHit(x, y, damage, combo);
       // 앰버 접시 치명타 시 레이저 취소
       if (data.type === 'amber') {
-        this.cancelBossChargingLasers();
+        const nearestBoss = this.findNearestAliveBoss(this.cursorX, this.cursorY);
+        if (nearestBoss) {
+          this.cancelBossChargingLasers(nearestBoss.getBossId());
+        }
       }
     } else {
       this.feedbackSystem.onDishDamaged(x, y, damage, hpRatio, data.dish.getColor(), combo);
@@ -948,10 +1162,15 @@ export class GameScene extends Phaser.Scene {
 
   private cleanup(): void {
     EventBus.getInstance().clear();
+    this.activeLasers = [];
+    this.laserNextTimeByBossId.clear();
+    this.laserRenderer.clear();
     this.dishPool.clear();
     this.healthPackSystem.clear();
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
+    this.bosses.forEach((boss) => boss.destroy());
+    this.bosses.clear();
     if (this.cursorTrail) this.cursorTrail.destroy();
     if (this.gaugeSystem) this.gaugeSystem.destroy();
     if (this.orbRenderer) this.orbRenderer.destroy();
@@ -1037,7 +1256,9 @@ export class GameScene extends Phaser.Scene {
     this.hud.render(this.gameTime);
 
     // 보스 업데이트
-    this.boss.update(delta);
+    this.bosses.forEach((boss) => {
+      boss.update(delta);
+    });
 
     // 커서 트레일 업데이트
     this.cursorTrail.update(delta, cursorRadius, this.cursorX, this.cursorY);
@@ -1192,36 +1413,62 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ===== 보스 레이저 공격 시스템 =====
-  private setNextLaserTime(): void {
-    const laserConfig = this.waveSystem.getCurrentWaveLaserConfig();
-
+  private setNextLaserTime(bossId: string): void {
+    const laserConfig = this.getBossLaserConfig(bossId);
     if (!laserConfig || laserConfig.maxCount === 0) {
-      this.laserNextTime = this.gameTime + 5000; // 아직 발사하지 않는 웨이브면 5초 후 재체크
+      this.laserNextTimeByBossId.set(bossId, this.gameTime + 5000);
       return;
     }
 
     const interval = Phaser.Math.Between(laserConfig.minInterval, laserConfig.maxInterval);
-    this.laserNextTime = this.gameTime + interval;
+    this.laserNextTimeByBossId.set(bossId, this.gameTime + interval);
   }
 
   private updateLaser(delta: number): void {
     if (this.isGameOver || this.isPaused) return;
 
-    // 레이저 타이머 체크
-    if (this.gameTime >= this.laserNextTime) {
-      const laserConfig = this.waveSystem.getCurrentWaveLaserConfig();
+    // 현재 활성 보스가 아닌 레이저는 정리
+    this.activeLasers = this.activeLasers.filter((laser) => {
+      return this.getAliveVisibleBossById(laser.bossId) !== null;
+    });
 
-      if (laserConfig && laserConfig.maxCount > 0) {
-        // 보스가 살아있으면 보스→플레이어 방향 레이저 발사
-        if (
-          this.activeLasers.length < laserConfig.maxCount &&
-          this.boss.visible &&
-          this.monsterSystem.isAlive()
-        ) {
-          this.triggerBossLaserAttack();
+    const aliveBossIds = this.monsterSystem
+      .getAliveBossIds()
+      .filter((bossId) => this.getAliveVisibleBossById(bossId) !== null);
+    const aliveBossIdSet = new Set(aliveBossIds);
+
+    const staleTimerBossIds: string[] = [];
+    this.laserNextTimeByBossId.forEach((_nextTime, bossId) => {
+      if (!aliveBossIdSet.has(bossId)) {
+        staleTimerBossIds.push(bossId);
+      }
+    });
+    staleTimerBossIds.forEach((bossId) => this.laserNextTimeByBossId.delete(bossId));
+
+    for (const bossId of aliveBossIds) {
+      const laserConfig = this.getBossLaserConfig(bossId);
+      if (!laserConfig) continue;
+
+      const nextTime = this.laserNextTimeByBossId.get(bossId);
+      if (nextTime === undefined) {
+        this.setNextLaserTime(bossId);
+        continue;
+      }
+
+      if (this.gameTime < nextTime) {
+        continue;
+      }
+
+      if (laserConfig.maxCount > 0) {
+        const activeLaserCountForBoss = this.activeLasers.filter(
+          (laser) => laser.bossId === bossId
+        ).length;
+        if (activeLaserCountForBoss < laserConfig.maxCount) {
+          this.triggerBossLaserAttack(bossId);
         }
       }
-      this.setNextLaserTime();
+
+      this.setNextLaserTime(bossId);
     }
 
     // 레이저 렌더링용 데이터 준비 (항상 렌더링하여 빈 상태일 때도 이전 레이저가 지워지도록 함)
@@ -1237,25 +1484,27 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private cancelBossChargingLasers(): void {
+  private cancelBossChargingLasers(bossId: string): void {
     let cancelledCount = 0;
 
-    // 현재 충전 중(Warning)인 모든 레이저 제거
+    // 해당 보스의 충전 중(Warning) 레이저만 제거
     for (let i = this.activeLasers.length - 1; i >= 0; i--) {
       const laser = this.activeLasers[i];
-      if (laser.isWarning) {
+      if (laser.bossId === bossId && laser.isWarning) {
         this.activeLasers.splice(i, 1);
         cancelledCount++;
       }
     }
 
     if (cancelledCount > 0) {
-      // 보스 이동 재개 (혹시 멈춰있었다면)
-      this.boss.unfreeze();
+      const boss = this.bosses.get(bossId);
+      boss?.unfreeze();
 
       // 시각적 피드백: 레이저가 취소되었음을 알림 (다국어 지원)
-      this.damageText.showText(this.boss.x, this.boss.y - 60, Data.t('feedback.interrupted'), COLORS.CYAN);
-      
+      const textX = boss?.x ?? this.cursorX;
+      const textY = boss ? boss.y - 60 : this.cursorY - 60;
+      this.damageText.showText(textX, textY, Data.t('feedback.interrupted'), COLORS.CYAN);
+
       // 렌더러 즉시 갱신 (잔상 제거)
       if (this.activeLasers.length === 0) {
         this.laserRenderer.clear();
@@ -1263,11 +1512,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private triggerBossLaserAttack(): void {
+  private triggerBossLaserAttack(bossId: string): void {
     const config = Data.gameConfig.monsterAttack.laser;
+    const boss = this.getAliveVisibleBossById(bossId);
+    if (!boss) return;
 
-    const startX = this.boss.x;
-    const startY = this.boss.y;
+    const startX = boss.x;
+    const startY = boss.y;
 
     // 보스→커서 방향 벡터
     const dx = this.cursorX - startX;
@@ -1286,9 +1537,11 @@ export class GameScene extends Phaser.Scene {
     const endPoint = this.findScreenEdgePoint(startX, startY, dirX, dirY);
 
     // 레이저 발사 동안 보스 이동 정지
-    this.boss.freeze();
+    boss.freeze();
+    const laserWave = this.waveSystem.getCurrentWave();
 
     const laser = {
+      bossId,
       x1: startX,
       y1: startY,
       x2: endPoint.x,
@@ -1302,7 +1555,24 @@ export class GameScene extends Phaser.Scene {
     this.soundSystem.playBossChargeSound();
 
     this.time.delayedCall(config.warningDuration, () => {
-      if (this.isGameOver) return;
+      if (this.isGameOver || this.waveSystem.getCurrentWave() !== laserWave) {
+        const staleIndex = this.activeLasers.indexOf(laser);
+        if (staleIndex > -1) this.activeLasers.splice(staleIndex, 1);
+        const staleBoss = this.bosses.get(bossId);
+        staleBoss?.unfreeze();
+        if (this.activeLasers.length === 0) this.laserRenderer.clear();
+        return;
+      }
+
+      if (!this.getAliveVisibleBossById(bossId)) {
+        const staleIndex = this.activeLasers.indexOf(laser);
+        if (staleIndex > -1) this.activeLasers.splice(staleIndex, 1);
+        const staleBoss = this.bosses.get(bossId);
+        staleBoss?.unfreeze();
+        if (this.activeLasers.length === 0) this.laserRenderer.clear();
+        return;
+      }
+
       laser.isWarning = false;
       laser.isFiring = true;
 
@@ -1318,7 +1588,8 @@ export class GameScene extends Phaser.Scene {
           }
         }
         // 레이저 종료 후 보스 이동 재개
-        this.boss.unfreeze();
+        const ownerBoss = this.bosses.get(bossId);
+        ownerBoss?.unfreeze();
       });
     });
   }

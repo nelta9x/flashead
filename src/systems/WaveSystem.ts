@@ -6,9 +6,11 @@ import {
   WAVE_TRANSITION,
 } from '../data/constants';
 import { Data } from '../data/DataManager';
+import { WaveBossConfig, WaveLaserConfig } from '../data/types';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
 import { Dish } from '../entities/Dish';
+import { resolveWaveBossConfig } from './waveBossConfig';
 
 type WavePhase = 'waiting' | 'countdown' | 'spawning';
 
@@ -16,7 +18,10 @@ interface WaveConfig {
   spawnInterval: number;
   minDishCount: number;
   dishTypes: { type: string; weight: number }[];
-  laser?: { maxCount: number; minInterval: number; maxInterval: number };
+  laser?: WaveLaserConfig;
+  bosses: WaveBossConfig[];
+  bossTotalHp: number;
+  bossSpawnMinDistance: number;
 }
 
 export class WaveSystem {
@@ -29,7 +34,7 @@ export class WaveSystem {
   private totalGameTime: number = 0;
   private getDishPool: () => ObjectPool<Dish>;
   private getMaxSpawnY: () => number;
-  private getBoss: () => { x: number; y: number; visible: boolean } | null;
+  private getBosses: () => Array<{ id: string; x: number; y: number; visible: boolean }>;
 
   private wavePhase: WavePhase = 'waiting';
   private countdownTimer: number = 0;
@@ -40,12 +45,12 @@ export class WaveSystem {
     scene: Phaser.Scene,
     getDishPool: () => ObjectPool<Dish>,
     getMaxSpawnY?: () => number,
-    getBoss?: () => { x: number; y: number; visible: boolean } | null
+    getBosses?: () => Array<{ id: string; x: number; y: number; visible: boolean }>
   ) {
     this.scene = scene;
     this.getDishPool = getDishPool;
     this.getMaxSpawnY = getMaxSpawnY || (() => SPAWN_AREA.maxY);
-    this.getBoss = getBoss || (() => null);
+    this.getBosses = getBosses || (() => []);
   }
 
   startWave(waveNumber: number): void {
@@ -63,6 +68,7 @@ export class WaveSystem {
     const wavesData = Data.waves;
     const waveIndex = Math.min(waveNumber - 1, wavesData.waves.length - 1);
     const waveData = wavesData.waves[waveIndex];
+    const bossConfig = resolveWaveBossConfig(waveNumber);
 
     if (waveNumber <= wavesData.waves.length) {
       return {
@@ -70,6 +76,9 @@ export class WaveSystem {
         minDishCount: waveData.dishCount,
         dishTypes: waveData.dishTypes,
         laser: waveData.laser,
+        bosses: bossConfig.bosses,
+        bossTotalHp: bossConfig.bossTotalHp,
+        bossSpawnMinDistance: bossConfig.bossSpawnMinDistance,
       };
     }
 
@@ -94,6 +103,9 @@ export class WaveSystem {
       minDishCount,
       dishTypes: this.getScaledDishTypes(waveNumber),
       laser: { maxCount: laserCount, minInterval, maxInterval },
+      bosses: bossConfig.bosses,
+      bossTotalHp: bossConfig.bossTotalHp,
+      bossSpawnMinDistance: bossConfig.bossSpawnMinDistance,
     };
   }
 
@@ -139,10 +151,14 @@ export class WaveSystem {
   startFeverTime(): void {
     this.isFeverTime = true;
     const feverData = Data.waves.fever;
+    const lastWaveBossConfig = resolveWaveBossConfig(this.currentWave > 0 ? this.currentWave : 1);
     this.waveConfig = {
       spawnInterval: feverData.spawnInterval,
       minDishCount: feverData.dishCount,
       dishTypes: feverData.dishTypes,
+      bosses: lastWaveBossConfig.bosses,
+      bossTotalHp: lastWaveBossConfig.bossTotalHp,
+      bossSpawnMinDistance: lastWaveBossConfig.bossSpawnMinDistance,
     };
     this.timeSinceLastSpawn = 0;
     this.timeSinceLastFillSpawn = 0;
@@ -227,9 +243,13 @@ export class WaveSystem {
 
   private findValidSpawnPosition(): { x: number; y: number } | null {
     const activeDishes = this.getDishPool().getActiveObjects();
-    const boss = this.getBoss();
+    const bosses = this.getBosses();
     const maxAttempts = 20;
     const maxY = this.getMaxSpawnY();
+    const minBossDistance = Math.max(
+      MIN_BOSS_DISTANCE,
+      this.waveConfig?.bossSpawnMinDistance ?? MIN_BOSS_DISTANCE
+    );
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const x = Phaser.Math.Between(SPAWN_AREA.minX, SPAWN_AREA.maxX);
@@ -237,11 +257,13 @@ export class WaveSystem {
 
       let isValid = true;
 
-      // 보스와의 거리 체크 (보스가 활성화된 경우만)
-      if (boss && boss.visible) {
+      // 보스와의 거리 체크 (활성화된 보스 전체)
+      for (const boss of bosses) {
+        if (!boss.visible) continue;
         const distanceToBoss = Phaser.Math.Distance.Between(x, y, boss.x, boss.y);
-        if (distanceToBoss < MIN_BOSS_DISTANCE) {
+        if (distanceToBoss < minBossDistance) {
           isValid = false;
+          break;
         }
       }
 
@@ -295,6 +317,22 @@ export class WaveSystem {
     | { maxCount: number; minInterval: number; maxInterval: number }
     | undefined {
     return this.waveConfig?.laser;
+  }
+
+  getCurrentWaveBosses(): WaveBossConfig[] {
+    return this.waveConfig?.bosses.map((boss) => ({
+      ...boss,
+      spawnRange: { ...boss.spawnRange },
+      laser: { ...boss.laser },
+    })) ?? [];
+  }
+
+  getCurrentWaveBossTotalHp(): number {
+    return this.waveConfig?.bossTotalHp ?? 1;
+  }
+
+  getCurrentWaveBossSpawnMinDistance(): number {
+    return this.waveConfig?.bossSpawnMinDistance ?? MIN_BOSS_DISTANCE;
   }
 
   isFever(): boolean {

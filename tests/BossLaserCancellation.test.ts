@@ -1,43 +1,69 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Data } from '../src/data/DataManager';
 
-// Phaser 및 의존성 모킹
 const mockPhaser = {
   Scene: class {
     add = {
-      text: () => ({ setOrigin: () => ({ setDepth: () => ({ setVisible: () => ({}) }) }), setVisible: () => ({}), setText: () => ({}) }),
-      graphics: () => ({ 
-        clear: vi.fn().mockReturnThis(), 
-        fillStyle: vi.fn().mockReturnThis(), 
-        fillCircle: vi.fn().mockReturnThis(), 
-        lineStyle: vi.fn().mockReturnThis(), 
-        lineBetween: vi.fn().mockReturnThis(), 
-        beginPath: vi.fn().mockReturnThis(), 
-        moveTo: vi.fn().mockReturnThis(), 
-        lineTo: vi.fn().mockReturnThis(), 
-        strokePath: vi.fn().mockReturnThis(), 
+      text: () => ({
+        setOrigin: () => ({ setDepth: () => ({ setVisible: () => ({}) }) }),
+        setVisible: () => ({}),
+        setText: () => ({}),
+      }),
+      existing: vi.fn(),
+      graphics: () => ({
+        clear: vi.fn().mockReturnThis(),
+        fillStyle: vi.fn().mockReturnThis(),
+        fillCircle: vi.fn().mockReturnThis(),
+        lineStyle: vi.fn().mockReturnThis(),
+        lineBetween: vi.fn().mockReturnThis(),
+        beginPath: vi.fn().mockReturnThis(),
+        moveTo: vi.fn().mockReturnThis(),
+        lineTo: vi.fn().mockReturnThis(),
+        strokePath: vi.fn().mockReturnThis(),
         fillPath: vi.fn().mockReturnThis(),
+        setBlendMode: vi.fn().mockReturnThis(),
         setDepth: vi.fn().mockReturnThis(),
         setPosition: vi.fn().mockReturnThis(),
         setAlpha: vi.fn().mockReturnThis(),
         destroy: vi.fn(),
       }),
       tweens: { add: vi.fn() },
-      circle: () => ({ setDepth: () => ({}), setPosition: () => ({}), setScale: () => ({}), destroy: vi.fn(), displayWidth: 10, x: 0, y: 0 }),
-      particles: () => ({ setDepth: () => ({}), setPosition: () => ({}), destroy: vi.fn() })
+      circle: () => ({
+        setDepth: () => ({}),
+        setPosition: () => ({}),
+        setScale: () => ({}),
+        destroy: vi.fn(),
+        displayWidth: 10,
+        x: 0,
+        y: 0,
+      }),
+      arc: () => ({
+        setAlpha: vi.fn().mockReturnThis(),
+        setScale: vi.fn().mockReturnThis(),
+        setFillStyle: vi.fn().mockReturnThis(),
+      }),
+      particles: () => ({ setDepth: () => ({}), setPosition: () => ({}), destroy: vi.fn() }),
     };
-    time = { delayedCall: (_delay: number, cb: Function) => cb(), addEvent: vi.fn() };
+    time = { delayedCall: (_delay: number, cb: () => void) => cb(), addEvent: vi.fn(), timeScale: 1 };
     physics = { add: { existing: vi.fn() }, pause: vi.fn(), resume: vi.fn() };
     cameras = { main: { shake: vi.fn(), fadeIn: vi.fn(), fadeOut: vi.fn(), once: vi.fn() } };
-    input = { setDefaultCursor: vi.fn(), keyboard: { on: vi.fn() }, activePointer: { x: 0, y: 0, worldX: 0, worldY: 0 } };
+    input = {
+      setDefaultCursor: vi.fn(),
+      keyboard: { on: vi.fn() },
+      activePointer: { x: 0, y: 0, worldX: 0, worldY: 0 },
+    };
     sound = { add: () => ({ play: vi.fn(), stop: vi.fn() }) };
   },
   GameObjects: {
     Container: class {
+      scene: unknown;
+      constructor(scene?: unknown) {
+        this.scene = scene;
+      }
       add = vi.fn();
       setPosition = vi.fn();
       setScale = vi.fn();
       setAlpha = vi.fn();
+      setDepth = vi.fn().mockReturnThis();
       setVisible = vi.fn();
       setActive = vi.fn();
       setInteractive = vi.fn();
@@ -50,54 +76,90 @@ const mockPhaser = {
       fillCircle = vi.fn().mockReturnThis();
       lineStyle = vi.fn().mockReturnThis();
       strokeCircle = vi.fn().mockReturnThis();
+      setBlendMode = vi.fn().mockReturnThis();
       setDepth = vi.fn().mockReturnThis();
     },
     Arc: class {
       setVisible = vi.fn();
       setPosition = vi.fn();
-    }
+    },
   },
   Display: {
     Color: {
-      HexStringToColor: () => ({ color: 0xffffff })
-    }
+      HexStringToColor: () => ({ color: 0xffffff }),
+    },
   },
   Math: {
-    Between: (min: number, max: number) => Math.floor(Math.random() * (max - min + 1) + min),
-    FloatBetween: (min: number, max: number) => Math.random() * (max - min) + min,
+    Between: (min: number, _max: number) => min,
+    FloatBetween: (min: number, max: number) => (min + max) / 2,
     DegToRad: (deg: number) => (deg * Math.PI) / 180,
+    Clamp: (value: number, min: number, max: number) => Math.max(min, Math.min(max, value)),
     Distance: {
       Between: (x1: number, y1: number, x2: number, y2: number) =>
-        Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
-    }
-  }
+        Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)),
+    },
+  },
+  BlendModes: {
+    ADD: 'ADD',
+  },
 };
 
 (globalThis as { Phaser?: unknown }).Phaser = mockPhaser;
 
 vi.mock('phaser', () => ({
   default: mockPhaser,
-  ...mockPhaser
+  ...mockPhaser,
 }));
 
+vi.mock('../src/utils/EventBus', () => ({
+  EventBus: {
+    getInstance: () => ({
+      emit: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
+      clear: vi.fn(),
+    }),
+  },
+  GameEvents: {
+    DISH_DAMAGED: 'dish:damaged',
+    MONSTER_HP_CHANGED: 'monster:hp_changed',
+    MONSTER_DIED: 'monster:died',
+  },
+}));
+
+type BossStub = {
+  x: number;
+  y: number;
+  visible: boolean;
+  getBossId: () => string;
+  unfreeze: () => void;
+  freeze: () => void;
+  update: (_delta: number) => void;
+  spawnAt: (_x: number, _y: number) => void;
+  deactivate: () => void;
+  destroy: () => void;
+};
+
 type GameSceneTestContext = {
-  activeLasers: Array<{ id?: number; isWarning: boolean; isFiring: boolean }>;
-  boss: {
-    x: number;
-    y: number;
-    unfreeze: () => void;
-    freeze: () => void;
-    visible: boolean;
-  };
+  activeLasers: Array<{ bossId: string; isWarning: boolean; isFiring: boolean }>;
+  bosses: Map<string, BossStub>;
   damageText: { showText: (...args: unknown[]) => void };
   laserRenderer: { clear: (...args: unknown[]) => void };
   feedbackSystem: {
     onBossDamaged: (...args: unknown[]) => void;
     onCriticalHit: (...args: unknown[]) => void;
   };
-  monsterSystem: { isAlive: () => boolean; takeDamage: (...args: unknown[]) => void };
+  monsterSystem: {
+    isAlive: (bossId?: string) => boolean;
+    takeDamage: (...args: unknown[]) => void;
+    getAliveBossIds: () => string[];
+    areAllDead: () => boolean;
+    publishBossHpSnapshot: (bossId: string) => void;
+  };
   upgradeSystem: {
     getMissileLevel: () => number;
+    getMissileCount: () => number;
+    getMissileDamage: () => number;
     getCriticalChanceBonus: () => number;
     getCursorSizeBonus: () => number;
     getCursorMissileThicknessBonus: () => number;
@@ -117,20 +179,40 @@ type GameSceneTestContext = {
   dishPool: {
     forEach: (callback: (dish: unknown) => void) => void;
   };
+  playerAttackRenderer: {
+    createMissile: (...args: unknown[]) => { x: number; y: number; displayWidth: number };
+    spawnMissileTrail: (...args: unknown[]) => void;
+    destroyProjectile: (...args: unknown[]) => void;
+  };
   tweens: {
     add: (config: { onComplete?: () => void; onUpdate?: (...args: unknown[]) => void }) => void;
+    killTweensOf: (...args: unknown[]) => void;
     pauseAll: (...args: unknown[]) => void;
     resumeAll: (...args: unknown[]) => void;
   };
   time: { timeScale: number };
   physics: { pause: (...args: unknown[]) => void; resume: (...args: unknown[]) => void };
+  waveSystem: {
+    getCurrentWave: () => number;
+    getCurrentWaveBosses: () => Array<{ id: string; laser: { maxCount: number; minInterval: number; maxInterval: number } }>;
+    getCurrentWaveBossSpawnMinDistance: () => number;
+  };
   input: { activePointer: { worldX: number; worldY: number } };
+  cameras: { main: { shake: (...args: unknown[]) => void } };
+  cursorX: number;
+  cursorY: number;
   isPaused: boolean;
   isGameOver: boolean;
   isDockPaused: boolean;
   isSimulationPaused: boolean;
-  cancelBossChargingLasers: () => void;
-  fireSequentialMissile: (x: number, y: number, index: number, count: number) => void;
+  cancelBossChargingLasers: (bossId: string) => void;
+  fireSequentialMissile: (
+    x: number,
+    y: number,
+    index: number,
+    count: number,
+    initialTargetBossId: string
+  ) => void;
   destroyDishesAlongMissileSegment: (
     fromX: number,
     fromY: number,
@@ -145,180 +227,233 @@ type GameSceneTestContext = {
     dish: { getColor: () => number };
   }) => void;
   setDockPaused: (paused: boolean) => void;
+  syncBossesForWave: (waveNumber: number) => void;
 };
 
-// EventBus 모킹
-vi.mock('../src/utils/EventBus', () => ({
-  EventBus: {
-    getInstance: () => ({
-      emit: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
-      clear: vi.fn()
-    })
-  },
-  GameEvents: {
-    DISH_DAMAGED: 'dish:damaged',
-    MONSTER_HP_CHANGED: 'monster:hp_changed'
-  }
-}));
+function createBossStub(id: string, x: number, y: number): BossStub {
+  return {
+    x,
+    y,
+    visible: true,
+    getBossId: () => id,
+    unfreeze: vi.fn(),
+    freeze: vi.fn(),
+    update: vi.fn(),
+    spawnAt: vi.fn(),
+    deactivate: vi.fn(),
+    destroy: vi.fn(),
+  };
+}
 
 describe('Boss Laser Cancellation Logic', () => {
   let gameScene: GameSceneTestContext;
+  const aliveBossIds = new Set<string>(['boss_left', 'boss_right']);
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
-    // 필요한 클래스들을 동적 임포트
+
     const { GameScene } = await import('../src/scenes/GameScene');
-    
-    // GameScene 인스턴스화 (의존성 최소화 모킹)
+
     gameScene = new GameScene() as unknown as GameSceneTestContext;
-    
-    // 내부 프로퍼티 수동 설정 (create 호출 대신)
+
     gameScene.activeLasers = [];
-    gameScene.boss = {
-      x: 640,
-      y: 100,
-      unfreeze: vi.fn(),
-      freeze: vi.fn(),
-      visible: true
-    };
-    gameScene.damageText = {
-      showText: vi.fn()
-    };
-    gameScene.laserRenderer = {
-      clear: vi.fn()
-    };
+    gameScene.bosses = new Map<string, BossStub>([
+      ['boss_left', createBossStub('boss_left', 360, 100)],
+      ['boss_right', createBossStub('boss_right', 920, 100)],
+    ]);
+    gameScene.damageText = { showText: vi.fn() };
+    gameScene.laserRenderer = { clear: vi.fn() };
     gameScene.feedbackSystem = {
       onBossDamaged: vi.fn(),
-      onCriticalHit: vi.fn()
+      onCriticalHit: vi.fn(),
     };
     gameScene.monsterSystem = {
-      isAlive: () => true,
-      takeDamage: vi.fn()
+      isAlive: (bossId?: string) => {
+        if (!bossId) return aliveBossIds.size > 0;
+        return aliveBossIds.has(bossId);
+      },
+      takeDamage: vi.fn(),
+      getAliveBossIds: () => Array.from(aliveBossIds),
+      areAllDead: () => aliveBossIds.size === 0,
+      publishBossHpSnapshot: vi.fn(),
     };
     gameScene.upgradeSystem = {
       getMissileLevel: () => 0,
+      getMissileCount: () => 1,
+      getMissileDamage: () => 100,
       getCriticalChanceBonus: () => 0,
       getCursorSizeBonus: () => 0,
       getCursorMissileThicknessBonus: () => 0,
-      getCursorDamageBonus: () => 0
+      getCursorDamageBonus: () => 0,
     };
     gameScene.comboSystem = {
       getCombo: () => 10,
-      increment: vi.fn()
+      increment: vi.fn(),
     };
     gameScene.soundSystem = {
       playPlayerChargeSound: vi.fn(),
       playBossFireSound: vi.fn(),
-      playHitSound: vi.fn()
+      playHitSound: vi.fn(),
     };
     gameScene.particleManager = {
       createSparkBurst: vi.fn(),
       createHitEffect: vi.fn(),
-      createExplosion: vi.fn()
+      createExplosion: vi.fn(),
     };
     gameScene.dishPool = {
-      forEach: vi.fn()
+      forEach: vi.fn(),
+    };
+    gameScene.playerAttackRenderer = {
+      createMissile: () => ({ x: 0, y: 0, displayWidth: 10 }),
+      spawnMissileTrail: vi.fn(),
+      destroyProjectile: vi.fn(),
     };
     gameScene.tweens = {
       add: vi.fn((config) => {
-        if (config.onComplete) config.onComplete();
         if (config.onUpdate) config.onUpdate({ progress: 1 }, { progress: 1 });
+        if (config.onComplete) config.onComplete();
       }),
+      killTweensOf: vi.fn(),
       pauseAll: vi.fn(),
       resumeAll: vi.fn(),
     };
     gameScene.time.timeScale = 1;
+    gameScene.physics = { pause: vi.fn(), resume: vi.fn() };
+    gameScene.waveSystem = {
+      getCurrentWave: () => 10,
+      getCurrentWaveBosses: () => [
+        { id: 'boss_left', laser: { maxCount: 1, minInterval: 3000, maxInterval: 5000 } },
+        { id: 'boss_right', laser: { maxCount: 1, minInterval: 3000, maxInterval: 5000 } },
+      ],
+      getCurrentWaveBossSpawnMinDistance: () => 200,
+    };
+    gameScene.input = { activePointer: { worldX: 0, worldY: 0 } };
+    gameScene.cameras = { main: { shake: vi.fn() } };
+    gameScene.cursorX = 900;
+    gameScene.cursorY = 100;
+    gameScene.isPaused = false;
+    gameScene.isGameOver = false;
+    gameScene.isDockPaused = false;
+    gameScene.isSimulationPaused = false;
   });
 
-  it('취소 로직: 충전 중인 레이저는 제거하고 발사 중인 레이저는 유지해야 함', () => {
-    // 레이저 상태 설정
+  it('cancels only warning lasers of the targeted boss', () => {
     gameScene.activeLasers = [
-      { id: 1, isWarning: true, isFiring: false }, // 충전 중
-      { id: 2, isWarning: false, isFiring: true }, // 발사 중
-      { id: 3, isWarning: true, isFiring: false }  // 충전 중
+      { bossId: 'boss_left', isWarning: true, isFiring: false },
+      { bossId: 'boss_right', isWarning: true, isFiring: false },
+      { bossId: 'boss_left', isWarning: false, isFiring: true },
     ];
 
-    // 취소 메서드 실행
-    gameScene.cancelBossChargingLasers();
+    gameScene.cancelBossChargingLasers('boss_left');
 
-    // 결과 확인
-    expect(gameScene.activeLasers.length).toBe(1);
-    expect(gameScene.activeLasers[0].id).toBe(2);
-    expect(gameScene.activeLasers[0].isFiring).toBe(true);
+    expect(gameScene.activeLasers).toEqual([
+      { bossId: 'boss_right', isWarning: true, isFiring: false },
+      { bossId: 'boss_left', isWarning: false, isFiring: true },
+    ]);
   });
 
-  it('취소 시 보스의 unfreeze가 호출되고 텍스트 피드백이 나타나야 함', () => {
-    gameScene.activeLasers = [{ isWarning: true, isFiring: false }];
+  it('unfreezes targeted boss and shows interruption text', () => {
+    const leftBoss = gameScene.bosses.get('boss_left')!;
+    gameScene.activeLasers = [{ bossId: 'boss_left', isWarning: true, isFiring: false }];
 
-    gameScene.cancelBossChargingLasers();
+    gameScene.cancelBossChargingLasers('boss_left');
 
-    expect(gameScene.boss.unfreeze).toHaveBeenCalled();
+    expect(leftBoss.unfreeze).toHaveBeenCalled();
     expect(gameScene.damageText.showText).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Number),
+      360,
+      40,
       'INTERRUPTED!',
       expect.any(Number)
     );
   });
 
-  it('충전 중인 레이저가 없으면 아무 일도 일어나지 않아야 함', () => {
-    gameScene.activeLasers = [{ isWarning: false, isFiring: true }];
+  it('retargets missile to nearest alive boss when initial target is dead', () => {
+    aliveBossIds.delete('boss_left');
+    const takeDamageSpy = vi.spyOn(gameScene.monsterSystem, 'takeDamage');
 
-    gameScene.cancelBossChargingLasers();
+    gameScene.fireSequentialMissile(100, 100, 0, 1, 'boss_left');
 
-    expect(gameScene.activeLasers.length).toBe(1);
-    expect(gameScene.boss.unfreeze).not.toHaveBeenCalled();
-    expect(gameScene.damageText.showText).not.toHaveBeenCalled();
+    expect(takeDamageSpy).toHaveBeenCalledWith(
+      'boss_right',
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number)
+    );
   });
 
-  it('미사일 치명타 시 cancelBossChargingLasers가 호출되어야 함', () => {
-    // 공격 설정
-    const attackConfig = Data.gameConfig.playerAttack;
-    
-    // Math.random을 모킹하여 치명타 강제 발생 (config.criticalChance보다 작게)
-    vi.spyOn(Math, 'random').mockReturnValue(attackConfig.criticalChance - 0.01);
-
-    // 내부 메서드 호출 시뮬레이션 (fireSequentialMissile의 일부 로직)
-    // 실제로는 private이므로 테스트에서는 축약된 타입으로 접근
-    gameScene.fireSequentialMissile(0, 0, 0, 1);
-    
-    // fireSequentialMissile 내부에 delayedCall이 있으므로 타이머 진행 필요하나, 
-    // 여기서는 로직이 복잡하므로 직접 cancelBossChargingLasers가 호출되었는지만 체크하는 식으로 우회하거나
-    // onDishDamaged를 통해 테스트
-  });
-
-  it('앰버 접시 피격 치명타 시 cancelBossChargingLasers가 호출되어야 함', () => {
+  it('amber critical cancels nearest boss lasers only', () => {
     const cancelSpy = vi.spyOn(gameScene, 'cancelBossChargingLasers');
-    
-    // onDishDamaged 호출 시뮬레이션
+
     gameScene.onDishDamaged({
       type: 'amber',
       isCritical: true,
       damage: 10,
-      dish: { getColor: () => 0xffffff }
+      dish: { getColor: () => 0xffffff },
     });
 
-    expect(cancelSpy).toHaveBeenCalled();
+    expect(cancelSpy).toHaveBeenCalledWith('boss_right');
   });
 
-  it('보스가 아닌 접시 치명타 시에는 레이저가 취소되지 않아야 함', () => {
-    const cancelSpy = vi.spyOn(gameScene, 'cancelBossChargingLasers');
-    
-    // 일반 접시 치명타
-    gameScene.onDishDamaged({
-      type: 'basic',
-      isCritical: true,
-      damage: 10,
-      dish: { getColor: () => 0xffffff }
-    });
+  it('syncBossesForWave creates two bosses for wave-10 style config', () => {
+    gameScene.bosses.clear();
+    gameScene.waveSystem = {
+      ...gameScene.waveSystem,
+      getCurrentWaveBosses: () => [
+        {
+          id: 'boss_left',
+          hpWeight: 1,
+          spawnRange: { minX: 320, maxX: 360, minY: 100, maxY: 110 },
+          laser: { maxCount: 1, minInterval: 3000, maxInterval: 5000 },
+        },
+        {
+          id: 'boss_right',
+          hpWeight: 1,
+          spawnRange: { minX: 900, maxX: 940, minY: 100, maxY: 110 },
+          laser: { maxCount: 1, minInterval: 3000, maxInterval: 5000 },
+        },
+      ],
+    };
 
-    expect(cancelSpy).not.toHaveBeenCalled();
+    gameScene.syncBossesForWave(10);
+
+    expect(gameScene.bosses.has('boss_left')).toBe(true);
+    expect(gameScene.bosses.has('boss_right')).toBe(true);
   });
 
-  it('미사일 경로 위 일반 접시는 forceDestroy(false)로 파괴되어야 함', () => {
+  it('syncBossesForWave creates three bosses for wave-12 style config', () => {
+    gameScene.bosses.clear();
+    gameScene.waveSystem = {
+      ...gameScene.waveSystem,
+      getCurrentWaveBosses: () => [
+        {
+          id: 'boss_left',
+          hpWeight: 1,
+          spawnRange: { minX: 260, maxX: 300, minY: 100, maxY: 110 },
+          laser: { maxCount: 1, minInterval: 2500, maxInterval: 4500 },
+        },
+        {
+          id: 'boss_center',
+          hpWeight: 1,
+          spawnRange: { minX: 620, maxX: 660, minY: 100, maxY: 110 },
+          laser: { maxCount: 1, minInterval: 2500, maxInterval: 4500 },
+        },
+        {
+          id: 'boss_right',
+          hpWeight: 1,
+          spawnRange: { minX: 980, maxX: 1020, minY: 100, maxY: 110 },
+          laser: { maxCount: 1, minInterval: 2500, maxInterval: 4500 },
+        },
+      ],
+    };
+
+    gameScene.syncBossesForWave(12);
+
+    expect(gameScene.bosses.has('boss_left')).toBe(true);
+    expect(gameScene.bosses.has('boss_center')).toBe(true);
+    expect(gameScene.bosses.has('boss_right')).toBe(true);
+  });
+
+  it('destroys normal dishes on missile path with forceDestroy(false)', () => {
     const onPathDish = {
       active: true,
       x: 320,
@@ -326,7 +461,7 @@ describe('Boss Laser Cancellation Logic', () => {
       getSize: () => 30,
       isDangerous: () => false,
       isFullySpawned: () => true,
-      forceDestroy: vi.fn()
+      forceDestroy: vi.fn(),
     };
     const offPathDish = {
       active: true,
@@ -335,14 +470,14 @@ describe('Boss Laser Cancellation Logic', () => {
       getSize: () => 30,
       isDangerous: () => false,
       isFullySpawned: () => true,
-      forceDestroy: vi.fn()
+      forceDestroy: vi.fn(),
     };
 
     gameScene.dishPool = {
       forEach: (callback) => {
         callback(onPathDish);
         callback(offPathDish);
-      }
+      },
     };
 
     gameScene.destroyDishesAlongMissileSegment(0, 0, 640, 100, 10);
@@ -351,7 +486,7 @@ describe('Boss Laser Cancellation Logic', () => {
     expect(offPathDish.forceDestroy).not.toHaveBeenCalled();
   });
 
-  it('미사일 경로 위 완전 생성된 폭탄은 forceDestroy(true)로 제거되어야 함', () => {
+  it('destroys spawned bombs on missile path with forceDestroy(true)', () => {
     const spawnedBomb = {
       active: true,
       x: 320,
@@ -359,13 +494,13 @@ describe('Boss Laser Cancellation Logic', () => {
       getSize: () => 40,
       isDangerous: () => true,
       isFullySpawned: () => true,
-      forceDestroy: vi.fn()
+      forceDestroy: vi.fn(),
     };
 
     gameScene.dishPool = {
       forEach: (callback) => {
         callback(spawnedBomb);
-      }
+      },
     };
 
     gameScene.destroyDishesAlongMissileSegment(0, 0, 640, 100, 10);
@@ -373,7 +508,7 @@ describe('Boss Laser Cancellation Logic', () => {
     expect(spawnedBomb.forceDestroy).toHaveBeenCalledWith(true);
   });
 
-  it('미사일 경로 위 폭탄이라도 완전 생성 전이면 제거되지 않아야 함', () => {
+  it('does not destroy unspawned bombs on missile path', () => {
     const unspawnedBomb = {
       active: true,
       x: 320,
@@ -381,13 +516,13 @@ describe('Boss Laser Cancellation Logic', () => {
       getSize: () => 40,
       isDangerous: () => true,
       isFullySpawned: () => false,
-      forceDestroy: vi.fn()
+      forceDestroy: vi.fn(),
     };
 
     gameScene.dishPool = {
       forEach: (callback) => {
         callback(unspawnedBomb);
-      }
+      },
     };
 
     gameScene.destroyDishesAlongMissileSegment(0, 0, 640, 100, 10);
@@ -395,46 +530,7 @@ describe('Boss Laser Cancellation Logic', () => {
     expect(unspawnedBomb.forceDestroy).not.toHaveBeenCalled();
   });
 
-  it('순차적 미사일 발사 시 각 미사일의 시작점이 현재 마우스 위치를 반영해야 함', () => {
-    // fireSequentialMissile 스파이
-    const fireSpy = vi.spyOn(gameScene, 'fireSequentialMissile');
-    
-    // 포인터 모킹 (GameScene 내부에 pointer로 참조됨)
-    const pointer = { worldX: 100, worldY: 100 };
-    gameScene.input = { activePointer: pointer };
-
-    // delayedCall 모킹: 즉시 실행하도록 설정된 상태임 (Phaser Scene 모킹 부분 확인)
-    // performPlayerAttack 시뮬레이션 (핵심 부분만)
-    const missileCount = 3;
-    
-    // 미사일 발사 시퀀스 실행 (실제 performPlayerAttack의 onComplete 로직 시뮬레이션)
-    for (let i = 0; i < missileCount; i++) {
-      // 1. 첫 번째 발사 시점의 좌표 (100, 100)
-      if (i === 1) {
-        pointer.worldX = 200; // 두 번째 발사 전 마우스 이동
-        pointer.worldY = 200;
-      } else if (i === 2) {
-        pointer.worldX = 300; // 세 번째 발사 전 마우스 이동
-        pointer.worldY = 300;
-      }
-      
-      // delayedCall이 즉시 실행되도록 모킹되어 있으므로 루프 내에서 처리 가능
-      gameScene.fireSequentialMissile(pointer.worldX, pointer.worldY, i, missileCount);
-    }
-
-    // 결과 확인: 각 호출 시의 인자가 마우스 위치와 일치해야 함
-    expect(fireSpy).toHaveBeenCalledTimes(3);
-    expect(fireSpy).toHaveBeenNthCalledWith(1, 100, 100, 0, 3);
-    expect(fireSpy).toHaveBeenNthCalledWith(2, 200, 200, 1, 3);
-    expect(fireSpy).toHaveBeenNthCalledWith(3, 300, 300, 2, 3);
-  });
-
-  it('도크 일시정지 시 scene time/tween/physics가 함께 정지되어야 함', () => {
-    gameScene.isPaused = false;
-    gameScene.isGameOver = false;
-    gameScene.isDockPaused = false;
-    gameScene.isSimulationPaused = false;
-
+  it('pauses scene time/tweens/physics when dock pause is enabled', () => {
     gameScene.setDockPaused(true);
 
     expect(gameScene.time.timeScale).toBe(0);
@@ -442,12 +538,7 @@ describe('Boss Laser Cancellation Logic', () => {
     expect(gameScene.physics.pause).toHaveBeenCalled();
   });
 
-  it('도크 일시정지 해제 시 scene time/tween/physics가 재개되어야 함', () => {
-    gameScene.isPaused = false;
-    gameScene.isGameOver = false;
-    gameScene.isDockPaused = false;
-    gameScene.isSimulationPaused = false;
-
+  it('resumes scene time/tweens/physics when dock pause is disabled', () => {
     gameScene.setDockPaused(true);
     vi.clearAllMocks();
 

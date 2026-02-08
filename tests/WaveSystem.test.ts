@@ -51,6 +51,16 @@ vi.mock('../src/data/DataManager', () => ({
           dishCount: 3,
           spawnInterval: 2000,
           dishTypes: [{ type: 'basic', weight: 1 }],
+          bossTotalHp: 100,
+          bosses: [
+            {
+              id: 'boss_center',
+              hpWeight: 1,
+              spawnRange: { minX: 400, maxX: 400, minY: 100, maxY: 100 },
+              laser: { maxCount: 0, minInterval: 999999, maxInterval: 999999 },
+            },
+          ],
+          bossSpawnMinDistance: 200,
         },
         {
           dishCount: 4,
@@ -59,6 +69,22 @@ vi.mock('../src/data/DataManager', () => ({
             { type: 'basic', weight: 0.8 },
             { type: 'golden', weight: 0.2 },
           ],
+          bossTotalHp: 200,
+          bosses: [
+            {
+              id: 'boss_left',
+              hpWeight: 1,
+              spawnRange: { minX: 250, maxX: 320, minY: 100, maxY: 120 },
+              laser: { maxCount: 1, minInterval: 3000, maxInterval: 5000 },
+            },
+            {
+              id: 'boss_right',
+              hpWeight: 1,
+              spawnRange: { minX: 500, maxX: 600, minY: 100, maxY: 120 },
+              laser: { maxCount: 1, minInterval: 3000, maxInterval: 5000 },
+            },
+          ],
+          bossSpawnMinDistance: 200,
         },
       ],
       infiniteScaling: {
@@ -68,6 +94,8 @@ vi.mock('../src/data/DataManager', () => ({
         bombWeightIncrease: 0.05,
         minGoldenWeight: 0.1,
         goldenWeightDecrease: 0.05,
+        bossTotalHpIncrease: 50,
+        infiniteBossCount: 2,
         minDishCountIncrease: 1,
         maxMinDishCount: 20,
       },
@@ -101,7 +129,7 @@ describe('WaveSystem', () => {
     getActiveObjects: ReturnType<typeof vi.fn>;
   };
   let mockGetMaxSpawnY: () => number;
-  let mockGetBoss: () => { x: number; y: number; visible: boolean } | null;
+  let mockGetBoss: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -116,13 +144,13 @@ describe('WaveSystem', () => {
     };
 
     mockGetMaxSpawnY = vi.fn().mockReturnValue(600);
-    mockGetBoss = vi.fn().mockReturnValue(null);
+    mockGetBoss = vi.fn().mockReturnValue([]);
 
     waveSystem = new WaveSystem(
       mockScene as unknown as Phaser.Scene,
       () => mockDishPool as unknown as ObjectPool<Dish>,
       mockGetMaxSpawnY,
-      mockGetBoss
+      mockGetBoss as () => Array<{ id: string; x: number; y: number; visible: boolean }>
     );
   });
 
@@ -267,6 +295,24 @@ describe('WaveSystem', () => {
       expect(mockScene.spawnDish).not.toHaveBeenCalled();
 
       // Restore mock
+      Phaser.Math.Distance.Between = originalDistance;
+    });
+
+    it('checks distance against all visible bosses', () => {
+      waveSystem.startWave(2);
+
+      mockGetBoss.mockReturnValue([
+        { id: 'boss_left', x: 100, y: 100, visible: true },
+        { id: 'boss_right', x: 700, y: 100, visible: true },
+      ]);
+
+      const originalDistance = Phaser.Math.Distance.Between;
+      Phaser.Math.Distance.Between = vi.fn(() => 0);
+
+      waveSystem.update(2000);
+
+      expect(mockScene.spawnDish).not.toHaveBeenCalled();
+
       Phaser.Math.Distance.Between = originalDistance;
     });
   });

@@ -725,13 +725,30 @@ export interface WaveLaserConfig {
   maxInterval: number;
 }
 
+export interface WaveBossSpawnRange {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+export interface WaveBossConfig {
+  id: string;
+  hpWeight: number;
+  spawnRange: WaveBossSpawnRange;
+  laser: WaveLaserConfig;
+}
+
 export interface WaveData {
   number: number;
   name: string;
   dishCount: number;
   spawnInterval: number;
   dishTypes: DishTypeWeight[];
-  bossHp: number;
+  bossHp?: number;
+  bossTotalHp?: number;
+  bosses?: WaveBossConfig[];
+  bossSpawnMinDistance?: number;
   laser?: WaveLaserConfig;
 }
 
@@ -742,7 +759,9 @@ export interface InfiniteScalingConfig {
   maxBombWeight: number;
   goldenWeightDecrease: number;
   minGoldenWeight: number;
-  bossHpIncrease: number;
+  bossHpIncrease?: number;
+  bossTotalHpIncrease?: number;
+  infiniteBossCount?: number;
   minDishCountIncrease: number;
   maxMinDishCount: number;
 }

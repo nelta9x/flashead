@@ -38,10 +38,10 @@
 | **플레이어 초기 HP** | `game-config.json` | `player.initialHp` |
 | **플레이어 HP 링 스타일** | `game-config.json` | `player.hpRing` |
 | **보스 HP 세그먼트 스케일** | `boss.json` | `visual.armor.hpSegments` |
+| **멀티 보스 구성/HP 분배** | `waves.json` | `bossTotalHp`, `bosses[]`, `bossSpawnMinDistance` |
 | **폰트 설정** | `game-config.json` | `fonts` |
 | **메인 메뉴 언어 안전영역** | `main-menu.json` | `languageUI.safeAreaPaddingX`, `languageUI.safeAreaPaddingTop`, `languageUI.safeAreaPaddingBottom` |
 | **커서 크기** | `game-config.json` | `player.cursorHitbox.baseRadius` |
-| **웨이브 지속 시간** | `waves.json` | `duration` |
 | **콤보 이펙트 강도** | `feedback.json` | `comboMilestones` |
 
 ---
@@ -53,7 +53,7 @@
 | 대상 | 화면 형태 | 실제 렌더링 코드 | 상태 소스 | 설정 파일 |
 |------|-----------|------------------|-----------|-----------|
 | 플레이어 | 커서 둘레 세그먼트 링 | `src/effects/CursorRenderer.ts` (`drawHpRing`) | `HealthSystem` -> `GameScene.updateAttackRangeIndicator()` | `data/game-config.json` (`player.hpRing`) |
-| 보스 | 메뉴 스타일 아머 실루엣 슬롯 | `src/effects/BossRenderer.ts` (호출: `src/entities/Boss.ts`) + `src/entities/bossHpSegments.ts` | `MonsterSystem` -> `MONSTER_HP_CHANGED` | `data/boss.json` (`visual.armor`, `visual.armor.hpSegments`) |
+| 보스 | 메뉴 스타일 아머 실루엣 슬롯 | `src/effects/BossRenderer.ts` (호출: `src/entities/Boss.ts`) + `src/entities/bossHpSegments.ts` | `MonsterSystem` -> `MONSTER_HP_CHANGED` (`bossId`, `current`, `max`, `ratio`) | `data/boss.json` (`visual.armor`, `visual.armor.hpSegments`) |
 
 > 참고: `game-config.json`의 `hud.hpDisplay`는 현재 상단 하트 UI 렌더링에 사용되지 않는 레거시/예약 설정입니다.
 
@@ -145,7 +145,6 @@ import { COLORS, FONTS } from '../data/constants';
 
 | 필드 | 설명 |
 |------|------|
-| `duration` | 각 웨이브 지속 시간 (ms). 현재 20000 = 20초 |
 | `waves` | 웨이브 1~12 설정 배열 |
 | `fever` | 피버 타임 설정 |
 | `infiniteScaling` | 웨이브 12 이후 무한 스케일링 공식 |
@@ -154,20 +153,41 @@ import { COLORS, FONTS } from '../data/constants';
 
 ```json
 {
-  "number": 1,           // 웨이브 번호
-  "name": "시작",        // 표시 이름
-  "dishCount": 3,        // 최소 활성 접시 수 (이 수 이하면 즉시 스폰)
-  "spawnInterval": 1000, // 접시 스폰 간격 (ms). 낮을수록 빠름
-  "dishTypes": [         // 접시 종류별 출현 가중치
+  "number": 10,             // 웨이브 번호
+  "name": "폭풍",           // 표시 이름
+  "dishCount": 5,           // 최소 활성 접시 수 (이 수 이하면 즉시 스폰)
+  "spawnInterval": 720,     // 접시 스폰 간격 (ms). 낮을수록 빠름
+  "dishTypes": [            // 접시 종류별 출현 가중치
     { "type": "basic", "weight": 0.8 },
     { "type": "golden", "weight": 0.1 },
     { "type": "bomb", "weight": 0.1 }
+  ],
+  "bossTotalHp": 2420,      // 웨이브 전체 보스 HP 총량
+  "bossSpawnMinDistance": 280, // 보스 간 최소 스폰 거리
+  "bosses": [
+    {
+      "id": "boss_left",
+      "hpWeight": 1,        // bossTotalHp 분배 가중치
+      "spawnRange": { "minX": 320, "maxX": 440, "minY": 90, "maxY": 120 },
+      "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5600 }
+    },
+    {
+      "id": "boss_right",
+      "hpWeight": 1,
+      "spawnRange": { "minX": 840, "maxX": 960, "minY": 90, "maxY": 120 },
+      "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5600 }
+    }
   ]
 }
 ```
 
 **dishTypes 가중치 계산**: 모든 weight의 합 대비 각 weight의 비율이 출현 확률
 - 예: basic=0.8, golden=0.1, bomb=0.1 → basic 80%, golden 10%, bomb 10%
+
+**보스 HP 분배 규칙**:
+- `bossTotalHp`를 `bosses[].hpWeight` 비율로 분배
+- 분배 과정의 반올림 잔여 HP는 마지막 보스가 흡수
+- 예: `bossTotalHp=300`, 가중치 `1:2` -> `100`, `200`
 
 #### 무한 스케일링 (웨이브 12 이후)
 
@@ -179,6 +199,9 @@ import { COLORS, FONTS } from '../data/constants';
   "maxBombWeight": 0.35,         // 폭탄 최대 가중치
   "goldenWeightDecrease": 0.01,  // 웨이브당 골든 가중치 감소
   "minGoldenWeight": 0.2,        // 골든 최소 가중치
+  "bossTotalHpIncrease": 3000,   // 웨이브당 bossTotalHp 증가량 (우선 사용)
+  "bossHpIncrease": 3000,        // 레거시 호환용 보스 HP 증가량
+  "infiniteBossCount": 3,        // 무한 웨이브 보스 수
   "minDishCountIncrease": 1,     // 웨이브당 최소 접시 수 증가
   "maxMinDishCount": 20          // 최소 접시 수 상한
 }

@@ -6,6 +6,7 @@ import { resolveBossHpSegmentState } from './bossHpSegments';
 import { BossRenderer } from '../effects/BossRenderer';
 
 interface MonsterHpChangedEventData {
+  bossId: string;
   current?: number;
   max?: number;
   ratio: number;
@@ -13,7 +14,12 @@ interface MonsterHpChangedEventData {
   sourceY?: number;
 }
 
+interface MonsterDiedEventData {
+  bossId: string;
+}
+
 export class Boss extends Phaser.GameObjects.Container {
+  private readonly bossId: string;
   private feedbackSystem: FeedbackSystem | null = null;
   private readonly renderer: BossRenderer;
   private hpRatio: number = 1;
@@ -42,8 +48,15 @@ export class Boss extends Phaser.GameObjects.Container {
   private pushOffsetX: number = 0;
   private pushOffsetY: number = 0;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, feedbackSystem?: FeedbackSystem) {
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    bossId: string,
+    feedbackSystem?: FeedbackSystem
+  ) {
     super(scene, x, y);
+    this.bossId = bossId;
     this.feedbackSystem = feedbackSystem || null;
 
     const config = Data.boss.visual;
@@ -69,6 +82,7 @@ export class Boss extends Phaser.GameObjects.Container {
   private setupEventListeners(): void {
     EventBus.getInstance().on(GameEvents.MONSTER_HP_CHANGED, (...args: unknown[]) => {
       const data = args[0] as MonsterHpChangedEventData;
+      if (data.bossId !== this.bossId) return;
       const oldFilledSlotCount = this.filledHpSlotCount;
 
       if (typeof data.max === 'number' && data.max > 0) {
@@ -96,19 +110,24 @@ export class Boss extends Phaser.GameObjects.Container {
       this.onDamage(data.sourceX, data.sourceY);
     });
 
-    EventBus.getInstance().on(GameEvents.MONSTER_DIED, () => {
+    EventBus.getInstance().on(GameEvents.MONSTER_DIED, (...args: unknown[]) => {
+      const data = args[0] as MonsterDiedEventData | undefined;
+      if (!data || data.bossId !== this.bossId) return;
       this.die();
-    });
-
-    EventBus.getInstance().on(GameEvents.WAVE_STARTED, () => {
-      this.spawn();
     });
   }
 
-  private spawn(): void {
+  public spawnAt(x: number, y: number): void {
     const config = Data.boss.spawn;
     this.isDead = false;
+    this.frozen = false;
+    this.isHitStunned = false;
+    this.setAlpha(0);
+    this.setScale(config.initialScale);
+    this.rotation = 0;
     this.hpRatio = 1;
+    this.timeElapsed = 0;
+    this.movementTime = 0;
     if (this.maxHp <= 0) {
       this.maxHp = this.defaultArmorPieces;
     }
@@ -116,15 +135,20 @@ export class Boss extends Phaser.GameObjects.Container {
     this.refreshArmorSegments();
 
     // 움직임 초기화
-    this.baseX = this.homeX;
-    this.baseY = this.homeY;
+    this.homeX = x;
+    this.homeY = y;
+    this.baseX = x;
+    this.baseY = y;
     this.shakeOffsetX = 0;
     this.shakeOffsetY = 0;
-    this.x = this.homeX;
-    this.y = this.homeY;
+    this.pushOffsetX = 0;
+    this.pushOffsetY = 0;
+    this.x = x;
+    this.y = y;
 
     this.setVisible(true);
 
+    this.scene.tweens.killTweensOf(this);
     this.scene.tweens.add({
       targets: this,
       alpha: 1,
@@ -132,6 +156,19 @@ export class Boss extends Phaser.GameObjects.Container {
       duration: config.duration,
       ease: 'Back.easeOut',
     });
+  }
+
+  public deactivate(): void {
+    this.scene.tweens.killTweensOf(this);
+    this.frozen = false;
+    this.isHitStunned = false;
+    this.isDead = true;
+    this.setVisible(false);
+    this.setAlpha(0);
+  }
+
+  public getBossId(): string {
+    return this.bossId;
   }
 
   private onDamage(sourceX?: number, sourceY?: number): void {

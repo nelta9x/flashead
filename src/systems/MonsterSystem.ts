@@ -1,13 +1,17 @@
 import { EventBus, GameEvents } from '../utils/EventBus';
-import { Data } from '../data/DataManager';
+import { resolveWaveBossConfig, splitBossTotalHpByWeight } from './waveBossConfig';
+
+interface BossState {
+  currentHp: number;
+  maxHp: number;
+  isDead: boolean;
+}
 
 export class MonsterSystem {
-  private currentHp: number = 0;
-  private maxHp: number = 0;
-  private isDead: boolean = false;
+  private bossStates: Map<string, BossState> = new Map();
 
   constructor() {
-    // Listen for wave start to reset/spawn monster
+    // Listen for wave start to reset/spawn monsters
     EventBus.getInstance().on(GameEvents.WAVE_STARTED, (...args: unknown[]) => {
       const waveNumber = args[0] as number;
       this.reset(waveNumber);
@@ -15,58 +19,112 @@ export class MonsterSystem {
   }
 
   reset(waveNumber: number): void {
-    const wavesData = Data.waves;
-    const waveIndex = Math.min(waveNumber - 1, wavesData.waves.length - 1);
-    const baseWave = wavesData.waves[waveIndex];
+    const bossConfig = resolveWaveBossConfig(waveNumber);
+    const hpById = splitBossTotalHpByWeight(bossConfig.bossTotalHp, bossConfig.bosses);
 
-    if (waveNumber <= wavesData.waves.length) {
-      this.maxHp = baseWave.bossHp;
-    } else {
-      // Infinite scaling
-      const wavesBeyond = waveNumber - wavesData.waves.length;
-      this.maxHp = baseWave.bossHp + wavesBeyond * wavesData.infiniteScaling.bossHpIncrease;
-    }
+    this.bossStates.clear();
 
-    this.currentHp = this.maxHp;
-    this.isDead = false;
-    this.emitHpChange();
-  }
-
-  takeDamage(amount: number, sourceX?: number, sourceY?: number): void {
-    if (this.isDead) return;
-
-    this.currentHp = Math.max(0, this.currentHp - amount);
-    this.emitHpChange(sourceX, sourceY);
-
-    if (this.currentHp === 0) {
-      this.die();
+    for (const boss of bossConfig.bosses) {
+      const maxHp = Math.max(1, hpById.get(boss.id) ?? 1);
+      this.bossStates.set(boss.id, {
+        currentHp: maxHp,
+        maxHp,
+        isDead: false,
+      });
+      this.emitHpChange(boss.id);
     }
   }
 
-  private die(): void {
-    this.isDead = true;
-    EventBus.getInstance().emit(GameEvents.MONSTER_DIED);
+  takeDamage(bossId: string, amount: number, sourceX?: number, sourceY?: number): void {
+    const state = this.bossStates.get(bossId);
+    if (!state || state.isDead) return;
+    if (amount <= 0) return;
+
+    state.currentHp = Math.max(0, state.currentHp - amount);
+    this.emitHpChange(bossId, sourceX, sourceY);
+
+    if (state.currentHp === 0) {
+      this.die(bossId);
+    }
   }
 
-  private emitHpChange(sourceX?: number, sourceY?: number): void {
+  private die(bossId: string): void {
+    const state = this.bossStates.get(bossId);
+    if (!state || state.isDead) return;
+
+    state.isDead = true;
+    EventBus.getInstance().emit(GameEvents.MONSTER_DIED, { bossId });
+  }
+
+  private emitHpChange(bossId: string, sourceX?: number, sourceY?: number): void {
+    const state = this.bossStates.get(bossId);
+    if (!state) return;
+
     EventBus.getInstance().emit(GameEvents.MONSTER_HP_CHANGED, {
-      current: this.currentHp,
-      max: this.maxHp,
-      ratio: this.currentHp / this.maxHp,
+      bossId,
+      current: state.currentHp,
+      max: state.maxHp,
+      ratio: state.currentHp / state.maxHp,
       sourceX,
       sourceY,
     });
   }
 
-  getCurrentHp(): number {
-    return this.currentHp;
+  getCurrentHp(bossId?: string): number {
+    if (bossId) {
+      return this.bossStates.get(bossId)?.currentHp ?? 0;
+    }
+
+    let total = 0;
+    for (const state of this.bossStates.values()) {
+      total += state.currentHp;
+    }
+    return total;
   }
 
-  getMaxHp(): number {
-    return this.maxHp;
+  getMaxHp(bossId?: string): number {
+    if (bossId) {
+      return this.bossStates.get(bossId)?.maxHp ?? 0;
+    }
+
+    let total = 0;
+    for (const state of this.bossStates.values()) {
+      total += state.maxHp;
+    }
+    return total;
   }
 
-  isAlive(): boolean {
-    return !this.isDead;
+  isAlive(bossId?: string): boolean {
+    if (bossId) {
+      const state = this.bossStates.get(bossId);
+      return !!state && !state.isDead;
+    }
+
+    for (const state of this.bossStates.values()) {
+      if (!state.isDead) return true;
+    }
+    return false;
+  }
+
+  getAliveBossIds(): string[] {
+    const aliveBossIds: string[] = [];
+    for (const [bossId, state] of this.bossStates.entries()) {
+      if (!state.isDead) {
+        aliveBossIds.push(bossId);
+      }
+    }
+    return aliveBossIds;
+  }
+
+  areAllDead(): boolean {
+    if (this.bossStates.size === 0) return false;
+    for (const state of this.bossStates.values()) {
+      if (!state.isDead) return false;
+    }
+    return true;
+  }
+
+  publishBossHpSnapshot(bossId: string): void {
+    this.emitHpChange(bossId);
   }
 }
