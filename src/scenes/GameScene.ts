@@ -1249,7 +1249,11 @@ export class GameScene extends Phaser.Scene {
 
       if (laserConfig && laserConfig.maxCount > 0) {
         // 보스가 살아있으면 보스→플레이어 방향 레이저 발사
-        if (this.boss.visible && this.monsterSystem.isAlive()) {
+        if (
+          this.activeLasers.length < laserConfig.maxCount &&
+          this.boss.visible &&
+          this.monsterSystem.isAlive()
+        ) {
           this.triggerBossLaserAttack();
         }
       }

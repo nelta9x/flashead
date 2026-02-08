@@ -102,14 +102,21 @@ export class WaveSystem {
     const scaling = wavesData.infiniteScaling;
     const wavesBeyond = waveNumber - wavesData.waves.length;
 
+    const lastWave = wavesData.waves[wavesData.waves.length - 1];
+    const baseWeights = new Map(lastWave.dishTypes.map((dish) => [dish.type, dish.weight]));
+
+    const baseBombWeight = baseWeights.get('bomb') ?? 0.25;
+    const baseCrystalWeight = baseWeights.get('crystal') ?? 0.3;
+    const baseGoldenWeight = baseWeights.get('golden') ?? 0.25;
+
     const bombWeight = Math.min(
       scaling.maxBombWeight,
-      0.25 + wavesBeyond * scaling.bombWeightIncrease
+      baseBombWeight + wavesBeyond * scaling.bombWeightIncrease
     );
-    const crystalWeight = 0.3;
+    const crystalWeight = baseCrystalWeight;
     const goldenWeight = Math.max(
       scaling.minGoldenWeight,
-      0.35 - wavesBeyond * scaling.goldenWeightDecrease
+      baseGoldenWeight - wavesBeyond * scaling.goldenWeightDecrease
     );
     const basicWeight = Math.max(0.05, 1 - bombWeight - crystalWeight - goldenWeight);
 

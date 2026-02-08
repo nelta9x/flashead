@@ -79,8 +79,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       upgrade.applyUpgrade(cursorUpgrade);
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(1);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.3);
-      expect(upgrade.getCursorDamageBonus()).toBe(2);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.25);
+      expect(upgrade.getCursorDamageBonus()).toBe(1);
     });
 
     it('레벨 3 수치 확인', async () => {
@@ -90,8 +90,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       for (let i = 0; i < 3; i++) upgrade.applyUpgrade(cursorUpgrade);
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(3);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.9);
-      expect(upgrade.getCursorDamageBonus()).toBe(6);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.75);
+      expect(upgrade.getCursorDamageBonus()).toBe(3);
     });
 
     it('레벨 5 (맥스) 수치 확인', async () => {
@@ -101,8 +101,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       for (let i = 0; i < 5; i++) upgrade.applyUpgrade(cursorUpgrade);
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(5);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(1.5);
-      expect(upgrade.getCursorDamageBonus()).toBe(10);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(1.25);
+      expect(upgrade.getCursorDamageBonus()).toBe(6);
     });
   });
 
@@ -192,7 +192,7 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       upgrade.applyUpgrade(missileUpgrade);
       expect(upgrade.getMissileLevel()).toBe(1);
-      expect(upgrade.getMissileDamage()).toBe(100);
+      expect(upgrade.getMissileDamage()).toBe(110);
       expect(upgrade.getMissileCount()).toBe(2);
     });
 
@@ -202,23 +202,23 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const missileUpgrade = UPGRADES.find((u) => u.id === 'missile')!;
 
       for (let i = 0; i < 3; i++) upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileDamage()).toBe(100);
+      expect(upgrade.getMissileDamage()).toBe(125);
       expect(upgrade.getMissileCount()).toBe(4);
     });
 
-    it('비선형 수치: 레벨 4→5 시 damage 100→150 점프', async () => {
+    it('비선형 수치: 레벨 4→5 시 damage 140→160 점프', async () => {
       const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
       const upgrade = new UpgradeSystem();
       const missileUpgrade = UPGRADES.find((u) => u.id === 'missile')!;
 
       // 레벨 4
       for (let i = 0; i < 4; i++) upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileDamage()).toBe(150);
+      expect(upgrade.getMissileDamage()).toBe(140);
       expect(upgrade.getMissileCount()).toBe(5);
 
       // 레벨 5
       upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileDamage()).toBe(200);
+      expect(upgrade.getMissileDamage()).toBe(160);
       expect(upgrade.getMissileCount()).toBe(6);
     });
   });
@@ -260,8 +260,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       for (let i = 0; i < 7; i++) upgrade.applyUpgrade(cursorUpgrade);
 
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(5);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(1.5);
-      expect(upgrade.getCursorDamageBonus()).toBe(10);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(1.25);
+      expect(upgrade.getCursorDamageBonus()).toBe(6);
     });
 
     it('모든 어빌리티 maxStack이 levels.length와 일치', async () => {

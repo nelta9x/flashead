@@ -97,12 +97,12 @@
       "number": 9,
       "name": "폭풍 전야",
       "dishCount": 5,
-      "spawnInterval": 700,
+      "spawnInterval": 760,
       "dishTypes": [
-        { "type": "basic", "weight": 0.35 },
-        { "type": "golden", "weight": 0.2 },
-        { "type": "crystal", "weight": 0.2 },
-        { "type": "bomb", "weight": 0.25 }
+        { "type": "basic", "weight": 0.4 },
+        { "type": "golden", "weight": 0.22 },
+        { "type": "crystal", "weight": 0.18 },
+        { "type": "bomb", "weight": 0.2 }
       ],
       "bossHp": 1920,
       "laser": { "maxCount": 2, "minInterval": 3000, "maxInterval": 6000 }
@@ -110,13 +110,13 @@
     {
       "number": 10,
       "name": "폭풍",
-      "dishCount": 6,
-      "spawnInterval": 650,
+      "dishCount": 5,
+      "spawnInterval": 720,
       "dishTypes": [
-        { "type": "basic", "weight": 0.3 },
-        { "type": "golden", "weight": 0.2 },
-        { "type": "crystal", "weight": 0.25 },
-        { "type": "bomb", "weight": 0.25 }
+        { "type": "basic", "weight": 0.34 },
+        { "type": "golden", "weight": 0.24 },
+        { "type": "crystal", "weight": 0.2 },
+        { "type": "bomb", "weight": 0.22 }
       ],
       "bossHp": 2420,
       "laser": { "maxCount": 3, "minInterval": 2800, "maxInterval": 5500 }
@@ -124,13 +124,13 @@
     {
       "number": 11,
       "name": "최대",
-      "dishCount": 7,
-      "spawnInterval": 600,
+      "dishCount": 6,
+      "spawnInterval": 680,
       "dishTypes": [
-        { "type": "basic", "weight": 0.25 },
-        { "type": "golden", "weight": 0.25 },
-        { "type": "crystal", "weight": 0.25 },
-        { "type": "bomb", "weight": 0.25 }
+        { "type": "basic", "weight": 0.3 },
+        { "type": "golden", "weight": 0.24 },
+        { "type": "crystal", "weight": 0.22 },
+        { "type": "bomb", "weight": 0.24 }
       ],
       "bossHp": 3050,
       "laser": { "maxCount": 3, "minInterval": 2500, "maxInterval": 5000 }
@@ -138,13 +138,13 @@
     {
       "number": 12,
       "name": "극한",
-      "dishCount": 8,
-      "spawnInterval": 550,
+      "dishCount": 7,
+      "spawnInterval": 640,
       "dishTypes": [
-        { "type": "basic", "weight": 0.2 },
-        { "type": "golden", "weight": 0.25 },
-        { "type": "crystal", "weight": 0.3 },
-        { "type": "bomb", "weight": 0.25 }
+        { "type": "basic", "weight": 0.26 },
+        { "type": "golden", "weight": 0.24 },
+        { "type": "crystal", "weight": 0.26 },
+        { "type": "bomb", "weight": 0.24 }
       ],
       "bossHp": 3840,
       "laser": { "maxCount": 4, "minInterval": 2200, "maxInterval": 4500 }
@@ -162,14 +162,14 @@
     ]
   },
   "infiniteScaling": {
-    "spawnIntervalReduction": 10,
-    "minSpawnInterval": 200,
-    "bombWeightIncrease": 0.015,
-    "maxBombWeight": 0.3,
-    "goldenWeightDecrease": 0.005,
-    "minGoldenWeight": 0.15,
+    "spawnIntervalReduction": 8,
+    "minSpawnInterval": 260,
+    "bombWeightIncrease": 0.01,
+    "maxBombWeight": 0.28,
+    "goldenWeightDecrease": 0.003,
+    "minGoldenWeight": 0.2,
     "bossHpIncrease": 3000,
     "minDishCountIncrease": 1,
-    "maxMinDishCount": 16
+    "maxMinDishCount": 12
   }
 }

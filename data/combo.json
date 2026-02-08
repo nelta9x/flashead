@@ -1,9 +1,9 @@
 {
   "timeout": {
     "base": 1800,
-    "comboReduction": 12,
-    "waveReduction": 50,
-    "minimum": 700
+    "comboReduction": 10,
+    "waveReduction": 45,
+    "minimum": 750
   },
   "milestones": [5, 10, 25, 50, 100],
   "multiplier": {
