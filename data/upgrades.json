@@ -107,11 +107,11 @@
         { "damage": 120, "count": 1 },
         { "damage": 145, "count": 1 },
         { "damage": 170, "count": 1 },
-        { "damage": 200, "count": 2 },
-        { "damage": 230, "count": 2 },
-        { "damage": 265, "count": 2 },
-        { "damage": 300, "count": 3 },
-        { "damage": 340, "count": 3 }
+        { "damage": 170, "count": 2 },
+        { "damage": 205, "count": 2 },
+        { "damage": 240, "count": 2 },
+        { "damage": 240, "count": 3 },
+        { "damage": 280, "count": 3 }
       ]
     },
     {
