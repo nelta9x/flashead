@@ -22,6 +22,8 @@ export class Boss extends Phaser.GameObjects.Container {
   private readonly bossId: string;
   private feedbackSystem: FeedbackSystem | null = null;
   private readonly renderer: BossRenderer;
+  private readonly movementPhaseX: number;
+  private readonly movementPhaseY: number;
   private hpRatio: number = 1;
   private timeElapsed: number = 0;
   private movementTime: number = 0;
@@ -58,6 +60,8 @@ export class Boss extends Phaser.GameObjects.Container {
     super(scene, x, y);
     this.bossId = bossId;
     this.feedbackSystem = feedbackSystem || null;
+    this.movementPhaseX = Boss.resolveMovementPhase(`${bossId}:x`);
+    this.movementPhaseY = Boss.resolveMovementPhase(`${bossId}:y`);
 
     const config = Data.boss.visual;
     this.defaultArmorPieces = Math.max(1, Math.floor(config.armor.maxPieces));
@@ -267,9 +271,13 @@ export class Boss extends Phaser.GameObjects.Container {
 
     // movementTime 기반으로 드리프트 적용
     this.baseX =
-      this.homeX + Math.sin(this.movementTime * mov.drift.xFrequency) * mov.drift.xAmplitude;
+      this.homeX +
+      Math.sin(this.movementTime * mov.drift.xFrequency + this.movementPhaseX) *
+        mov.drift.xAmplitude;
     this.baseY =
-      this.homeY + Math.sin(this.movementTime * mov.drift.yFrequency) * mov.drift.yAmplitude;
+      this.homeY +
+      Math.sin(this.movementTime * mov.drift.yFrequency + this.movementPhaseY) *
+        mov.drift.yAmplitude;
 
     // bounds 클램프
     this.baseX = Phaser.Math.Clamp(this.baseX, mov.bounds.minX, mov.bounds.maxX);
@@ -328,5 +336,17 @@ export class Boss extends Phaser.GameObjects.Container {
     this.filledHpSlotCount = segmentState.filledPieces;
     this.armorPieceCount = Math.max(1, this.hpSlotCount);
     this.currentArmorCount = Phaser.Math.Clamp(this.filledHpSlotCount, 0, this.armorPieceCount);
+  }
+
+  private static resolveMovementPhase(seed: string): number {
+    // bossId 기반 결정적 위상 오프셋: 멀티 보스가 동일 궤적 위상으로 겹치지 않게 함
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+
+    const normalized = (hash >>> 0) / 0xffffffff;
+    return normalized * Math.PI * 2;
   }
 }

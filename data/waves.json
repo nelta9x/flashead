@@ -200,7 +200,7 @@
         { "type": "bomb", "weight": 0.22 },
         { "type": "amber", "weight": 0.08 }
       ],
-      "bossTotalHp": 2420,
+      "bossTotalHp": 3200,
       "bosses": [
         {
           "id": "boss_left",
@@ -230,7 +230,7 @@
         { "type": "bomb", "weight": 0.22 },
         { "type": "amber", "weight": 0.12 }
       ],
-      "bossTotalHp": 3050,
+      "bossTotalHp": 4000,
       "bosses": [
         {
           "id": "boss_left",
@@ -260,7 +260,7 @@
         { "type": "bomb", "weight": 0.2 },
         { "type": "amber", "weight": 0.16 }
       ],
-      "bossTotalHp": 3840,
+      "bossTotalHp": 5200,
       "bosses": [
         {
           "id": "boss_left",
