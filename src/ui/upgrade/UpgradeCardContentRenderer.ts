@@ -76,5 +76,31 @@ export function renderUpgradeCardContent({
     emphasisTexts.push(valueText);
   });
 
+  if (previewModel.upgradeId === 'health_pack') {
+    const baseSpawnChance = Math.round(Data.healthPack.baseSpawnChance * 100);
+    const baseSpawnIntervalSec = Number(
+      (Data.healthPack.checkInterval / 1000).toFixed(1).replace(/\.0$/, '')
+    );
+    const infoY = topY + cfg.statListStartY + rows.length * cfg.statRowHeight + 8;
+    const baseInfoText = scene.add
+      .text(
+        0,
+        infoY,
+        Data.formatTemplate('upgrade.health_pack.base_info', {
+          baseSpawnChance,
+          baseSpawnIntervalSec,
+        }),
+        {
+          fontFamily: FONTS.KOREAN,
+          fontSize: `${Math.max(12, cfg.statLabelFontSize - 2)}px`,
+          color: Data.getColorHex(cfg.statLabelColor),
+          resolution: textCfg.resolution,
+          align: 'center',
+        }
+      )
+      .setOrigin(0.5, 0);
+    container.add(baseInfoText);
+  }
+
   return { emphasisTexts };
 }
