@@ -923,6 +923,7 @@ export interface BlackHoleLevelData {
   spawnInterval: number;
   spawnCount: number;
   radius: number;
+  bombConsumeRadiusRatio: number;
 }
 
 export type SystemUpgradeLevelData =

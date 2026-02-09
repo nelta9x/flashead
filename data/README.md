@@ -427,8 +427,10 @@ import { COLORS, FONTS } from '../data/constants';
 | | `spawnInterval` | 블랙홀 재생성 주기 (ms, 주기마다 기존 교체) |
 | | `spawnCount` | 주기당 생성 개수 |
 | | `radius` | 블랙홀 반경 (px) |
+| | `bombConsumeRadiusRatio` | 폭탄 제거 중심 반경 비율 (`radius * ratio`, 0~1) |
 
 `black_hole`는 중심 좌표와 반경이 모두 화면 안에 들어오도록 생성됩니다.
+또한 폭탄 접시는 `bombConsumeRadiusRatio`로 계산된 중심 영역에 진입하면 `byAbility=true` 경로로 즉시 제거됩니다.
 
 예시:
 ```json
@@ -443,7 +445,8 @@ import { COLORS, FONTS } from '../data/constants';
       "force": 260,
       "spawnInterval": 7600,
       "spawnCount": 1,
-      "radius": 150
+      "radius": 150,
+      "bombConsumeRadiusRatio": 0.3
     }
   ]
 }

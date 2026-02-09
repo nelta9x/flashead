@@ -132,18 +132,27 @@ export class BlackHoleSystem {
     if (this.blackHoles.length === 0) return;
 
     const deltaSeconds = delta / 1000;
+    const consumeRatio = Phaser.Math.Clamp(data.bombConsumeRadiusRatio, 0, 1);
     const dishes = this.getDishPool().getActiveObjects();
 
     for (const dish of dishes) {
       if (!dish.active) continue;
+      const dangerous = dish.isDangerous();
 
       let pullX = 0;
       let pullY = 0;
       let isPulled = false;
+      let bombConsumed = false;
 
       for (const hole of this.blackHoles) {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, dish.x, dish.y);
-        if (distance > hole.radius || distance <= 0.001) continue;
+        if (distance > hole.radius) continue;
+        if (dangerous && distance <= hole.radius * consumeRatio) {
+          dish.forceDestroy(true);
+          bombConsumed = true;
+          break;
+        }
+        if (distance <= 0.001) continue;
 
         const pullStrength = 1 - distance / hole.radius;
         const pullAmount = data.force * pullStrength * deltaSeconds;
@@ -154,11 +163,23 @@ export class BlackHoleSystem {
         isPulled = true;
       }
 
+      if (bombConsumed || !dish.active) continue;
       if (!isPulled) continue;
 
       dish.x = Phaser.Math.Clamp(dish.x + pullX, 0, GAME_WIDTH);
       dish.y = Phaser.Math.Clamp(dish.y + pullY, 0, GAME_HEIGHT);
       dish.setBeingPulled(true);
+
+      if (!dangerous) continue;
+
+      for (const hole of this.blackHoles) {
+        const movedDistance = Phaser.Math.Distance.Between(hole.x, hole.y, dish.x, dish.y);
+        if (movedDistance > hole.radius) continue;
+        if (movedDistance <= hole.radius * consumeRatio) {
+          dish.forceDestroy(true);
+          break;
+        }
+      }
     }
   }
 
