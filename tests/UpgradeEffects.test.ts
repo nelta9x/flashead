@@ -82,6 +82,16 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       expect(upgrade.getSystemUpgrade('orbiting_orb')?.hitInterval).toBe(900);
     });
 
+    it('orbiting_orb overclock config should be loaded from data', async () => {
+      const { UpgradeSystem } = await import('../src/systems/UpgradeSystem');
+      const upgrade = new UpgradeSystem();
+      const orbUpgrade = upgrade.getSystemUpgrade('orbiting_orb');
+
+      expect(orbUpgrade?.overclockDurationMs).toBe(3000);
+      expect(orbUpgrade?.overclockSpeedMultiplier).toBe(2);
+      expect(orbUpgrade?.overclockMaxStacks).toBe(3);
+    });
+
     it('health_pack 스택은 희귀도 진행 카운트에서 제외되어야 함', async () => {
       const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
       const { Data } = await import('../src/data/DataManager');

@@ -444,6 +444,14 @@ import { COLORS, FONTS } from '../data/constants';
 | | `force` | 끌어당기는 힘 (px/sec) |
 | `missile` | `damage` | 미사일 데미지 |
 | | `count` | 미사일 발사 수 |
+| `orbiting_orb` | `count` | 구슬 개수 |
+| | `damage` | 구슬 타격 피해량 |
+| | `speed` | 기본 회전 속도 (deg/s) |
+| | `radius` | 궤도 반경 (px) |
+| | `size` | 구슬 기본 크기 (px) |
+| | `overclockDurationMs` | 폭탄 제거 후 오버클럭 지속 시간 (ms) |
+| | `overclockSpeedMultiplier` | 오버클럭 1스택당 회전 속도 배율 |
+| | `overclockMaxStacks` | 오버클럭 최대 중첩 수 |
 | `black_hole` | `damageInterval` | 블랙홀 피해 틱 간격 (ms) |
 | | `damage` | 블랙홀 피해 틱 당 피해량 |
 | | `force` | 블랙홀 끌어당김 힘 (px/sec) |
@@ -457,6 +465,10 @@ import { COLORS, FONTS } from '../data/constants';
 
 `electric_shock`는 접시 처치가 아니라 **커서 직격으로 발생한 `DISH_DAMAGED` 틱마다** 발동합니다.
 어빌리티 소스(`byAbility=true`)로 발생한 피해에서는 전기 충격이 다시 발동하지 않습니다.
+
+`orbiting_orb`는 폭탄을 구슬로 제거하면 오버클럭이 발동합니다.
+오버클럭은 `overclockDurationMs` 동안 유지되며, 폭탄 추가 제거 시 스택이 1씩 증가(최대 `overclockMaxStacks`)하고 지속시간이 갱신됩니다.
+회전 속도는 `1 + (overclockSpeedMultiplier - 1) * stack` 배율로 계산되어 짧은 버프형 템포 상승을 제공합니다.
 
 `black_hole`는 중심 좌표와 반경이 모두 화면 안에 들어오도록 생성됩니다.
 또한 폭탄 접시는 `bombConsumeRadiusRatio`로 계산된 중심 영역에 진입하면 `byAbility=true` 경로로 즉시 제거됩니다.

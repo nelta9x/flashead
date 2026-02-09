@@ -1000,6 +1000,9 @@ export interface SystemUpgradeData {
   effectType: string;
   previewDisplay: UpgradePreviewDisplayConfig;
   hitInterval?: number;
+  overclockDurationMs?: number;
+  overclockSpeedMultiplier?: number;
+  overclockMaxStacks?: number;
   levels?: SystemUpgradeLevelData[];
   maxStack?: number; // health_pack 등 소모품 전용
 }

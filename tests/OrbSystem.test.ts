@@ -66,7 +66,12 @@ describe('OrbSystem', () => {
       getOrbitingOrbData: vi.fn(),
       getMagnetLevel: vi.fn().mockReturnValue(0),
       getCriticalChanceBonus: vi.fn().mockReturnValue(0),
-      getSystemUpgrade: vi.fn().mockReturnValue({ hitInterval: 300 }),
+      getSystemUpgrade: vi.fn().mockReturnValue({
+        hitInterval: 300,
+        overclockDurationMs: 0,
+        overclockSpeedMultiplier: 1,
+        overclockMaxStacks: 0,
+      }),
     };
 
     mockDishes = [];
@@ -284,5 +289,136 @@ describe('OrbSystem', () => {
     mockBomb.x = 125; // Distance = 25. <= 30.
     system.update(100, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
     expect(mockBomb.forceDestroy).toHaveBeenCalled();
+  });
+
+  it('should trigger overclock only when bomb is destroyed by orb', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 10,
+      speed: 90,
+      radius: 100,
+      size: 10,
+    });
+    mockUpgradeSystem.getSystemUpgrade.mockReturnValue({
+      hitInterval: 300,
+      overclockDurationMs: 3000,
+      overclockSpeedMultiplier: 2,
+      overclockMaxStacks: 3,
+    });
+
+    const normalDish = {
+      active: true,
+      x: 0,
+      y: 100, // t=1000 at angle 90
+      getSize: () => 10,
+      isDangerous: () => false,
+      applyDamageWithUpgrades: vi.fn(),
+    };
+    mockDishes.push(normalDish);
+
+    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+
+    const orb = system.getOrbs()[0];
+    expect(orb.x).toBeCloseTo(-100, 3);
+    expect(orb.y).toBeCloseTo(0, 3);
+  });
+
+  it('should apply overclock speed boost after bomb destroy and expire after duration', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 10,
+      speed: 90,
+      radius: 100,
+      size: 10,
+    });
+    mockUpgradeSystem.getSystemUpgrade.mockReturnValue({
+      hitInterval: 300,
+      overclockDurationMs: 3000,
+      overclockSpeedMultiplier: 2,
+      overclockMaxStacks: 3,
+    });
+
+    const bomb = {
+      active: true,
+      x: 0,
+      y: 100, // t=1000 at angle 90
+      getSize: () => 10,
+      isDangerous: () => true,
+      isFullySpawned: vi.fn().mockReturnValue(true),
+      applyDamageWithUpgrades: vi.fn(),
+      forceDestroy: vi.fn(),
+    };
+    bomb.forceDestroy.mockImplementation(() => {
+      bomb.active = false;
+    });
+    mockDishes.push(bomb);
+
+    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // stack 1
+    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // boosted
+
+    const boostedOrb = system.getOrbs()[0];
+    expect(boostedOrb.x).toBeCloseTo(0, 3);
+    expect(boostedOrb.y).toBeCloseTo(-100, 3);
+
+    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // expired
+    const expiredOrb = system.getOrbs()[0];
+    expect(expiredOrb.x).toBeCloseTo(100, 3);
+    expect(expiredOrb.y).toBeCloseTo(0, 3);
+  });
+
+  it('should stack overclock up to max stacks and clamp additional bomb kills', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 10,
+      speed: 60,
+      radius: 100,
+      size: 10,
+    });
+    mockUpgradeSystem.getSystemUpgrade.mockReturnValue({
+      hitInterval: 300,
+      overclockDurationMs: 3000,
+      overclockSpeedMultiplier: 2,
+      overclockMaxStacks: 3,
+    });
+
+    const makeBomb = (x: number, y: number) => {
+      const bomb = {
+        active: true,
+        x,
+        y,
+        getSize: () => 10,
+        isDangerous: () => true,
+        isFullySpawned: vi.fn().mockReturnValue(true),
+        applyDamageWithUpgrades: vi.fn(),
+        forceDestroy: vi.fn(),
+      };
+      bomb.forceDestroy.mockImplementation(() => {
+        bomb.active = false;
+      });
+      return bomb;
+    };
+
+    mockDishes.push(makeBomb(50, 86.6025403784)); // angle 60, stack 1
+    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+
+    mockDishes.push(makeBomb(-100, 0)); // angle 180, stack 2
+    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+
+    mockDishes.push(makeBomb(100, 0)); // angle 0, stack 3
+    system.update(1000, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+
+    mockDishes.push(makeBomb(-50, -86.6025403784)); // angle 240, tries stack 4 but clamped to 3
+    system.update(1000, 4000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+
+    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    const orb = system.getOrbs()[0];
+
+    // stack 3 유지 시 최종 각도 120도
+    expect(orb.x).toBeCloseTo(-50, 2);
+    expect(orb.y).toBeCloseTo(86.6, 2);
   });
 });

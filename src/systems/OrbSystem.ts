@@ -2,11 +2,18 @@ import Phaser from 'phaser';
 import { Dish } from '../entities/Dish';
 import { UpgradeSystem } from './UpgradeSystem';
 import { ObjectPool } from '../utils/ObjectPool';
+import type { SystemUpgradeData } from '../data/types';
 
 export interface OrbPosition {
   x: number;
   y: number;
   size: number;
+}
+
+interface OrbOverclockConfig {
+  durationMs: number;
+  speedMultiplier: number;
+  maxStacks: number;
 }
 
 export class OrbSystem {
@@ -17,6 +24,8 @@ export class OrbSystem {
   private lastHitTimes: WeakMap<Dish, number> = new WeakMap();
 
   private orbPositions: OrbPosition[] = [];
+  private overclockStacks: number = 0;
+  private overclockExpireAt: number = 0;
 
   constructor(upgradeSystem: UpgradeSystem) {
     this.upgradeSystem = upgradeSystem;
@@ -32,11 +41,14 @@ export class OrbSystem {
     const level = this.upgradeSystem.getOrbitingOrbLevel();
     if (level <= 0) {
       this.orbPositions = [];
+      this.resetOverclock();
       return;
     }
 
     const upgradeData = this.upgradeSystem.getSystemUpgrade('orbiting_orb');
     const hitInterval = upgradeData?.hitInterval ?? 300;
+    const overclockConfig = this.resolveOverclockConfig(upgradeData);
+    this.updateOverclockState(gameTime, overclockConfig);
 
     const stats = this.upgradeSystem.getOrbitingOrbData();
     if (!stats) return;
@@ -50,7 +62,7 @@ export class OrbSystem {
 
     // Update Angle
     // Speed is in degrees per second
-    const speed = stats.speed;
+    const speed = stats.speed * this.getOverclockSpeedMultiplier(overclockConfig);
     this.currentAngle += speed * (delta / 1000);
     this.currentAngle %= 360;
 
@@ -81,7 +93,8 @@ export class OrbSystem {
       stats.damage,
       finalSize,
       hitInterval,
-      criticalChanceBonus
+      criticalChanceBonus,
+      overclockConfig
     );
   }
 
@@ -91,11 +104,12 @@ export class OrbSystem {
     damage: number,
     orbSize: number,
     hitInterval: number,
-    criticalChanceBonus: number
+    criticalChanceBonus: number,
+    overclockConfig: OrbOverclockConfig
   ): void {
     dishPool.forEach((dish) => {
       if (!dish.active) return;
-      
+
       // 폭탄(dangerous)은 완전히 스폰된 후에만 타격 가능
       if (dish.isDangerous() && !dish.isFullySpawned()) return;
 
@@ -116,7 +130,8 @@ export class OrbSystem {
         if (gameTime >= nextHitTime) {
           // 폭탄(dangerous)은 HP와 관계없이 즉시 제거
           if (dish.isDangerous()) {
-            dish.forceDestroy();
+            dish.forceDestroy(true);
+            this.activateOverclock(gameTime, overclockConfig);
           } else {
             // 일반 접시는 데미지 적용
             dish.applyDamageWithUpgrades(damage, 0, criticalChanceBonus);
@@ -126,6 +141,52 @@ export class OrbSystem {
         }
       }
     });
+  }
+
+  private resolveOverclockConfig(upgradeData?: SystemUpgradeData): OrbOverclockConfig {
+    const durationMs = Math.max(0, Math.floor(upgradeData?.overclockDurationMs ?? 0));
+    const speedMultiplier = Math.max(1, upgradeData?.overclockSpeedMultiplier ?? 1);
+    const rawMaxStacks = Math.floor(upgradeData?.overclockMaxStacks ?? 0);
+    const maxStacks =
+      durationMs > 0 && speedMultiplier > 1 ? Math.max(1, rawMaxStacks) : 0;
+
+    return {
+      durationMs,
+      speedMultiplier,
+      maxStacks,
+    };
+  }
+
+  private updateOverclockState(gameTime: number, config: OrbOverclockConfig): void {
+    if (config.maxStacks <= 0) {
+      this.resetOverclock();
+      return;
+    }
+
+    if (this.overclockStacks > 0 && gameTime >= this.overclockExpireAt) {
+      this.resetOverclock();
+    }
+  }
+
+  private getOverclockSpeedMultiplier(config: OrbOverclockConfig): number {
+    if (this.overclockStacks <= 0) {
+      return 1;
+    }
+    return 1 + (config.speedMultiplier - 1) * this.overclockStacks;
+  }
+
+  private activateOverclock(gameTime: number, config: OrbOverclockConfig): void {
+    if (config.maxStacks <= 0 || config.durationMs <= 0 || config.speedMultiplier <= 1) {
+      return;
+    }
+
+    this.overclockStacks = Math.min(config.maxStacks, this.overclockStacks + 1);
+    this.overclockExpireAt = gameTime + config.durationMs;
+  }
+
+  private resetOverclock(): void {
+    this.overclockStacks = 0;
+    this.overclockExpireAt = 0;
   }
 
   public getOrbs(): OrbPosition[] {
