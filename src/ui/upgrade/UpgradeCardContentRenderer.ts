@@ -76,6 +76,30 @@ export function renderUpgradeCardContent({
     emphasisTexts.push(valueText);
   });
 
+  const selectionHintKey = `upgrade.${previewModel.upgradeId}.selection_hint`;
+  const selectionHintText = Data.t(selectionHintKey);
+  if (selectionHintText !== selectionHintKey) {
+    const hintFontSize = Math.max(11, cfg.statLabelFontSize - 2);
+    const hint = scene.add
+      .text(0, 0, selectionHintText, {
+        fontFamily: FONTS.KOREAN,
+        fontSize: `${hintFontSize}px`,
+        color: Data.getColorHex(cfg.statLabelColor),
+        resolution: textCfg.resolution,
+        align: 'center',
+        wordWrap: { width: boxWidth - 36, useAdvancedWrap: true },
+      })
+      .setOrigin(0.5, 0)
+      .setAlpha(0.76);
+
+    const preferredY = topY + cfg.statListStartY + rows.length * cfg.statRowHeight + 8;
+    const progressBarTopY = boxHeight / 2 - 45;
+    const maxHintY = progressBarTopY - hint.height - 6;
+    const minHintY = topY + cfg.statListStartY + 4;
+    hint.setY(Math.max(minHintY, Math.min(preferredY, maxHintY)));
+    container.add(hint);
+  }
+
   if (previewModel.upgradeId === 'health_pack') {
     const baseSpawnChance = Math.round(Data.healthPack.baseSpawnChance * 100);
     const baseSpawnIntervalSec = Number(

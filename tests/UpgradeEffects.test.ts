@@ -440,6 +440,10 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
         const locale = Data.locales[lang];
         expect(locale['upgrade.card.level_transition']).toBeDefined();
         expect(locale['upgrade.card.delta_format']).toBeDefined();
+        expect(
+          locale['upgrade.orbiting_orb.selection_hint'],
+          `Missing selection_hint for orbiting_orb in ${lang}`
+        ).toBeDefined();
 
         for (const upgrade of Data.upgrades.system) {
           expect(

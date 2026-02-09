@@ -430,6 +430,9 @@ import { COLORS, FONTS } from '../data/constants';
 - 카드 공용 포맷 키:
   - `upgrade.card.level_transition`
   - `upgrade.card.delta_format`
+- 선택창 전용 보조 문구(선택):
+  - `upgrade.<id>.selection_hint`
+  - 키가 없으면 선택 카드에서 문구를 렌더하지 않음
 
 **어빌리티별 levels 필드**:
 
