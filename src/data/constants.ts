@@ -128,8 +128,7 @@ export const MAGNET = {
 // 힐팩 시스템
 export const HEAL_PACK = {
   HEAL_AMOUNT: Data.healthPack.healAmount,
-  FALL_TIME: Data.healthPack.fallTime,
-  FALL_SPEED: Data.healthPack.fallSpeed,
+  MOVE_SPEED: Data.healthPack.moveSpeed,
   VISUAL_SIZE: Data.healthPack.visualSize,
   HITBOX_SIZE: Data.healthPack.hitboxSize,
   COOLDOWN: Data.healthPack.cooldown,

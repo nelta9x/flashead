@@ -477,8 +477,7 @@ import { COLORS, FONTS } from '../data/constants';
 ```json
 {
   "healAmount": 1,        // 회복량 (HP)
-  "fallTime": 3500,       // 낙하 시간 (ms)
-  "fallSpeed": 206,       // 낙하 속도 (px/sec)
+  "moveSpeed": 206,       // 이동 속도 (px/sec, 하단 -> 상단)
   "visualSize": 28,       // 시각적 크기 (px)
   "hitboxSize": 35,       // 히트박스 크기 (px) - 클수록 획득 쉬움
   "cooldown": 15000,      // 스폰 쿨다운 (ms)

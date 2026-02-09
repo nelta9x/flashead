@@ -545,8 +545,7 @@ export interface ComboConfig {
 // ========== 힐팩 시스템 ==========
 export interface HealthPackConfig {
   healAmount: number;
-  fallTime: number;
-  fallSpeed: number;
+  moveSpeed: number;
   visualSize: number;
   hitboxSize: number;
   cooldown: number;

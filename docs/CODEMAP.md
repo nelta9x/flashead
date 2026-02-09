@@ -99,7 +99,7 @@
   - 내부 분해: `entities/dish/DishDamageResolver.ts`, `entities/dish/DishEventPayloadFactory.ts`
   - 외형 렌더링: `DishRenderer`에 위임 (인게임/메뉴 공용 스타일).
 - **`Boss.ts`**: 보스 몬스터의 로직 엔티티. 각 인스턴스는 자신의 `bossId` 이벤트(`MONSTER_HP_CHANGED`/`MONSTER_DIED`)만 처리하며, 시각화는 `BossRenderer`에 위임합니다.
-- **`HealthPack.ts`**: 낙하하는 힐 아이템 오브젝트. 커서와 충돌 시 `HEALTH_PACK_COLLECTED` 이벤트를 발생시키며, 외형 렌더링은 `HealthPackRenderer`에 위임합니다.
+- **`HealthPack.ts`**: 화면 하단에서 스폰되어 상단으로 이동하는 힐 아이템 오브젝트. 커서와 충돌 시 `HEALTH_PACK_COLLECTED` 이벤트를 발생시키며, 외형 렌더링은 `HealthPackRenderer`에 위임합니다.
 
 ### 4. 시각 효과 및 UI (Effects & UI)
 
@@ -156,7 +156,7 @@
   - `upgrades.json`: 업그레이드 어빌리티 정의, 확률(Rarity), 효과 수치, 카드 프리뷰 표시 스키마(`previewDisplay`).
   - `feedback.json`: 연출용 수치 (흔들림 강도, 파티클 개수, 슬로우모션 강도, 커서 트레일 설정).
   - `combo.json`: 콤보 타임아웃, 마일스톤, 배율 공식, 게이지 보너스.
-  - `health-pack.json`: 힐팩 기본 스폰 확률, 낙하 속도 등 설정.
+  - `health-pack.json`: 힐팩 기본 스폰 확률, 이동 속도 등 설정.
   - `spawn.json`: 스폰 영역(Area) 및 로직 설정.
   - `weapons.json`: 무기(공격) 기본 데미지 및 관련 데이터.
 

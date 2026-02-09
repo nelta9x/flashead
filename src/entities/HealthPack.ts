@@ -4,10 +4,12 @@ import { Poolable } from '../utils/ObjectPool';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { HealthPackRenderer } from '../effects/HealthPackRenderer';
 
+const OFFSCREEN_MARGIN = 40;
+
 export class HealthPack extends Phaser.GameObjects.Container implements Poolable {
   active: boolean = false;
   private graphics: Phaser.GameObjects.Graphics;
-  private fallSpeed: number = Data.healthPack.fallSpeed;
+  private moveSpeed: number = Data.healthPack.moveSpeed;
   private pulsePhase: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -30,7 +32,8 @@ export class HealthPack extends Phaser.GameObjects.Container implements Poolable
   }
 
   spawn(x: number): void {
-    this.setPosition(x, -40);
+    const gameHeight = Data.gameConfig.screen.height;
+    this.setPosition(x, gameHeight + OFFSCREEN_MARGIN);
     this.active = true;
     this.pulsePhase = 0;
 
@@ -108,15 +111,14 @@ export class HealthPack extends Phaser.GameObjects.Container implements Poolable
   update(delta: number): void {
     if (!this.active) return;
 
-    // 프레임 레이트와 무관하게 일정한 낙하 속도(px/sec)를 유지
-    this.y += (this.fallSpeed * delta) / 1000;
+    // 프레임 레이트와 무관하게 일정한 이동 속도(px/sec)를 유지
+    this.y -= (this.moveSpeed * delta) / 1000;
 
     // 펄스 애니메이션
     this.pulsePhase += delta * 0.005;
 
-    // 화면 아래로 벗어남 체크
-    const gameHeight = Data.gameConfig.screen.height;
-    if (this.y > gameHeight + 40) {
+    // 화면 위로 벗어남 체크
+    if (this.y < -OFFSCREEN_MARGIN) {
       this.onMissed();
       return;
     }
