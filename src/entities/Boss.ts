@@ -49,6 +49,9 @@ export class Boss extends Phaser.GameObjects.Container {
   private shakeOffsetY: number = 0;
   private pushOffsetX: number = 0;
   private pushOffsetY: number = 0;
+  private spawnTween: Phaser.Tweens.Tween | null = null;
+  private deathTween: Phaser.Tweens.Tween | null = null;
+  private reactionTweens: Phaser.Tweens.Tween[] = [];
 
   constructor(
     scene: Phaser.Scene,
@@ -123,6 +126,7 @@ export class Boss extends Phaser.GameObjects.Container {
 
   public spawnAt(x: number, y: number): void {
     const config = Data.boss.spawn;
+    this.stopAllManagedTweens();
     this.isDead = false;
     this.frozen = false;
     this.isHitStunned = false;
@@ -151,19 +155,20 @@ export class Boss extends Phaser.GameObjects.Container {
     this.y = y;
 
     this.setVisible(true);
-
-    this.scene.tweens.killTweensOf(this);
-    this.scene.tweens.add({
+    this.spawnTween = this.scene.tweens.add({
       targets: this,
       alpha: 1,
       scale: { from: config.initialScale, to: 1 },
       duration: config.duration,
       ease: 'Back.easeOut',
+      onComplete: () => {
+        this.spawnTween = null;
+      },
     });
   }
 
   public deactivate(): void {
-    this.scene.tweens.killTweensOf(this);
+    this.stopAllManagedTweens();
     this.frozen = false;
     this.isHitStunned = false;
     this.isDead = true;
@@ -189,7 +194,7 @@ export class Boss extends Phaser.GameObjects.Container {
       const pushY = Math.sin(angle) * reaction.pushDistance;
 
       // 기존 리액션 트윈 제거
-      this.scene.tweens.killTweensOf(this);
+      this.stopReactionTweens();
 
       // 스턴 상태 활성화 (이동 멈춤)
       this.isHitStunned = true;
@@ -197,41 +202,47 @@ export class Boss extends Phaser.GameObjects.Container {
       // 1. 밀려남 (Push) 및 회전 (Tilt)
       const hitRotation = (sourceX < this.x ? 1 : -1) * reaction.hitRotation;
 
-      this.scene.tweens.add({
-        targets: this,
-        pushOffsetX: pushX,
-        pushOffsetY: pushY,
-        rotation: hitRotation,
-        duration: reaction.pushDuration,
-        ease: reaction.pushEase,
-      });
+      this.registerReactionTween(
+        this.scene.tweens.add({
+          targets: this,
+          pushOffsetX: pushX,
+          pushOffsetY: pushY,
+          rotation: hitRotation,
+          duration: reaction.pushDuration,
+          ease: reaction.pushEase,
+        })
+      );
 
       // 2. 흔들림 (Shake) - 스턴 유지
-      this.scene.tweens.add({
-        targets: this,
-        shakeOffsetX: { from: -reaction.shakeIntensity, to: reaction.shakeIntensity },
-        shakeOffsetY: { from: reaction.shakeIntensity, to: -reaction.shakeIntensity },
-        duration: reaction.shakeFrequency,
-        yoyo: true,
-        repeat: Math.floor(reaction.shakeDuration / reaction.shakeFrequency),
-        onComplete: () => {
-          this.shakeOffsetX = 0;
-          this.shakeOffsetY = 0;
+      this.registerReactionTween(
+        this.scene.tweens.add({
+          targets: this,
+          shakeOffsetX: { from: -reaction.shakeIntensity, to: reaction.shakeIntensity },
+          shakeOffsetY: { from: reaction.shakeIntensity, to: -reaction.shakeIntensity },
+          duration: reaction.shakeFrequency,
+          yoyo: true,
+          repeat: Math.floor(reaction.shakeDuration / reaction.shakeFrequency),
+          onComplete: () => {
+            this.shakeOffsetX = 0;
+            this.shakeOffsetY = 0;
 
-          // 3. 흔들림(스턴)이 끝난 후 원래 위치로 복귀
-          this.scene.tweens.add({
-            targets: this,
-            pushOffsetX: 0,
-            pushOffsetY: 0,
-            rotation: 0,
-            duration: reaction.returnDuration,
-            ease: reaction.returnEase,
-            onComplete: () => {
-              this.isHitStunned = false; // 복귀까지 완료되어야 이동 재개
-            },
-          });
-        },
-      });
+            // 3. 흔들림(스턴)이 끝난 후 원래 위치로 복귀
+            this.registerReactionTween(
+              this.scene.tweens.add({
+                targets: this,
+                pushOffsetX: 0,
+                pushOffsetY: 0,
+                rotation: 0,
+                duration: reaction.returnDuration,
+                ease: reaction.returnEase,
+                onComplete: () => {
+                  this.isHitStunned = false; // 복귀까지 완료되어야 이동 재개
+                },
+              })
+            );
+          },
+        })
+      );
     }
   }
 
@@ -253,8 +264,9 @@ export class Boss extends Phaser.GameObjects.Container {
   }
 
   private die(): void {
+    this.stopAllManagedTweens();
     this.isDead = true;
-    this.scene.tweens.add({
+    this.deathTween = this.scene.tweens.add({
       targets: this,
       scale: 1.5,
       alpha: 0,
@@ -262,6 +274,7 @@ export class Boss extends Phaser.GameObjects.Container {
       ease: 'Power2.In',
       onComplete: () => {
         this.setVisible(false);
+        this.deathTween = null;
       },
     });
   }
@@ -326,6 +339,11 @@ export class Boss extends Phaser.GameObjects.Container {
     this.frozen = false;
   }
 
+  public override destroy(fromScene?: boolean): void {
+    this.stopAllManagedTweens();
+    super.destroy(fromScene);
+  }
+
   private refreshArmorSegments(): void {
     const segmentState = resolveBossHpSegmentState(this.currentHp, this.maxHp, {
       defaultPieces: this.defaultArmorPieces,
@@ -348,5 +366,42 @@ export class Boss extends Phaser.GameObjects.Container {
 
     const normalized = (hash >>> 0) / 0xffffffff;
     return normalized * Math.PI * 2;
+  }
+
+  private registerReactionTween(tween: Phaser.Tweens.Tween): void {
+    this.reactionTweens.push(tween);
+  }
+
+  private stopReactionTweens(): void {
+    this.reactionTweens.forEach((tween) => {
+      tween.stop();
+      tween.remove();
+    });
+    this.reactionTweens = [];
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
+    this.pushOffsetX = 0;
+    this.pushOffsetY = 0;
+    this.isHitStunned = false;
+  }
+
+  private stopSpawnTween(): void {
+    if (!this.spawnTween) return;
+    this.spawnTween.stop();
+    this.spawnTween.remove();
+    this.spawnTween = null;
+  }
+
+  private stopDeathTween(): void {
+    if (!this.deathTween) return;
+    this.deathTween.stop();
+    this.deathTween.remove();
+    this.deathTween = null;
+  }
+
+  private stopAllManagedTweens(): void {
+    this.stopSpawnTween();
+    this.stopDeathTween();
+    this.stopReactionTweens();
   }
 }
