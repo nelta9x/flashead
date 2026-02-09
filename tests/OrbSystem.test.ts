@@ -421,4 +421,79 @@ describe('OrbSystem', () => {
     expect(orb.x).toBeCloseTo(-50, 2);
     expect(orb.y).toBeCloseTo(86.6, 2);
   });
+
+  it('should deal damage to boss on orb collision', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 25,
+      speed: 0,
+      radius: 100,
+      size: 10,
+    });
+
+    const onBossDamage = vi.fn();
+    const getBossSnapshots = () => [{ id: 'boss1', x: 100, y: 0, radius: 20 }];
+
+    system.update(
+      100, 1000, 0, 0,
+      mockDishPool as unknown as ObjectPool<Dish>,
+      getBossSnapshots,
+      onBossDamage
+    );
+
+    expect(onBossDamage).toHaveBeenCalledWith('boss1', 25, expect.closeTo(100, 0), expect.closeTo(0, 0));
+  });
+
+  it('should respect boss hit cooldown', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 25,
+      speed: 0,
+      radius: 100,
+      size: 10,
+    });
+
+    const onBossDamage = vi.fn();
+    const getBossSnapshots = () => [{ id: 'boss1', x: 100, y: 0, radius: 20 }];
+    const pool = mockDishPool as unknown as ObjectPool<Dish>;
+
+    // First hit at t=1000
+    system.update(100, 1000, 0, 0, pool, getBossSnapshots, onBossDamage);
+    expect(onBossDamage).toHaveBeenCalledTimes(1);
+
+    // Too soon: t=1100, cooldown 300ms not elapsed
+    onBossDamage.mockClear();
+    system.update(100, 1100, 0, 0, pool, getBossSnapshots, onBossDamage);
+    expect(onBossDamage).not.toHaveBeenCalled();
+
+    // After cooldown: t=1300 (1000 + 300)
+    system.update(100, 1300, 0, 0, pool, getBossSnapshots, onBossDamage);
+    expect(onBossDamage).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not hit boss when orb is out of range', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 25,
+      speed: 0,
+      radius: 100,
+      size: 10,
+    });
+
+    const onBossDamage = vi.fn();
+    // Boss far away: orb at ~(100,0), boss at (300,0). dist=200 > 10+20=30
+    const getBossSnapshots = () => [{ id: 'boss1', x: 300, y: 0, radius: 20 }];
+
+    system.update(
+      100, 1000, 0, 0,
+      mockDishPool as unknown as ObjectPool<Dish>,
+      getBossSnapshots,
+      onBossDamage
+    );
+
+    expect(onBossDamage).not.toHaveBeenCalled();
+  });
 });

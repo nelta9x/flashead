@@ -555,7 +555,17 @@ export class GameScene extends Phaser.Scene {
     this.blackHoleSystem.update(delta, this.gameTime);
     this.blackHoleRenderer.render(this.blackHoleSystem.getBlackHoles(), this.gameTime);
 
-    this.orbSystem.update(delta, this.gameTime, this.cursorX, this.cursorY, this.dishPool);
+    this.orbSystem.update(
+      delta, this.gameTime, this.cursorX, this.cursorY, this.dishPool,
+      () => this.bossCombatCoordinator?.getAliveVisibleBossSnapshotsWithRadius() ?? [],
+      (bossId, amount, sourceX, sourceY) => {
+        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY);
+        const bossTarget = this.bossCombatCoordinator?.getAliveBossTarget(bossId);
+        this.feedbackSystem.onBossContactDamaged(
+          bossTarget?.x ?? sourceX, bossTarget?.y ?? sourceY, amount, false
+        );
+      }
+    );
     this.orbRenderer.render(this.orbSystem.getOrbs());
 
     this.dishLifecycleController.updateCursorAttack(cursor);

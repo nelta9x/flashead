@@ -3,6 +3,7 @@ import { Dish } from '../entities/Dish';
 import { UpgradeSystem } from './UpgradeSystem';
 import { ObjectPool } from '../utils/ObjectPool';
 import type { SystemUpgradeData } from '../data/types';
+import type { BossRadiusSnapshot } from '../scenes/game/GameSceneContracts';
 
 export interface OrbPosition {
   x: number;
@@ -22,6 +23,7 @@ export class OrbSystem {
 
   // Cooldown tracking per dish: Map<Dish, NextHitTime>
   private lastHitTimes: WeakMap<Dish, number> = new WeakMap();
+  private bossLastHitTimes: Map<string, number> = new Map();
 
   private orbPositions: OrbPosition[] = [];
   private overclockStacks: number = 0;
@@ -36,7 +38,9 @@ export class OrbSystem {
     gameTime: number,
     playerX: number,
     playerY: number,
-    dishPool: ObjectPool<Dish>
+    dishPool: ObjectPool<Dish>,
+    getBossSnapshots: () => BossRadiusSnapshot[] = () => [],
+    onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {}
   ): void {
     const level = this.upgradeSystem.getOrbitingOrbLevel();
     if (level <= 0) {
@@ -94,7 +98,9 @@ export class OrbSystem {
       finalSize,
       hitInterval,
       criticalChanceBonus,
-      overclockConfig
+      overclockConfig,
+      getBossSnapshots,
+      onBossDamage
     );
   }
 
@@ -105,7 +111,9 @@ export class OrbSystem {
     orbSize: number,
     hitInterval: number,
     criticalChanceBonus: number,
-    overclockConfig: OrbOverclockConfig
+    overclockConfig: OrbOverclockConfig,
+    getBossSnapshots: () => BossRadiusSnapshot[],
+    onBossDamage: (bossId: string, damage: number, x: number, y: number) => void
   ): void {
     dishPool.forEach((dish) => {
       if (!dish.active) return;
@@ -141,6 +149,22 @@ export class OrbSystem {
         }
       }
     });
+
+    // Boss collision check
+    const bosses = getBossSnapshots();
+    for (const boss of bosses) {
+      for (const orb of this.orbPositions) {
+        const dist = Phaser.Math.Distance.Between(orb.x, orb.y, boss.x, boss.y);
+        if (dist <= orbSize + boss.radius) {
+          const nextHitTime = this.bossLastHitTimes.get(boss.id) ?? 0;
+          if (gameTime >= nextHitTime) {
+            onBossDamage(boss.id, damage, orb.x, orb.y);
+            this.bossLastHitTimes.set(boss.id, gameTime + hitInterval);
+          }
+          break;
+        }
+      }
+    }
   }
 
   private resolveOverclockConfig(upgradeData?: SystemUpgradeData): OrbOverclockConfig {
