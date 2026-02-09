@@ -114,7 +114,7 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       upgrade.applyUpgrade(cursorUpgrade);
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(1);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.25);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.4);
       expect(upgrade.getCursorDamageBonus()).toBe(3);
       expect(upgrade.getCursorMissileThicknessBonus()).toBeCloseTo(0.25);
     });
@@ -126,8 +126,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       for (let i = 0; i < 3; i++) upgrade.applyUpgrade(cursorUpgrade);
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(3);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(1.0);
-      expect(upgrade.getCursorDamageBonus()).toBe(15);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.5);
+      expect(upgrade.getCursorDamageBonus()).toBe(10);
       expect(upgrade.getCursorMissileThicknessBonus()).toBeCloseTo(1.0);
     });
   });
@@ -361,8 +361,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       for (let i = 0; i < 7; i++) upgrade.applyUpgrade(cursorUpgrade);
 
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(3);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(1.0);
-      expect(upgrade.getCursorDamageBonus()).toBe(15);
+      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.5);
+      expect(upgrade.getCursorDamageBonus()).toBe(10);
     });
 
     it('모든 어빌리티 maxStack이 데이터의 levels.length와 일치', async () => {
@@ -420,6 +420,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       for (const lang of languages) {
         Data.setLanguage(lang);
         const locale = Data.locales[lang];
+        expect(locale['upgrade.card.level_transition']).toBeDefined();
+        expect(locale['upgrade.card.delta_format']).toBeDefined();
 
         for (const upgrade of Data.upgrades.system) {
           expect(
@@ -434,6 +436,15 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
             expect(
               locale[`upgrade.${upgrade.id}.desc_template`],
               `Missing desc_template for ${upgrade.id} in ${lang}`
+            ).toBeDefined();
+          }
+
+          expect(upgrade.previewDisplay.stats.length, `Missing previewDisplay stats for ${upgrade.id}`).toBeGreaterThan(0);
+
+          for (const stat of upgrade.previewDisplay.stats) {
+            expect(
+              locale[stat.labelKey],
+              `Missing stat label "${stat.labelKey}" for ${upgrade.id} in ${lang}`
             ).toBeDefined();
           }
         }
@@ -468,7 +479,7 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       }
     });
 
-    it('모든 단계에서 미리보기(getPreviewDescription)에 미치환 태그가 없어야 함', async () => {
+    it('모든 단계에서 미리보기(getPreviewCardModel) 구조가 유효해야 함', async () => {
       const { UpgradeSystem, UPGRADES } = await import('../src/systems/UpgradeSystem');
       const { Data } = await import('../src/data/DataManager');
       const languages: ('en' | 'ko')[] = ['en', 'ko'];
@@ -482,12 +493,20 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
           const maxLevel = upgradeData.levels ? upgradeData.levels.length : 1;
           for (let level = 0; level < maxLevel; level++) {
-            // 현재 level 상태에서 다음 레벨 미리보기 생성
-            const preview = upgradeSystem.getPreviewDescription(upgradeData.id);
-            expect(
-              preview,
-              `Unreplaced tag in preview ${upgradeData.id} (From Level ${level}, ${lang}): ${preview}`
-            ).not.toMatch(/\{|\}/);
+            const preview = upgradeSystem.getPreviewCardModel(upgradeData.id);
+            expect(preview, `Missing preview model for ${upgradeData.id} (${lang}, level ${level})`).not.toBeNull();
+            expect(preview?.rows.length, `Missing preview rows for ${upgradeData.id}`).toBeGreaterThan(0);
+            if (!preview) {
+              continue;
+            }
+
+            for (const row of preview.rows) {
+              expect(row.label, `Missing row label in ${upgradeData.id}`).toBeTruthy();
+              expect(row.currentDisplay).not.toMatch(/\{|\}/);
+              expect(row.nextDisplay).not.toMatch(/\{|\}/);
+              expect(row.deltaDisplay).not.toMatch(/\{|\}/);
+              expect(row.currentValue).not.toBe(row.nextValue);
+            }
 
             upgradeSystem.applyUpgrade(upgradeObj);
           }

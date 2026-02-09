@@ -72,10 +72,11 @@
   - `wave/WaveSpawnPlanner.ts`: 접시 타입 롤 + 스폰 위치 제약 검증(보스/접시 거리)
 - **`waveBossConfig.ts`**: 웨이브별 보스 구성 해석 유틸리티. `bossTotalHp`/`hpWeight` 분배, 무한 웨이브 보스 수/총 HP 스케일링(`bossTotalHpIncrease`, `infiniteBossCount`)을 공용 계산합니다.
 - **`ComboSystem.ts`**: 콤보 증가, 타임아웃 처리, 마일스톤 관리. 콤보 수치에 따라 `COMBO_MILESTONE` 이벤트를 발생시켜 연출을 트리거합니다.
-- **`UpgradeSystem.ts`**: 업그레이드 파사드. 내부 상태/선택/문구 포매팅은 분리 모듈로 위임합니다.
+- **`UpgradeSystem.ts`**: 업그레이드 파사드. 내부 상태/선택/설명/카드 프리뷰 모델 생성을 분리 모듈로 위임합니다.
   - `upgrades/UpgradeStateStore.ts`: 스택 상태 저장
   - `upgrades/UpgradeRarityRoller.ts`: 희귀도 가중치 기반 선택
-  - `upgrades/UpgradeDescriptionFormatter.ts`: 로케일 템플릿 기반 설명/프리뷰 문자열 생성
+  - `upgrades/UpgradeDescriptionFormatter.ts`: 로케일 템플릿 기반 설명 문자열 생성
+  - `upgrades/UpgradePreviewModelBuilder.ts`: `previewDisplay` 스키마 기반 카드 프리뷰 모델(`현재 -> 다음`, 델타/직접+간접 수치) 생성
 - **`HealthSystem.ts`**: 플레이어 HP 관리. 데미지 수신 시 `HP_CHANGED` 이벤트를 발행하며, 현재 HP는 `GameScene -> CursorRenderer` 경로로 커서 통합형 링에 반영됩니다. HP가 0이 되면 `GAME_OVER` 발생.
 - **`MonsterSystem.ts`**: 보스 몬스터 HP/사망 상태를 `bossId`별 `Map`으로 관리합니다. 웨이브 시작 시 `bossTotalHp`를 가중치(`hpWeight`) 기반으로 분배하고, `MONSTER_HP_CHANGED`/`MONSTER_DIED`를 `bossId` 스냅샷 payload로 발행합니다.
 - **`OrbSystem.ts`**: 플레이어 주변을 회전하는 보호 오브(Orb)의 로직 처리. 업그레이드 레벨에 따른 개수/속도/데미지 계산 및 자석(Magnet) 업그레이드와의 시너지(크기 증가)를 관리합니다.
@@ -126,8 +127,9 @@
   - `hud/DockPauseController`: 도크바 hover 누적 시간(기본 1200ms) 기반으로 게임 일시정지 조건을 계산하는 상태 컨트롤러.
   - `hud/WaveTimerWidget`: 웨이브/생존 시간 텍스트와 피버 상태 렌더링.
   - `hud/WaveTimerVisibilityPolicy`: 웨이브/생존 시간 노출 규칙(업그레이드 페이즈 우선, hover 기반 표시) 판단.
-  - `InGameUpgradeUI`: 웨이브 사이 업그레이드 선택 화면 (3개 선택지, 호버 프로그레스 바, 레어리티 색상).
+  - `InGameUpgradeUI`: 웨이브 사이 업그레이드 선택 화면 (3개 선택지, 호버 프로그레스 바, 레어리티 색상, 구조화된 능력치 비교 카드 렌더 호출).
   - `upgrade/UpgradeSelectionRenderer.ts`: 업그레이드 카드 배경/진행바 렌더 및 안전 Y 위치 계산 유틸.
+  - `upgrade/UpgradeCardContentRenderer.ts`: 카드 본문 렌더 전담 (`Lv.cur -> Lv.next`, 변경 수치 행 리스트).
   - `DamageText`: 타격 시 데미지 수치 팝업 (오브젝트 풀링, 크리티컬 색상 처리).
   - `WaveCountdownUI`: 다음 웨이브 시작 전 카운트다운 표시.
   - `upgrade/UpgradeIconCatalog.ts`: 업그레이드 fallback 아이콘/심볼 SSOT.
@@ -145,13 +147,13 @@
 - **`src/data/game.config.ts`**: Phaser 엔진 기술 설정 (물리, 렌더링, 스케일, 오디오 등).
 - **데이터 파일 목록 (`data/*.json`)**:
   - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정.
-  - `locales.json`: 다국어(EN, KO) 번역 데이터 및 업그레이드 설명 템플릿.
+  - `locales.json`: 다국어(EN, KO) 번역 데이터 및 업그레이드 설명/카드 라벨 템플릿 (`upgrade.stat.*`, `upgrade.card.*`).
   - `main-menu.json`: 메인 메뉴 씬 설정 (별 배경, 보스 애니메이션, 메뉴 접시 스폰, 언어 UI 설정).
   - `colors.json`: 게임 내 모든 색상 팔레트 및 테마 (숫자값/hex).
   - `dishes.json`: 적 종류별 체력, 크기, 수명, 특수 속성 설정.
   - `waves.json`: 웨이브별 구성, 난이도 곡선, 멀티 보스 구성(`bossTotalHp`, `bosses[]`, `bossSpawnMinDistance`), 무한 웨이브 스케일링 설정.
   - `boss.json`: 보스 비주얼 및 공격 설정 (코어 반지름, 아머 조각, 아머 HP 세그먼트 스케일링, 레이저 공격).
-  - `upgrades.json`: 업그레이드 어빌리티 정의, 확률(Rarity), 효과 수치.
+  - `upgrades.json`: 업그레이드 어빌리티 정의, 확률(Rarity), 효과 수치, 카드 프리뷰 표시 스키마(`previewDisplay`).
   - `feedback.json`: 연출용 수치 (흔들림 강도, 파티클 개수, 슬로우모션 강도, 커서 트레일 설정).
   - `combo.json`: 콤보 타임아웃, 마일스톤, 배율 공식, 게이지 보너스.
   - `health-pack.json`: 힐팩 기본 스폰 확률, 낙하 속도 등 설정.

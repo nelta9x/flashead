@@ -15,6 +15,7 @@ import {
   drawUpgradeProgressBar,
   resolveUpgradeSafeBoxCenterY,
 } from './upgrade/UpgradeSelectionRenderer';
+import { renderUpgradeCardContent } from './upgrade/UpgradeCardContentRenderer';
 
 interface UpgradeBox {
   container: Phaser.GameObjects.Container;
@@ -24,6 +25,7 @@ interface UpgradeBox {
   progressBar: Phaser.GameObjects.Graphics;
   bg: Phaser.GameObjects.Graphics;
   borderColor: number;
+  emphasisTexts: Phaser.GameObjects.Text[];
 }
 
 export class InGameUpgradeUI {
@@ -173,20 +175,18 @@ export class InGameUpgradeUI {
       .setOrigin(0.5, 0);
     container.add(name);
 
-    // 효과 미리보기 설명
-    const previewDesc = this.upgradeSystem.getPreviewDescription(upgrade.id);
-    const descText = this.scene.add
-      .text(0, -BOX_HEIGHT / 2 + 210, previewDesc, {
-        fontFamily: FONTS.KOREAN,
-        fontSize: `${textCfg.upgradeUI.descSize}px`,
-        fontStyle: 'normal',
-        color: '#cccccc',
-        wordWrap: { width: BOX_WIDTH - 36 },
-        align: 'center',
-        resolution: textCfg.resolution,
-      })
-      .setOrigin(0.5, 0);
-    container.add(descText);
+    const previewModel = this.upgradeSystem.getPreviewCardModel(upgrade.id);
+    if (!previewModel) {
+      throw new Error(`Preview model missing for upgrade "${upgrade.id}"`);
+    }
+    const content = renderUpgradeCardContent({
+      scene: this.scene,
+      container,
+      previewModel,
+      boxWidth: BOX_WIDTH,
+      boxHeight: BOX_HEIGHT,
+    });
+    content.emphasisTexts.forEach((text) => text.setAlpha(0.84));
 
     // 진행바 배경
     const progressBarBg = this.scene.add.graphics();
@@ -209,6 +209,7 @@ export class InGameUpgradeUI {
       progressBar,
       bg,
       borderColor,
+      emphasisTexts: content.emphasisTexts,
     };
   }
 
@@ -241,6 +242,8 @@ export class InGameUpgradeUI {
         } else {
           box.container.setScale(1);
         }
+        const targetAlpha = box.isHovered ? 1 : 0.84;
+        box.emphasisTexts.forEach((text) => text.setAlpha(targetAlpha));
       }
 
       if (box.isHovered) {

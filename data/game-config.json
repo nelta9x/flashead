@@ -32,12 +32,29 @@
     }
   },
   "upgradeUI": {
-    "boxWidth": 300,
-    "boxHeight": 400,
+    "boxWidth": 340,
+    "boxHeight": 440,
     "boxSpacing": 45,
     "hoverDuration": 1000,
     "boxYOffset": 220,
-    "avoidAbilityUiGap": 24
+    "avoidAbilityUiGap": 24,
+    "readabilityCard": {
+      "levelOffsetY": 188,
+      "levelFontSize": 15,
+      "levelColor": "cyan",
+      "levelStrokeColor": "darkBg",
+      "levelStrokeThickness": 3,
+      "statListStartY": 220,
+      "statRowHeight": 24,
+      "statMaxRows": 7,
+      "statLabelFontSize": 13,
+      "statValueFontSize": 13,
+      "statLabelColor": "white",
+      "statValueColor": "cyan",
+      "statIncreaseColor": "brightGreen",
+      "statDecreaseColor": "brightRed",
+      "statNeutralColor": "white"
+    }
   },
   "waveTransition": {
     "countdownDuration": 1000,
@@ -281,24 +298,54 @@
     "sizeSpeedFactor": 0.4,
     "twinkleSpeedMin": 0.0005,
     "twinkleSpeedMax": 0.0015,
-    "verticalLimitRatio": 1.0,
+    "verticalLimitRatio": 1,
     "shootingStar": {
       "enabled": true,
-      "cycleIntervalMs": { "min": 5000, "max": 20000 },
-      "burstCount": { "min": 1, "max": 2 },
-      "spawnDelayMs": { "min": 240, "max": 1300 },
+      "cycleIntervalMs": {
+        "min": 5000,
+        "max": 20000
+      },
+      "burstCount": {
+        "min": 1,
+        "max": 2
+      },
+      "spawnDelayMs": {
+        "min": 240,
+        "max": 1300
+      },
       "startYMaxRatio": 0.35,
       "startXPadding": 160,
-      "angleDeg": { "min": 18, "max": 42 },
-      "speed": { "min": 680, "max": 1180 },
-      "travelDistance": { "min": 680, "max": 1350 },
-      "length": { "min": 110, "max": 230 },
-      "lineWidth": { "min": 1.2, "max": 2.6 },
-      "alpha": { "min": 0.55, "max": 0.95 },
+      "angleDeg": {
+        "min": 18,
+        "max": 42
+      },
+      "speed": {
+        "min": 680,
+        "max": 1180
+      },
+      "travelDistance": {
+        "min": 680,
+        "max": 1350
+      },
+      "length": {
+        "min": 110,
+        "max": 230
+      },
+      "lineWidth": {
+        "min": 1.2,
+        "max": 2.6
+      },
+      "alpha": {
+        "min": 0.55,
+        "max": 0.95
+      },
       "tailAlphaScale": 0.65,
       "glowRadiusScale": 1.9,
       "glowAlphaScale": 0.5,
-      "headGlowIntensity": { "min": 0.35, "max": 1.0 },
+      "headGlowIntensity": {
+        "min": 0.35,
+        "max": 1
+      },
       "color": "#c8f6ff"
     }
   },
@@ -325,7 +372,18 @@
       "path": "assets/audio/upgrade_selected.wav",
       "volume": 0.2,
       "synth": {
-        "notes": [196, 247, 294, 392, 494, 587, 784, 988, 1175, 1568],
+        "notes": [
+          196,
+          247,
+          294,
+          392,
+          494,
+          587,
+          784,
+          988,
+          1175,
+          1568
+        ],
         "noteDuration": 0.06,
         "waveType": "square",
         "gain": 0.1
@@ -351,17 +409,41 @@
       "path": "assets/audio/destroy_bomb.wav",
       "volume": 0.45
     },
-    "hit": { "key": "hit", "path": "assets/audio/hit.wav", "volume": 0.35 },
-    "miss": { "key": "miss", "path": "assets/audio/miss.wav", "volume": 0.25 },
-    "heal": { "key": "heal", "path": "assets/audio/heal.wav", "volume": 0.4 },
+    "hit": {
+      "key": "hit",
+      "path": "assets/audio/hit.wav",
+      "volume": 0.35
+    },
+    "miss": {
+      "key": "miss",
+      "path": "assets/audio/miss.wav",
+      "volume": 0.25
+    },
+    "heal": {
+      "key": "heal",
+      "path": "assets/audio/heal.wav",
+      "volume": 0.4
+    },
     "player_charge": {
       "key": "player_charge",
       "path": "assets/audio/player_charge.wav",
       "volume": 0.1
     },
-    "boss_charge": { "key": "boss_charge", "path": "assets/audio/boss_charge.wav", "volume": 0.35 },
-    "boss_fire": { "key": "boss_fire", "path": "assets/audio/boss_fire.wav", "volume": 0.45 },
-    "boss_impact": { "key": "boss_impact", "path": "assets/audio/boss_impact.wav", "volume": 0.5 }
+    "boss_charge": {
+      "key": "boss_charge",
+      "path": "assets/audio/boss_charge.wav",
+      "volume": 0.35
+    },
+    "boss_fire": {
+      "key": "boss_fire",
+      "path": "assets/audio/boss_fire.wav",
+      "volume": 0.45
+    },
+    "boss_impact": {
+      "key": "boss_impact",
+      "path": "assets/audio/boss_impact.wav",
+      "volume": 0.5
+    }
   },
   "boot": {
     "progressBar": {

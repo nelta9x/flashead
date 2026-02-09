@@ -48,6 +48,23 @@ export interface UpgradeUIConfig {
   hoverDuration: number;
   boxYOffset: number;
   avoidAbilityUiGap: number;
+  readabilityCard: {
+    levelOffsetY: number;
+    levelFontSize: number;
+    levelColor: string;
+    levelStrokeColor: string;
+    levelStrokeThickness: number;
+    statListStartY: number;
+    statRowHeight: number;
+    statMaxRows: number;
+    statLabelFontSize: number;
+    statValueFontSize: number;
+    statLabelColor: string;
+    statValueColor: string;
+    statIncreaseColor: string;
+    statDecreaseColor: string;
+    statNeutralColor: string;
+  };
 }
 
 export interface WaveTransitionConfig {
@@ -918,6 +935,53 @@ export type SystemUpgradeLevelData =
   | OrbitingOrbLevelData
   | BlackHoleLevelData;
 
+export type UpgradePreviewStatId =
+  | 'sizeBonus'
+  | 'cursorRadiusPx'
+  | 'damage'
+  | 'missileThicknessBonus'
+  | 'criticalChance'
+  | 'radius'
+  | 'force'
+  | 'count'
+  | 'hpBonus'
+  | 'dropChanceBonus'
+  | 'speed'
+  | 'size'
+  | 'orbFinalSizeWithMagnet'
+  | 'damageInterval'
+  | 'spawnInterval'
+  | 'spawnCount';
+
+export interface UpgradePreviewStatDisplay {
+  id: UpgradePreviewStatId;
+  labelKey: string;
+}
+
+export interface UpgradePreviewDisplayConfig {
+  stats: UpgradePreviewStatDisplay[];
+}
+
+export interface UpgradePreviewRowModel {
+  id: UpgradePreviewStatId;
+  label: string;
+  currentValue: number;
+  nextValue: number;
+  deltaValue: number;
+  currentDisplay: string;
+  nextDisplay: string;
+  deltaDisplay: string;
+  isImprovement: boolean;
+  isDerived: boolean;
+}
+
+export interface UpgradePreviewCardModel {
+  upgradeId: string;
+  currentLevel: number;
+  nextLevel: number;
+  rows: UpgradePreviewRowModel[];
+}
+
 export interface SystemUpgradeData {
   id: string;
   name: string;
@@ -925,6 +989,7 @@ export interface SystemUpgradeData {
   descriptionTemplate?: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   effectType: string;
+  previewDisplay: UpgradePreviewDisplayConfig;
   hitInterval?: number;
   levels?: SystemUpgradeLevelData[];
   maxStack?: number; // health_pack 등 소모품 전용

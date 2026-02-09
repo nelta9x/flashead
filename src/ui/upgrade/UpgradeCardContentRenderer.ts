@@ -1,0 +1,80 @@
+import Phaser from 'phaser';
+import { Data } from '../../data/DataManager';
+import { FONTS } from '../../data/constants';
+import type { UpgradePreviewCardModel } from '../../data/types/upgrades';
+
+interface RenderUpgradeCardContentArgs {
+  scene: Phaser.Scene;
+  container: Phaser.GameObjects.Container;
+  previewModel: UpgradePreviewCardModel;
+  boxWidth: number;
+  boxHeight: number;
+}
+
+export interface RenderUpgradeCardContentResult {
+  emphasisTexts: Phaser.GameObjects.Text[];
+}
+
+export function renderUpgradeCardContent({
+  scene,
+  container,
+  previewModel,
+  boxWidth,
+  boxHeight,
+}: RenderUpgradeCardContentArgs): RenderUpgradeCardContentResult {
+  const cfg = Data.gameConfig.upgradeUI.readabilityCard;
+  const textCfg = Data.gameConfig.textSettings;
+  const topY = -boxHeight / 2;
+  const emphasisTexts: Phaser.GameObjects.Text[] = [];
+
+  const levelText = scene.add
+    .text(0, topY + cfg.levelOffsetY, Data.t('upgrade.card.level_transition', previewModel.currentLevel, previewModel.nextLevel), {
+      fontFamily: FONTS.KOREAN,
+      fontSize: `${cfg.levelFontSize}px`,
+      color: Data.getColorHex(cfg.levelColor),
+      stroke: Data.getColorHex(cfg.levelStrokeColor),
+      strokeThickness: cfg.levelStrokeThickness,
+      resolution: textCfg.resolution,
+      align: 'center',
+    })
+    .setOrigin(0.5, 0);
+  container.add(levelText);
+
+  const rows = previewModel.rows.slice(0, cfg.statMaxRows);
+  rows.forEach((row, index) => {
+    const rowY = topY + cfg.statListStartY + index * cfg.statRowHeight;
+    const rowValue = Data.t(
+      'upgrade.card.delta_format',
+      row.currentDisplay,
+      row.nextDisplay,
+      row.deltaDisplay
+    );
+    const valueColor = row.isImprovement
+      ? cfg.statIncreaseColor
+      : cfg.statDecreaseColor;
+
+    const labelText = scene.add
+      .text(-boxWidth / 2 + 18, rowY, row.label, {
+        fontFamily: FONTS.KOREAN,
+        fontSize: `${cfg.statLabelFontSize}px`,
+        color: Data.getColorHex(cfg.statLabelColor),
+        resolution: textCfg.resolution,
+      })
+      .setOrigin(0, 0.5);
+
+    const valueText = scene.add
+      .text(boxWidth / 2 - 18, rowY, rowValue, {
+        fontFamily: FONTS.KOREAN,
+        fontSize: `${cfg.statValueFontSize}px`,
+        color: Data.getColorHex(valueColor),
+        resolution: textCfg.resolution,
+      })
+      .setOrigin(1, 0.5);
+
+    container.add(labelText);
+    container.add(valueText);
+    emphasisTexts.push(valueText);
+  });
+
+  return { emphasisTexts };
+}

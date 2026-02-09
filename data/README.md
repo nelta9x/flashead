@@ -117,12 +117,18 @@ import { COLORS, FONTS } from '../data/constants';
     }
   },
   "upgradeUI": {
-    "boxWidth": 200,    // 업그레이드 선택 박스 너비
-    "boxHeight": 140,   // 업그레이드 선택 박스 높이
-    "boxSpacing": 30,   // 박스 간 간격
-    "hoverDuration": 300, // 호버 후 선택까지 시간 (ms)
-    "boxYOffset": 150,  // 기본 카드 중심 Y 오프셋 (화면 하단 기준)
-    "avoidAbilityUiGap": 24 // 하단 어빌리티 요약 UI와 최소 간격 (px)
+    "boxWidth": 340,    // 업그레이드 선택 박스 너비
+    "boxHeight": 440,   // 업그레이드 선택 박스 높이
+    "boxSpacing": 45,   // 박스 간 간격
+    "hoverDuration": 1000, // 호버 후 선택까지 시간 (ms)
+    "boxYOffset": 220,  // 기본 카드 중심 Y 오프셋 (화면 하단 기준)
+    "avoidAbilityUiGap": 24, // 하단 어빌리티 요약 UI와 최소 간격 (px)
+    "readabilityCard": {
+      "levelOffsetY": 188,      // 레벨 전환 텍스트 Y 위치
+      "statListStartY": 220,    // 변경 수치 목록 시작 Y
+      "statRowHeight": 24,      // 수치 행 간격
+      "statMaxRows": 7          // 카드 내 최대 표시 행 수
+    }
   },
   "waveTransition": {
     "countdownDuration": 1000, // 웨이브 시작 전 카운트다운 총 시간 (ms)
@@ -352,19 +358,25 @@ import { COLORS, FONTS } from '../data/constants';
 ```json
 {
   "system": [
-{
-  "id": "cursor_size",
-  "name": "넓은 타격",
-  "description": "커서 판정 범위 및 데미지 증가",
-  "descriptionTemplate": "커서 판정 범위가 {sizeBonus}% 증가하고, 데미지가 {damage} 증가하며, 미사일 굵기가 {missileThicknessBonus}% 증가합니다.",
-  "rarity": "common",
-  "effectType": "cursorSizeBonus",
+    {
+      "id": "cursor_size",
+      "name": "매우 큰 머리",
+      "description": "커서 판정 범위 및 데미지 증가",
+      "descriptionTemplate": "커서 판정 범위가 {sizeBonus}% 증가하고, 데미지가 {damage} 증가하며, 미사일 굵기가 {missileThicknessBonus}% 증가합니다.",
+      "rarity": "common",
+      "effectType": "cursorSizeBonus",
+      "previewDisplay": {
+        "stats": [
+          { "id": "sizeBonus", "labelKey": "upgrade.stat.cursor_area_pct" },
+          { "id": "cursorRadiusPx", "labelKey": "upgrade.stat.cursor_radius_px" },
+          { "id": "damage", "labelKey": "upgrade.stat.damage" },
+          { "id": "missileThicknessBonus", "labelKey": "upgrade.stat.missile_thickness_pct" }
+        ]
+      },
       "levels": [
-        { "sizeBonus": 0.3, "damage": 2, "missileThicknessBonus": 0.3 },
-        { "sizeBonus": 0.6, "damage": 4, "missileThicknessBonus": 0.6 },
-        { "sizeBonus": 0.9, "damage": 6, "missileThicknessBonus": 0.9 },
-        { "sizeBonus": 1.2, "damage": 8, "missileThicknessBonus": 1.2 },
-        { "sizeBonus": 1.5, "damage": 10, "missileThicknessBonus": 1.5 }
+        { "sizeBonus": 0.4, "damage": 3, "missileThicknessBonus": 0.25 },
+        { "sizeBonus": 0.5, "damage": 5, "missileThicknessBonus": 0.5 },
+        { "sizeBonus": 0.5, "damage": 10, "missileThicknessBonus": 1.0 }
       ]
     }
   ]
@@ -376,6 +388,25 @@ import { COLORS, FONTS } from '../data/constants';
 - 각 레벨에서 모든 필드를 독립적으로 설정 가능 (비선형 성장)
 - `maxStack`은 `levels.length`에서 자동 결정
 - `health_pack`은 `levels`가 없으며 `maxStack`을 직접 지정
+- `previewDisplay`는 시스템 업그레이드에서 필수이며, 누락 시 런타임 에러로 처리됨
+
+**previewDisplay 규칙**:
+- `stats`: 카드에 표시할 후보 수치 목록 (`id`, `labelKey`)
+- 카드에는 `delta !== 0`인 항목만 표시
+- 직접 수치 + 파생 수치 모두 지원:
+  - `cursorRadiusPx = baseRadius * (1 + sizeBonus)`
+  - `orbFinalSizeWithMagnet = orbSize * (1 + magnetLevel * 0.2)`
+
+**previewDisplay.stats.id 허용값**:
+- `sizeBonus`, `cursorRadiusPx`, `damage`, `missileThicknessBonus`, `criticalChance`
+- `radius`, `force`, `count`, `hpBonus`, `dropChanceBonus`, `speed`, `size`
+- `orbFinalSizeWithMagnet`, `damageInterval`, `spawnInterval`, `spawnCount`
+
+**로케일 연동 규칙**:
+- `previewDisplay.stats[].labelKey`는 `data/locales.json`의 `upgrade.stat.*`에 반드시 존재해야 함
+- 카드 공용 포맷 키:
+  - `upgrade.card.level_transition`
+  - `upgrade.card.delta_format`
 
 **어빌리티별 levels 필드**:
 

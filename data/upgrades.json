@@ -38,46 +38,123 @@
   "system": [
     {
       "id": "cursor_size",
-      "name": "넓은 타격",
+      "name": "매우 큰 머리",
       "description": "커서 판정 범위 및 데미지 증가, 미사일 굵기 증가",
       "descriptionTemplate": "커서 판정 범위가 {sizeBonus}% 증가하고, 데미지가 {damage} 증가하며, 미사일 굵기가 {missileThicknessBonus}% 증가합니다.",
       "rarity": "common",
       "effectType": "cursorSizeBonus",
       "levels": [
-        { "sizeBonus": 0.25, "damage": 3, "missileThicknessBonus": 0.25 },
-        { "sizeBonus": 0.5, "damage": 5, "missileThicknessBonus": 0.5 },
-        { "sizeBonus": 1.0, "damage": 15, "missileThicknessBonus": 1.0 }
-      ]
+        {
+          "sizeBonus": 0.4,
+          "damage": 3,
+          "missileThicknessBonus": 0.25
+        },
+        {
+          "sizeBonus": 0.5,
+          "damage": 5,
+          "missileThicknessBonus": 0.5
+        },
+        {
+          "sizeBonus": 0.5,
+          "damage": 10,
+          "missileThicknessBonus": 1
+        }
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "sizeBonus",
+            "labelKey": "upgrade.stat.cursor_area_pct"
+          },
+          {
+            "id": "cursorRadiusPx",
+            "labelKey": "upgrade.stat.cursor_radius_px"
+          },
+          {
+            "id": "damage",
+            "labelKey": "upgrade.stat.damage"
+          },
+          {
+            "id": "missileThicknessBonus",
+            "labelKey": "upgrade.stat.missile_thickness_pct"
+          }
+        ]
+      }
     },
     {
       "id": "critical_chance",
-      "name": "치명타 확률",
+      "name": "치명적 감각",
       "description": "플레이어의 치명타 확률 증가",
       "descriptionTemplate": "플레이어의 치명타 확률이 {criticalChance}% 증가합니다.",
       "rarity": "rare",
       "effectType": "criticalChanceBonus",
       "levels": [
-        { "criticalChance": 0.10 },
-        { "criticalChance": 0.20 },
-        { "criticalChance": 0.30 },
-        { "criticalChance": 0.40 },
-        { "criticalChance": 0.50 }
-      ]
+        {
+          "criticalChance": 0.1
+        },
+        {
+          "criticalChance": 0.2
+        },
+        {
+          "criticalChance": 0.3
+        },
+        {
+          "criticalChance": 0.4
+        },
+        {
+          "criticalChance": 0.5
+        }
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "criticalChance",
+            "labelKey": "upgrade.stat.critical_chance_pct"
+          }
+        ]
+      }
     },
     {
       "id": "electric_shock",
-      "name": "전기 충격",
+      "name": "전류 폭주",
       "description": "주변 접시에 번개 데미지",
       "descriptionTemplate": "반경 {radius}px 내 접시에 {damage} 데미지를 줍니다.",
       "rarity": "common",
       "effectType": "electricShockLevel",
       "levels": [
-        { "radius": 320, "damage": 2 },
-        { "radius": 360, "damage": 3 },
-        { "radius": 400, "damage": 4 },
-        { "radius": 440, "damage": 5 },
-        { "radius": 600, "damage": 5 }
-      ]
+        {
+          "radius": 320,
+          "damage": 2
+        },
+        {
+          "radius": 360,
+          "damage": 3
+        },
+        {
+          "radius": 400,
+          "damage": 4
+        },
+        {
+          "radius": 440,
+          "damage": 5
+        },
+        {
+          "radius": 600,
+          "damage": 5
+        }
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "damage",
+            "labelKey": "upgrade.stat.electric_damage"
+          },
+          {
+            "id": "radius",
+            "labelKey": "upgrade.stat.electric_radius_px"
+          }
+        ]
+      }
     },
     {
       "id": "magnet",
@@ -87,12 +164,43 @@
       "rarity": "common",
       "effectType": "magnetLevel",
       "levels": [
-        { "radius": 180, "force": 300 },
-        { "radius": 200, "force": 320 },
-        { "radius": 220, "force": 340 },
-        { "radius": 240, "force": 360 },
-        { "radius": 260, "force": 380 }
-      ]
+        {
+          "radius": 180,
+          "force": 300
+        },
+        {
+          "radius": 200,
+          "force": 320
+        },
+        {
+          "radius": 220,
+          "force": 340
+        },
+        {
+          "radius": 240,
+          "force": 360
+        },
+        {
+          "radius": 260,
+          "force": 380
+        }
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "force",
+            "labelKey": "upgrade.stat.magnet_force_pps"
+          },
+          {
+            "id": "radius",
+            "labelKey": "upgrade.stat.magnet_radius_px"
+          },
+          {
+            "id": "orbFinalSizeWithMagnet",
+            "labelKey": "upgrade.stat.orb_final_size_with_magnet_px"
+          }
+        ]
+      }
     },
     {
       "id": "missile",
@@ -102,41 +210,147 @@
       "rarity": "legendary",
       "effectType": "missileLevel",
       "levels": [
-        { "damage": 80, "count": 2 },
-        { "damage": 140, "count": 2 },
-        { "damage": 140, "count": 3 },
-        { "damage": 140, "count": 4 },
-        { "damage": 150, "count": 5 }
-      ]
+        {
+          "damage": 80,
+          "count": 2
+        },
+        {
+          "damage": 140,
+          "count": 2
+        },
+        {
+          "damage": 140,
+          "count": 3
+        },
+        {
+          "damage": 140,
+          "count": 4
+        },
+        {
+          "damage": 150,
+          "count": 5
+        }
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "count",
+            "labelKey": "upgrade.stat.missile_count"
+          },
+          {
+            "id": "damage",
+            "labelKey": "upgrade.stat.missile_damage"
+          }
+        ]
+      }
     },
     {
       "id": "health_pack",
-      "name": "강화 헬스팩",
+      "name": "구급 상자",
       "description": "헬스팩 성능 강화 및 최대 체력 증가",
       "descriptionTemplate": "최대 체력이 {hpBonus} 증가하고, 헬스팩 드롭 확률이 {dropChanceBonus}% 증가합니다.",
       "rarity": "common",
       "effectType": "healthPackLevel",
       "levels": [
-        { "hpBonus": 1, "dropChanceBonus": 0.03 },
-        { "hpBonus": 2, "dropChanceBonus": 0.06 },
-        { "hpBonus": 3, "dropChanceBonus": 0.09 }
-      ]
+        {
+          "hpBonus": 1,
+          "dropChanceBonus": 0.03
+        },
+        {
+          "hpBonus": 2,
+          "dropChanceBonus": 0.06
+        },
+        {
+          "hpBonus": 3,
+          "dropChanceBonus": 0.09
+        }
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "hpBonus",
+            "labelKey": "upgrade.stat.max_hp"
+          },
+          {
+            "id": "dropChanceBonus",
+            "labelKey": "upgrade.stat.health_pack_drop_pct"
+          }
+        ]
+      }
     },
     {
       "id": "orbiting_orb",
-      "name": "수호의 구체",
+      "name": "수호 구슬",
       "description": "커서 주위를 도는 구체 생성 (레벨에 따라 구체 수/피해/회전 속도/반경/크기 증가, 폭탄 접시 제거 가능)",
       "descriptionTemplate": "구체 {count}개가 초당 {speed}도 회전하며 {damage} 피해를 주고, 반경 {radius}px에서 크기 {size}로 폭탄 접시를 제거합니다.",
       "rarity": "rare",
       "effectType": "orbitingOrbLevel",
       "hitInterval": 900,
       "levels": [
-        { "count": 2, "damage": 3, "speed": 150, "radius": 120, "size": 9 },
-        { "count": 2, "damage": 5, "speed": 150, "radius": 120, "size": 11 },
-        { "count": 3, "damage": 5, "speed": 150, "radius": 120, "size": 11 },
-        { "count": 4, "damage": 7, "speed": 150, "radius": 120, "size": 11 },
-        { "count": 5, "damage": 7, "speed": 150, "radius": 160, "size": 15 }
-      ]
+        {
+          "count": 2,
+          "damage": 3,
+          "speed": 150,
+          "radius": 120,
+          "size": 9
+        },
+        {
+          "count": 2,
+          "damage": 5,
+          "speed": 150,
+          "radius": 120,
+          "size": 11
+        },
+        {
+          "count": 3,
+          "damage": 5,
+          "speed": 150,
+          "radius": 120,
+          "size": 11
+        },
+        {
+          "count": 4,
+          "damage": 7,
+          "speed": 150,
+          "radius": 120,
+          "size": 11
+        },
+        {
+          "count": 5,
+          "damage": 7,
+          "speed": 150,
+          "radius": 160,
+          "size": 15
+        }
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "count",
+            "labelKey": "upgrade.stat.orb_count"
+          },
+          {
+            "id": "damage",
+            "labelKey": "upgrade.stat.orb_damage"
+          },
+          {
+            "id": "radius",
+            "labelKey": "upgrade.stat.orb_radius_px"
+          },
+          {
+            "id": "size",
+            "labelKey": "upgrade.stat.orb_size_px"
+          },
+          {
+            "id": "orbFinalSizeWithMagnet",
+            "labelKey": "upgrade.stat.orb_final_size_with_magnet_px"
+          },
+          {
+            "id": "speed",
+            "labelKey": "upgrade.stat.orb_speed_dps"
+          }
+        ]
+      }
     },
     {
       "id": "black_hole",
@@ -186,7 +400,35 @@
           "spawnCount": 2,
           "radius": 310
         }
-      ]
+      ],
+      "previewDisplay": {
+        "stats": [
+          {
+            "id": "spawnCount",
+            "labelKey": "upgrade.stat.black_hole_count"
+          },
+          {
+            "id": "damage",
+            "labelKey": "upgrade.stat.black_hole_damage"
+          },
+          {
+            "id": "radius",
+            "labelKey": "upgrade.stat.black_hole_radius_px"
+          },
+          {
+            "id": "force",
+            "labelKey": "upgrade.stat.black_hole_force_pps"
+          },
+          {
+            "id": "damageInterval",
+            "labelKey": "upgrade.stat.black_hole_damage_interval_ms"
+          },
+          {
+            "id": "spawnInterval",
+            "labelKey": "upgrade.stat.black_hole_spawn_interval_ms"
+          }
+        ]
+      }
     }
   ]
 }

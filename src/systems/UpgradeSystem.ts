@@ -8,10 +8,12 @@ import type {
   MagnetLevelData,
   MissileLevelData,
   OrbitingOrbLevelData,
+  UpgradePreviewCardModel,
   SystemUpgradeData,
 } from '../data/types/upgrades';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { UpgradeDescriptionFormatter } from './upgrades/UpgradeDescriptionFormatter';
+import { UpgradePreviewModelBuilder } from './upgrades/UpgradePreviewModelBuilder';
 import { UpgradeRarityRoller } from './upgrades/UpgradeRarityRoller';
 import { UpgradeStateStore } from './upgrades/UpgradeStateStore';
 
@@ -26,7 +28,14 @@ export interface Upgrade {
 
 // 시스템 업그레이드를 Upgrade 인터페이스로 변환
 function createSystemUpgrades(): Upgrade[] {
-  return Data.upgrades.system.map((data: SystemUpgradeData) => ({
+  const validatedUpgrades = Data.upgrades.system.map((data) => {
+    if (!data.previewDisplay || data.previewDisplay.stats.length === 0) {
+      throw new Error(`Missing required previewDisplay for upgrade "${data.id}"`);
+    }
+    return data;
+  });
+
+  return validatedUpgrades.map((data: SystemUpgradeData) => ({
     id: data.id,
     name: data.name,
     description: data.description,
@@ -53,11 +62,15 @@ export class UpgradeSystem {
   private readonly stateStore = new UpgradeStateStore();
   private readonly rarityRoller = new UpgradeRarityRoller();
   private readonly descriptionFormatter: UpgradeDescriptionFormatter;
+  private readonly previewModelBuilder: UpgradePreviewModelBuilder;
 
   constructor() {
     this.descriptionFormatter = new UpgradeDescriptionFormatter((upgradeId) =>
       this.getUpgradeStack(upgradeId)
     );
+    this.previewModelBuilder = new UpgradePreviewModelBuilder({
+      getUpgradeStack: (upgradeId) => this.getUpgradeStack(upgradeId),
+    });
     this.reset();
   }
 
@@ -225,8 +238,8 @@ export class UpgradeSystem {
     return this.descriptionFormatter.getFormattedDescription(upgradeId);
   }
 
-  // 선택 화면용 미리보기 설명 (현재 → 다음 레벨)
-  getPreviewDescription(upgradeId: string): string {
-    return this.descriptionFormatter.getPreviewDescription(upgradeId);
+  // 선택 화면용 구조화 프리뷰 모델 (현재 -> 다음 레벨)
+  getPreviewCardModel(upgradeId: string): UpgradePreviewCardModel | null {
+    return this.previewModelBuilder.build(upgradeId);
   }
 }
