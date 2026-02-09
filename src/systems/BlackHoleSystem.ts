@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../data/constants';
+import { Data } from '../data/DataManager';
 import type { BlackHoleLevelData } from '../data/types';
 import type { Dish } from '../entities/Dish';
 import type { ObjectPool } from '../utils/ObjectPool';
@@ -59,6 +60,7 @@ export class BlackHoleSystem {
       this.clear();
       return;
     }
+    const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
 
     if (level !== this.lastAppliedLevel) {
       this.spawnBlackHoles(blackHoleData, gameTime);
@@ -80,7 +82,7 @@ export class BlackHoleSystem {
     this.timeSinceLastDamageTick += delta;
     while (this.timeSinceLastDamageTick >= damageInterval) {
       this.timeSinceLastDamageTick -= damageInterval;
-      this.applyDamageTick(blackHoleData);
+      this.applyDamageTick(blackHoleData, criticalChanceBonus);
     }
   }
 
@@ -160,7 +162,7 @@ export class BlackHoleSystem {
     }
   }
 
-  private applyDamageTick(data: BlackHoleLevelData): void {
+  private applyDamageTick(data: BlackHoleLevelData, criticalChanceBonus: number): void {
     if (this.blackHoles.length === 0) return;
 
     const dishes = this.getDishPool().getActiveObjects();
@@ -171,7 +173,7 @@ export class BlackHoleSystem {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, dish.x, dish.y);
         if (distance > hole.radius) continue;
 
-        dish.applyDamage(data.damage, true);
+        dish.applyDamageWithUpgrades(data.damage, 0, criticalChanceBonus, true);
         break;
       }
     }
@@ -182,9 +184,30 @@ export class BlackHoleSystem {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, boss.x, boss.y);
         if (distance > hole.radius + boss.radius) continue;
 
-        this.damageBoss(boss.id, data.damage, hole.x, hole.y);
+        const finalDamage = this.resolveCriticalDamage(data.damage, criticalChanceBonus);
+        this.damageBoss(boss.id, finalDamage, hole.x, hole.y);
         break;
       }
     }
+  }
+
+  private resolveCriticalDamage(baseDamage: number, criticalChanceBonus: number): number {
+    const damageConfig = Data.dishes.damage;
+    const criticalChance = Phaser.Math.Clamp(
+      (damageConfig.criticalChance ?? 0) + criticalChanceBonus,
+      0,
+      1
+    );
+    if (criticalChance <= 0) {
+      return baseDamage;
+    }
+
+    const isCritical = Math.random() < criticalChance;
+    if (!isCritical) {
+      return baseDamage;
+    }
+
+    const criticalMultiplier = damageConfig.criticalMultiplier ?? 1;
+    return baseDamage * criticalMultiplier;
   }
 }

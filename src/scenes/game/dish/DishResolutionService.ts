@@ -148,13 +148,14 @@ export class DishResolutionService {
   private applyElectricShock(x: number, y: number, excludeDish: Dish, radius: number): void {
     const targets: { x: number; y: number }[] = [];
     const damage = this.upgradeSystem.getElectricShockDamage();
+    const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
 
     this.dishPool.forEach((dish) => {
       if (dish !== excludeDish && dish.active && !dish.isDangerous()) {
         const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
         if (distance < radius) {
           targets.push({ x: dish.x, y: dish.y });
-          dish.applyDamage(damage, true);
+          dish.applyDamageWithUpgrades(damage, 0, criticalChanceBonus, true);
         }
       }
     });

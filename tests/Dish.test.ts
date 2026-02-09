@@ -528,6 +528,24 @@ describe('Dish Upgrade Effects', () => {
         })
       );
     });
+
+    it('should preserve chainReaction semantics when applyDamageWithUpgrades is called with chain flag', async () => {
+      const { Dish } = await import('../src/entities/Dish');
+      const { EventBus } = await import('../src/utils/EventBus');
+
+      const dish = new Dish(mockScene as unknown as Phaser.Scene, 0, 0, 'basic');
+      dish.spawn(100, 100, 'basic', 1);
+
+      dish.applyDamageWithUpgrades(100, 0, 0, true);
+
+      expect(EventBus.getInstance().emit).toHaveBeenCalledWith(
+        'dish_destroyed',
+        expect.objectContaining({
+          chainReaction: true,
+          byAbility: true,
+        })
+      );
+    });
   });
 
   describe('forceDestroy', () => {

@@ -40,6 +40,7 @@ export class OrbSystem {
 
     const stats = this.upgradeSystem.getOrbitingOrbData();
     if (!stats) return;
+    const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
 
     // Magnet Synergy: Increase Size
     const magnetLevel = this.upgradeSystem.getMagnetLevel();
@@ -74,7 +75,14 @@ export class OrbSystem {
     }
 
     // Check Collisions
-    this.checkCollisions(gameTime, dishPool, stats.damage, finalSize, hitInterval);
+    this.checkCollisions(
+      gameTime,
+      dishPool,
+      stats.damage,
+      finalSize,
+      hitInterval,
+      criticalChanceBonus
+    );
   }
 
   private checkCollisions(
@@ -82,7 +90,8 @@ export class OrbSystem {
     dishPool: ObjectPool<Dish>,
     damage: number,
     orbSize: number,
-    hitInterval: number
+    hitInterval: number,
+    criticalChanceBonus: number
   ): void {
     dishPool.forEach((dish) => {
       if (!dish.active) return;
@@ -110,7 +119,7 @@ export class OrbSystem {
             dish.forceDestroy();
           } else {
             // 일반 접시는 데미지 적용
-            dish.applyDamage(damage);
+            dish.applyDamageWithUpgrades(damage, 0, criticalChanceBonus);
           }
           // Set Cooldown
           this.lastHitTimes.set(dish, gameTime + hitInterval);

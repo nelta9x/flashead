@@ -42,7 +42,7 @@ type MockDish = {
   getSize: () => number;
   isDangerous: () => boolean;
   isFullySpawned?: ReturnType<typeof vi.fn>;
-  applyDamage: ReturnType<typeof vi.fn>;
+  applyDamageWithUpgrades: ReturnType<typeof vi.fn>;
   forceDestroy?: ReturnType<typeof vi.fn>;
 };
 
@@ -52,6 +52,7 @@ describe('OrbSystem', () => {
     getOrbitingOrbLevel: ReturnType<typeof vi.fn>;
     getOrbitingOrbData: ReturnType<typeof vi.fn>;
     getMagnetLevel: ReturnType<typeof vi.fn>;
+    getCriticalChanceBonus: ReturnType<typeof vi.fn>;
     getSystemUpgrade: ReturnType<typeof vi.fn>;
   };
   let mockDishPool: { forEach: (callback: (dish: Dish) => void) => void };
@@ -64,6 +65,7 @@ describe('OrbSystem', () => {
       getOrbitingOrbLevel: vi.fn(),
       getOrbitingOrbData: vi.fn(),
       getMagnetLevel: vi.fn().mockReturnValue(0),
+      getCriticalChanceBonus: vi.fn().mockReturnValue(0),
       getSystemUpgrade: vi.fn().mockReturnValue({ hitInterval: 300 }),
     };
 
@@ -123,13 +125,13 @@ describe('OrbSystem', () => {
       y: 0,
       getSize: () => 10,
       isDangerous: () => false,
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
     };
     mockDishes.push(mockDish);
 
     system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
 
-    expect(mockDish.applyDamage).toHaveBeenCalledWith(10);
+    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledWith(10, 0, 0);
   });
 
   it('should respect hit cooldown', () => {
@@ -148,22 +150,22 @@ describe('OrbSystem', () => {
       y: 0,
       getSize: () => 10,
       isDangerous: () => false,
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
     };
     mockDishes.push(mockDish);
 
     // First hit
     system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
-    expect(mockDish.applyDamage).toHaveBeenCalledTimes(1);
+    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
 
     // Second update (immediate) - Should fail cooldown
-    mockDish.applyDamage.mockClear();
+    mockDish.applyDamageWithUpgrades.mockClear();
     system.update(100, 1100, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // +100ms
-    expect(mockDish.applyDamage).not.toHaveBeenCalled();
+    expect(mockDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
 
     // Third update (after cooldown 300ms)
     system.update(100, 1400, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // +400ms from start
-    expect(mockDish.applyDamage).toHaveBeenCalledTimes(1);
+    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
   });
 
   it('should use hitInterval from upgrade data (orbiting_orb) for cooldown', () => {
@@ -183,22 +185,48 @@ describe('OrbSystem', () => {
       y: 0,
       getSize: () => 10,
       isDangerous: () => false,
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
     };
     mockDishes.push(mockDish);
 
     // First hit at t=1000
     system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
-    expect(mockDish.applyDamage).toHaveBeenCalledTimes(1);
+    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
 
     // 800ms later: still in cooldown when hitInterval=900
-    mockDish.applyDamage.mockClear();
+    mockDish.applyDamageWithUpgrades.mockClear();
     system.update(100, 1800, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
-    expect(mockDish.applyDamage).not.toHaveBeenCalled();
+    expect(mockDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
 
     // 900ms later: cooldown expired
     system.update(100, 1900, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
-    expect(mockDish.applyDamage).toHaveBeenCalledTimes(1);
+    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
+  });
+
+  it('should forward critical chance bonus to dish damage calculation', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 10,
+      speed: 0,
+      radius: 100,
+      size: 10,
+    });
+    mockUpgradeSystem.getCriticalChanceBonus.mockReturnValue(0.35);
+
+    const mockDish = {
+      active: true,
+      x: 100,
+      y: 0,
+      getSize: () => 10,
+      isDangerous: () => false,
+      applyDamageWithUpgrades: vi.fn(),
+    };
+    mockDishes.push(mockDish);
+
+    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+
+    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledWith(10, 0, 0.35);
   });
 
   it('should apply magnet synergy to size', () => {
@@ -236,7 +264,7 @@ describe('OrbSystem', () => {
       getSize: () => 10,
       isDangerous: () => true,
       isFullySpawned: vi.fn(),
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
       forceDestroy: vi.fn(),
     };
     mockDishes.push(mockBomb);

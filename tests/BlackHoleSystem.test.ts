@@ -29,6 +29,17 @@ vi.mock('../src/data/constants', () => ({
   GAME_HEIGHT: 720,
 }));
 
+vi.mock('../src/data/DataManager', () => ({
+  Data: {
+    dishes: {
+      damage: {
+        criticalChance: 0,
+        criticalMultiplier: 1.5,
+      },
+    },
+  },
+}));
+
 import { BlackHoleSystem } from '../src/systems/BlackHoleSystem';
 
 interface MockDish {
@@ -36,13 +47,19 @@ interface MockDish {
   x: number;
   y: number;
   isDangerous: () => boolean;
-  applyDamage: (damage: number, isChainReaction?: boolean) => void;
+  applyDamageWithUpgrades: (
+    baseDamage: number,
+    damageBonus: number,
+    criticalChanceBonus: number,
+    isChainReaction?: boolean
+  ) => void;
   setBeingPulled: (pulled: boolean) => void;
 }
 
 describe('BlackHoleSystem', () => {
   let blackHoleLevel = 0;
   let blackHoleData: BlackHoleLevelData | null = null;
+  let criticalChanceBonus = 0;
   let dishes: MockDish[];
   let bosses: Array<{ id: string; x: number; y: number; radius: number }>;
   let damageBoss: ReturnType<typeof vi.fn>;
@@ -57,6 +74,7 @@ describe('BlackHoleSystem', () => {
     const upgradeSystem = {
       getBlackHoleLevel: () => blackHoleLevel,
       getBlackHoleData: () => blackHoleData,
+      getCriticalChanceBonus: () => criticalChanceBonus,
     } as unknown as UpgradeSystem;
 
     damageBoss = vi.fn();
@@ -71,6 +89,7 @@ describe('BlackHoleSystem', () => {
   beforeEach(() => {
     blackHoleLevel = 0;
     blackHoleData = null;
+    criticalChanceBonus = 0;
     dishes = [];
     bosses = [];
     damageBoss = vi.fn();
@@ -182,7 +201,7 @@ describe('BlackHoleSystem', () => {
       x: 420,
       y: 360,
       isDangerous: vi.fn(() => false),
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
       setBeingPulled: vi.fn(),
     };
     const bombDish: MockDish = {
@@ -190,7 +209,7 @@ describe('BlackHoleSystem', () => {
       x: 460,
       y: 360,
       isDangerous: vi.fn(() => true),
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
       setBeingPulled: vi.fn(),
     };
     dishes.push(normalDish, bombDish);
@@ -220,21 +239,21 @@ describe('BlackHoleSystem', () => {
       x: 600,
       y: 360,
       isDangerous: vi.fn(() => false),
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
       setBeingPulled: vi.fn(),
     };
     dishes.push(normalDish);
 
     system.update(16, 16);
     system.update(400, 416);
-    expect(normalDish.applyDamage).not.toHaveBeenCalled();
+    expect(normalDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
 
     system.update(120, 536);
-    expect(normalDish.applyDamage).toHaveBeenCalledTimes(1);
-    expect(normalDish.applyDamage).toHaveBeenCalledWith(2, true);
+    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
+    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledWith(2, 0, 0, true);
 
     system.update(300, 836);
-    expect(normalDish.applyDamage).toHaveBeenCalledTimes(1);
+    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
   });
 
   it('damages boss when black hole overlaps boss radius', () => {
@@ -255,5 +274,27 @@ describe('BlackHoleSystem', () => {
 
     expect(damageBoss).toHaveBeenCalledTimes(1);
     expect(damageBoss).toHaveBeenCalledWith('boss_1', 3, 640, 360);
+  });
+
+  it('applies critical multiplier to boss damage tick when critical chance bonus guarantees crit', () => {
+    blackHoleLevel = 1;
+    criticalChanceBonus = 1;
+    blackHoleData = {
+      damageInterval: 100,
+      damage: 4,
+      force: 200,
+      spawnInterval: 9999,
+      spawnCount: 1,
+      radius: 120,
+    };
+    mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
+    bosses = [{ id: 'boss_1', x: 680, y: 360, radius: 50 }];
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.2);
+
+    system.update(16, 16);
+    system.update(100, 116);
+
+    expect(damageBoss).toHaveBeenCalledWith('boss_1', 6, 640, 360);
+    randomSpy.mockRestore();
   });
 });

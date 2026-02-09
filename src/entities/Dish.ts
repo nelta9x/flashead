@@ -543,15 +543,24 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
   }
 
   // 업그레이드 적용 데미지 메서드
-  applyDamageWithUpgrades(baseDamage: number, damageBonus: number, criticalChance: number): void {
+  applyDamageWithUpgrades(
+    baseDamage: number,
+    damageBonus: number,
+    criticalChanceBonus: number,
+    isChainReaction: boolean = false
+  ): void {
     if (!this.active || this.invulnerable) return;
+
+    if (isChainReaction) {
+      this.chainReaction = true;
+    }
 
     const damageConfig = Data.dishes.damage;
     const { damage: totalDamage, isCritical } = DishDamageResolver.resolveUpgradeDamage(
       damageConfig,
       baseDamage,
       damageBonus,
-      criticalChance
+      criticalChanceBonus
     );
 
     this.currentHp -= totalDamage;

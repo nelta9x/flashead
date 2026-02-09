@@ -178,21 +178,21 @@ describe('DishLifecycleController', () => {
       x: 110,
       y: 120,
       isDangerous: () => false,
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
     };
     const nearDangerous = {
       active: true,
       x: 115,
       y: 115,
       isDangerous: () => true,
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
     };
     const farNormal = {
       active: true,
       x: 500,
       y: 500,
       isDangerous: () => false,
-      applyDamage: vi.fn(),
+      applyDamageWithUpgrades: vi.fn(),
     };
 
     dishPool.forEach.mockImplementation((callback: (dish: unknown) => void) => {
@@ -209,9 +209,9 @@ describe('DishLifecycleController', () => {
       byAbility: false,
     });
 
-    expect(nearNormal.applyDamage).toHaveBeenCalledWith(5, true);
-    expect(nearDangerous.applyDamage).not.toHaveBeenCalled();
-    expect(farNormal.applyDamage).not.toHaveBeenCalled();
+    expect(nearNormal.applyDamageWithUpgrades).toHaveBeenCalledWith(5, 0, 0, true);
+    expect(nearDangerous.applyDamageWithUpgrades).not.toHaveBeenCalled();
+    expect(farNormal.applyDamageWithUpgrades).not.toHaveBeenCalled();
     expect(feedbackSystem.onElectricShock).toHaveBeenCalledWith(100, 100, [{ x: 110, y: 120 }]);
   });
 
