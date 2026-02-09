@@ -310,12 +310,14 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
         damage: 1,
         force: 260,
         spawnInterval: 7600,
+        duration: 7600,
         spawnCount: 1,
         radius: 210,
         bombConsumeRadiusRatio: 0.35,
         consumeRadiusGrowthRatio: 0,
         consumeRadiusGrowthFlat: 5,
         consumeDamageGrowth: 1,
+        consumeDurationGrowth: 500,
       });
     });
 
@@ -332,12 +334,14 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
         damage: 5,
         force: 340,
         spawnInterval: 6400,
+        duration: 6400,
         spawnCount: 1,
         radius: 330,
         bombConsumeRadiusRatio: 0.75,
         consumeRadiusGrowthRatio: 0,
         consumeRadiusGrowthFlat: 5,
         consumeDamageGrowth: 1,
+        consumeDurationGrowth: 500,
       });
     });
   });

@@ -15,6 +15,7 @@ export interface BlackHoleSnapshot {
 
 interface ActiveBlackHole extends BlackHoleSnapshot {
   damage: number;
+  remainingDuration: number;
 }
 
 interface BossSnapshot {
@@ -73,6 +74,8 @@ export class BlackHoleSystem {
     }
     const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
 
+    this.expireBlackHoles(delta);
+
     if (level !== this.lastAppliedLevel) {
       this.spawnBlackHoles(blackHoleData, gameTime);
       this.timeSinceLastSpawn = 0;
@@ -113,17 +116,22 @@ export class BlackHoleSystem {
     }));
   }
 
+  private expireBlackHoles(delta: number): void {
+    for (const hole of this.blackHoles) {
+      hole.remainingDuration -= delta;
+    }
+    this.blackHoles = this.blackHoles.filter((hole) => hole.remainingDuration > 0);
+  }
+
   private spawnBlackHoles(data: BlackHoleLevelData, gameTime: number): void {
     const safeRadius = this.getSafeRadius(data.radius);
     const spawnCount = Math.max(1, Math.floor(data.spawnCount));
-    const holes: ActiveBlackHole[] = [];
     const baseDamage = Math.max(0, data.damage);
+    const duration = Math.max(0, data.duration);
 
     for (let i = 0; i < spawnCount; i++) {
-      holes.push(this.createHole(safeRadius, gameTime, baseDamage));
+      this.blackHoles.push(this.createHole(safeRadius, gameTime, baseDamage, duration));
     }
-
-    this.blackHoles = holes;
   }
 
   private getSafeRadius(radius: number): number {
@@ -131,7 +139,12 @@ export class BlackHoleSystem {
     return Phaser.Math.Clamp(radius, 1, maxRadius);
   }
 
-  private createHole(radius: number, spawnedAt: number, damage: number): ActiveBlackHole {
+  private createHole(
+    radius: number,
+    spawnedAt: number,
+    damage: number,
+    duration: number
+  ): ActiveBlackHole {
     const minX = radius;
     const maxX = GAME_WIDTH - radius;
     const minY = radius;
@@ -143,6 +156,7 @@ export class BlackHoleSystem {
       radius,
       spawnedAt,
       damage,
+      remainingDuration: duration,
     };
   }
 
@@ -245,6 +259,7 @@ export class BlackHoleSystem {
       hole.radius * (1 + data.consumeRadiusGrowthRatio) + data.consumeRadiusGrowthFlat;
     hole.radius = this.getSafeRadius(nextRadius);
     hole.damage = Math.max(0, hole.damage + data.consumeDamageGrowth);
+    hole.remainingDuration += data.consumeDurationGrowth;
   }
 
   private resolveCriticalDamage(

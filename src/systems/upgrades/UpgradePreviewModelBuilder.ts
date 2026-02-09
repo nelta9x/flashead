@@ -33,6 +33,7 @@ type NumericField =
   | 'size'
   | 'damageInterval'
   | 'spawnInterval'
+  | 'duration'
   | 'spawnCount';
 
 const NUMERIC_FIELDS: readonly NumericField[] = [
@@ -49,6 +50,7 @@ const NUMERIC_FIELDS: readonly NumericField[] = [
   'size',
   'damageInterval',
   'spawnInterval',
+  'duration',
   'spawnCount',
 ];
 
@@ -203,6 +205,8 @@ export class UpgradePreviewModelBuilder {
         return 'damageInterval' in levelData ? levelData.damageInterval : null;
       case 'spawnInterval':
         return 'spawnInterval' in levelData ? levelData.spawnInterval : null;
+      case 'duration':
+        return 'duration' in levelData ? levelData.duration : null;
       case 'spawnCount':
         return 'spawnCount' in levelData ? levelData.spawnCount : null;
       default:

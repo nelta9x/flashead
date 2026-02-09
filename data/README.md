@@ -458,13 +458,15 @@ import { COLORS, FONTS } from '../data/constants';
 | `black_hole` | `damageInterval` | 블랙홀 피해 틱 간격 (ms) |
 | | `damage` | 블랙홀 피해 틱 당 피해량 |
 | | `force` | 블랙홀 끌어당김 힘 (px/sec) |
-| | `spawnInterval` | 블랙홀 재생성 주기 (ms, 주기마다 기존 교체) |
+| | `spawnInterval` | 새 블랙홀 생성 주기 (ms) |
+| | `duration` | 개별 블랙홀 유지 시간 (ms, duration > spawnInterval이면 여러 세대 공존) |
 | | `spawnCount` | 주기당 생성 개수 |
 | | `radius` | 블랙홀 반경 (px) |
 | | `bombConsumeRadiusRatio` | 폭탄 제거 중심 반경 비율 (`radius * ratio`, 0~1) |
 | | `consumeRadiusGrowthRatio` | 제거 1회당 반경 비율 증가율 (0.1 = 10%) |
 | | `consumeRadiusGrowthFlat` | 제거 1회당 반경 고정 증가량 (px) |
 | | `consumeDamageGrowth` | 제거 1회당 블랙홀 틱 피해 증가량 |
+| | `consumeDurationGrowth` | 제거 1회당 유지 시간 증가량 (ms) |
 
 `electric_shock`는 접시 처치가 아니라 **커서 직격으로 발생한 `DISH_DAMAGED` 틱마다** 발동합니다.
 어빌리티 소스(`byAbility=true`)로 발생한 피해에서는 전기 충격이 다시 발동하지 않습니다.
@@ -475,8 +477,9 @@ import { COLORS, FONTS } from '../data/constants';
 
 `black_hole`는 중심 좌표와 반경이 모두 화면 안에 들어오도록 생성됩니다.
 또한 폭탄 접시는 `bombConsumeRadiusRatio`로 계산된 중심 영역에 진입하면 `byAbility=true` 경로로 즉시 제거됩니다.
-폭탄을 흡수하거나 블랙홀 틱 피해로 일반 접시를 처치하면, 해당 블랙홀 인스턴스의 반경/틱 피해가 즉시 증가합니다.
-반경 증가 계산식은 `currentRadius * (1 + consumeRadiusGrowthRatio) + consumeRadiusGrowthFlat`이며, 증가된 상태는 다음 스폰 교체 시 초기화됩니다.
+폭탄을 흡수하거나 블랙홀 틱 피해로 일반 접시를 처치하면, 해당 블랙홀 인스턴스의 반경/틱 피해/유지 시간이 즉시 증가합니다.
+반경 증가 계산식은 `currentRadius * (1 + consumeRadiusGrowthRatio) + consumeRadiusGrowthFlat`이며, 각 블랙홀은 `duration` 만큼 독립적으로 유지된 후 소멸합니다.
+새 블랙홀이 스폰되어도 기존 블랙홀의 남은 유지 시간은 보장됩니다.
 
 예시:
 ```json
@@ -490,12 +493,14 @@ import { COLORS, FONTS } from '../data/constants';
       "damage": 1,
       "force": 260,
       "spawnInterval": 7600,
+      "duration": 7600,
       "spawnCount": 1,
       "radius": 150,
       "bombConsumeRadiusRatio": 0.3,
       "consumeRadiusGrowthRatio": 0,
       "consumeRadiusGrowthFlat": 5,
-      "consumeDamageGrowth": 1
+      "consumeDamageGrowth": 1,
+      "consumeDurationGrowth": 500
     }
   ]
 }

@@ -926,12 +926,14 @@ export interface BlackHoleLevelData {
   damage: number;
   force: number;
   spawnInterval: number;
+  duration: number;
   spawnCount: number;
   radius: number;
   bombConsumeRadiusRatio: number;
   consumeRadiusGrowthRatio: number;
   consumeRadiusGrowthFlat: number;
   consumeDamageGrowth: number;
+  consumeDurationGrowth: number;
 }
 
 export type SystemUpgradeLevelData =
@@ -960,6 +962,7 @@ export type UpgradePreviewStatId =
   | 'orbFinalSizeWithMagnet'
   | 'damageInterval'
   | 'spawnInterval'
+  | 'duration'
   | 'spawnCount';
 
 export interface UpgradePreviewStatDisplay {

@@ -359,7 +359,7 @@
       "id": "black_hole",
       "name": "블랙홀",
       "description": "주기적으로 블랙홀을 생성해 접시와 폭탄을 끌어당기고, 영역 내 대상에게 지속 피해를 줍니다. 폭탄/접시 제거 시 블랙홀이 성장합니다.",
-      "descriptionTemplate": "{spawnInterval}ms마다 {spawnCount}개의 블랙홀을 생성해 반경 {radius}px 내 대상을 {force}의 힘으로 끌어당기며, {damageInterval}ms마다 {damage} 피해를 줍니다. 폭탄/접시 제거 시 반경이 {consumeRadiusGrowthRatio}% 비율 + {consumeRadiusGrowthFlat}px만큼 증가하고, 피해가 {consumeDamageGrowth} 증가합니다.",
+      "descriptionTemplate": "{spawnInterval}ms마다 {spawnCount}개의 블랙홀({duration}ms 유지)을 생성해 반경 {radius}px 내 대상을 {force}의 힘으로 끌어당기며, {damageInterval}ms마다 {damage} 피해를 줍니다. 폭탄/접시 제거 시 반경이 {consumeRadiusGrowthRatio}% 비율 + {consumeRadiusGrowthFlat}px만큼 증가하고, 피해가 {consumeDamageGrowth}, 유지 시간이 {consumeDurationGrowth}ms 증가합니다.",
       "rarity": "legendary",
       "effectType": "blackHoleLevel",
       "levels": [
@@ -368,60 +368,70 @@
           "damage": 1,
           "force": 260,
           "spawnInterval": 7600,
+          "duration": 7600,
           "spawnCount": 1,
           "radius": 210,
           "bombConsumeRadiusRatio": 0.35,
           "consumeRadiusGrowthRatio": 0,
           "consumeRadiusGrowthFlat": 5,
-          "consumeDamageGrowth": 1
+          "consumeDamageGrowth": 1,
+          "consumeDurationGrowth": 500
         },
         {
           "damageInterval": 250,
           "damage": 2,
           "force": 280,
           "spawnInterval": 7300,
+          "duration": 7300,
           "spawnCount": 1,
           "radius": 240,
           "bombConsumeRadiusRatio": 0.45,
           "consumeRadiusGrowthRatio": 0,
           "consumeRadiusGrowthFlat": 5,
-          "consumeDamageGrowth": 1
+          "consumeDamageGrowth": 1,
+          "consumeDurationGrowth": 500
         },
         {
           "damageInterval": 200,
           "damage": 3,
           "force": 300,
           "spawnInterval": 7000,
+          "duration": 7000,
           "spawnCount": 1,
           "radius": 270,
           "bombConsumeRadiusRatio": 0.55,
           "consumeRadiusGrowthRatio": 0,
           "consumeRadiusGrowthFlat": 5,
-          "consumeDamageGrowth": 1
+          "consumeDamageGrowth": 1,
+          "consumeDurationGrowth": 500
         },
         {
           "damageInterval": 200,
           "damage": 4,
           "force": 320,
           "spawnInterval": 6700,
+          "duration": 6700,
           "spawnCount": 1,
           "radius": 300,
           "bombConsumeRadiusRatio": 0.65,
           "consumeRadiusGrowthRatio": 0,
           "consumeRadiusGrowthFlat": 5,
-          "consumeDamageGrowth": 1
+          "consumeDamageGrowth": 1,
+          "consumeDurationGrowth": 500
         },
         {
           "damageInterval": 200,
           "damage": 5,
           "force": 340,
           "spawnInterval": 6400,
+          "duration": 6400,
           "spawnCount": 1,
           "radius": 330,
           "bombConsumeRadiusRatio": 0.75,
           "consumeRadiusGrowthRatio": 0,
           "consumeRadiusGrowthFlat": 5,
-          "consumeDamageGrowth": 1
+          "consumeDamageGrowth": 1,
+          "consumeDurationGrowth": 500
         }
       ],
       "previewDisplay": {
@@ -449,6 +459,10 @@
           {
             "id": "spawnInterval",
             "labelKey": "upgrade.stat.black_hole_spawn_interval_ms"
+          },
+          {
+            "id": "duration",
+            "labelKey": "upgrade.stat.black_hole_duration_ms"
           }
         ]
       }
