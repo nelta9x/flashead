@@ -175,6 +175,7 @@ export interface ShootingStarConfig {
   glowAlphaScale: number;
   headGlowIntensity: NumberRangeConfig;
   color: string;
+  colorPalette?: string[];
 }
 
 export interface LanguageUIConfig {

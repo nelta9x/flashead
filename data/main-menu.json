@@ -38,7 +38,7 @@
     "shootingStar": {
       "enabled": true,
       "cycleIntervalMs": { "min": 5000, "max": 20000 },
-      "burstCount": { "min": 1, "max": 2 },
+      "burstCount": { "min": 1, "max": 7 },
       "spawnDelayMs": { "min": 300, "max": 1400 },
       "startYMaxRatio": 0.42,
       "startXPadding": 160,
@@ -52,7 +52,8 @@
       "glowRadiusScale": 1.9,
       "glowAlphaScale": 0.5,
       "headGlowIntensity": { "min": 0.35, "max": 1.0 },
-      "color": "#c8f6ff"
+      "color": "#ffffff",
+      "colorPalette": ["#ffffff"]
     }
   },
   "cursor": {

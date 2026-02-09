@@ -19,6 +19,7 @@ interface ShootingStarData {
   directionY: number;
   length: number;
   lineWidth: number;
+  color: number;
   alpha: number;
   headGlowIntensity: number;
   lifetime: number;
@@ -185,7 +186,7 @@ export class StarBackground {
 
       this.graphics.lineStyle(
         shootingStar.lineWidth * 2,
-        this.shootingStarColor,
+        shootingStar.color,
         tailAlpha * shootingStarConfig.glowAlphaScale
       );
       this.graphics.beginPath();
@@ -193,7 +194,7 @@ export class StarBackground {
       this.graphics.lineTo(tailX, tailY);
       this.graphics.strokePath();
 
-      this.graphics.lineStyle(shootingStar.lineWidth, this.shootingStarColor, bodyAlpha);
+      this.graphics.lineStyle(shootingStar.lineWidth, shootingStar.color, bodyAlpha);
       this.graphics.beginPath();
       this.graphics.moveTo(shootingStar.x, shootingStar.y);
       this.graphics.lineTo(tailX, tailY);
@@ -203,12 +204,12 @@ export class StarBackground {
 
       // Head glow: brighter layered bloom so the meteor head pops more.
       this.graphics.fillStyle(
-        this.shootingStarColor,
+        shootingStar.color,
         bodyAlpha * shootingStarConfig.glowAlphaScale * 0.5 * headGlowIntensity
       );
       this.graphics.fillCircle(shootingStar.x, shootingStar.y, headRadius * 2.2);
 
-      this.graphics.fillStyle(this.shootingStarColor, bodyAlpha * 0.75 * headGlowIntensity);
+      this.graphics.fillStyle(shootingStar.color, bodyAlpha * 0.75 * headGlowIntensity);
       this.graphics.fillCircle(shootingStar.x, shootingStar.y, headRadius * 1.15);
 
       this.graphics.fillStyle(0xffffff, bodyAlpha * 0.5 * headGlowIntensity);
@@ -249,6 +250,7 @@ export class StarBackground {
       directionY,
       length: this.randomFloat(config.length.min, config.length.max),
       lineWidth: this.randomFloat(config.lineWidth.min, config.lineWidth.max),
+      color: this.rollShootingStarColor(config),
       alpha: this.randomFloat(config.alpha.min, config.alpha.max),
       headGlowIntensity,
       lifetime: (travelDistance / speed) * 1000,
@@ -264,6 +266,16 @@ export class StarBackground {
     const start = Math.round(Math.min(min, max));
     const end = Math.round(Math.max(min, max));
     return Phaser.Math.Between(start, end);
+  }
+
+  private rollShootingStarColor(config: ShootingStarConfig): number {
+    const palette = config.colorPalette;
+    if (!Array.isArray(palette) || palette.length === 0) {
+      return this.shootingStarColor;
+    }
+
+    const index = Phaser.Math.Between(0, palette.length - 1);
+    return this.parseHexColor(palette[index]);
   }
 
   private parseHexColor(hex: string): number {

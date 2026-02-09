@@ -160,6 +160,22 @@ import { COLORS, FONTS } from '../data/constants';
 `player.hpRing`은 해당 링 전용 설정입니다.
 `player.input.pointerPriorityMs`는 포인터 이동 직후 키보드 이동이 입력 우선권을 가져가기 전까지의 안전 유예 시간을 정의합니다.
 `player.input.keyboardAxisRampUpMs`는 키다운 시 축 입력이 최대치에 도달하는 가속 시간을 정의합니다(키업 시 즉시 0으로 복귀).
+`stars.shootingStar.colorPalette`는 별똥별의 글로우/꼬리 색 팔레트를 제어합니다.
+
+```json
+{
+  "stars": {
+    "shootingStar": {
+      "colorPalette": [                // 별똥별 랜덤 색 팔레트 (hex)
+        "#ff8a8a",
+        "#ffd24d",
+        "#7ea8ff",
+        "#8cf3ff"
+      ]
+    }
+  }
+}
+```
 
 ---
 
