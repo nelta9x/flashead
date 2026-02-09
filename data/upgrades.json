@@ -355,8 +355,8 @@
     {
       "id": "black_hole",
       "name": "블랙홀",
-      "description": "주기적으로 블랙홀을 생성해 접시와 폭탄을 끌어당기고, 영역 내 적에게 낮은 지속 피해를 줍니다.",
-      "descriptionTemplate": "{spawnInterval}ms마다 {spawnCount}개의 블랙홀을 생성해 반경 {radius}px 내 대상을 {force}의 힘으로 끌어당기며, {damageInterval}ms마다 {damage} 피해를 줍니다.",
+      "description": "주기적으로 블랙홀을 생성해 접시와 폭탄을 끌어당기고, 영역 내 대상에게 지속 피해를 줍니다. 폭탄/접시 제거 시 블랙홀이 성장합니다.",
+      "descriptionTemplate": "{spawnInterval}ms마다 {spawnCount}개의 블랙홀을 생성해 반경 {radius}px 내 대상을 {force}의 힘으로 끌어당기며, {damageInterval}ms마다 {damage} 피해를 줍니다. 폭탄/접시 제거 시 반경이 {consumeRadiusGrowthRatio}% 비율 + {consumeRadiusGrowthFlat}px만큼 증가하고, 피해가 {consumeDamageGrowth} 증가합니다.",
       "rarity": "legendary",
       "effectType": "blackHoleLevel",
       "levels": [
@@ -367,7 +367,10 @@
           "spawnInterval": 7600,
           "spawnCount": 1,
           "radius": 210,
-          "bombConsumeRadiusRatio": 0.35
+          "bombConsumeRadiusRatio": 0.35,
+          "consumeRadiusGrowthRatio": 0,
+          "consumeRadiusGrowthFlat": 5,
+          "consumeDamageGrowth": 1
         },
         {
           "damageInterval": 250,
@@ -376,7 +379,10 @@
           "spawnInterval": 7300,
           "spawnCount": 1,
           "radius": 240,
-          "bombConsumeRadiusRatio": 0.45
+          "bombConsumeRadiusRatio": 0.45,
+          "consumeRadiusGrowthRatio": 0,
+          "consumeRadiusGrowthFlat": 5,
+          "consumeDamageGrowth": 1
         },
         {
           "damageInterval": 200,
@@ -385,7 +391,10 @@
           "spawnInterval": 7000,
           "spawnCount": 1,
           "radius": 270,
-          "bombConsumeRadiusRatio": 0.55
+          "bombConsumeRadiusRatio": 0.55,
+          "consumeRadiusGrowthRatio": 0,
+          "consumeRadiusGrowthFlat": 5,
+          "consumeDamageGrowth": 1
         },
         {
           "damageInterval": 200,
@@ -394,7 +403,10 @@
           "spawnInterval": 6700,
           "spawnCount": 1,
           "radius": 300,
-          "bombConsumeRadiusRatio": 0.65
+          "bombConsumeRadiusRatio": 0.65,
+          "consumeRadiusGrowthRatio": 0,
+          "consumeRadiusGrowthFlat": 5,
+          "consumeDamageGrowth": 1
         },
         {
           "damageInterval": 200,
@@ -403,7 +415,10 @@
           "spawnInterval": 6400,
           "spawnCount": 1,
           "radius": 330,
-          "bombConsumeRadiusRatio": 0.75
+          "bombConsumeRadiusRatio": 0.75,
+          "consumeRadiusGrowthRatio": 0,
+          "consumeRadiusGrowthFlat": 5,
+          "consumeDamageGrowth": 1
         }
       ],
       "previewDisplay": {

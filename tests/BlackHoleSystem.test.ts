@@ -113,6 +113,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 130,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
 
     system.update(16, 16);
@@ -132,6 +135,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 130,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween
       .mockReturnValueOnce(300)
@@ -160,6 +166,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 2,
       radius: 180,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
 
     system.update(16, 16);
@@ -176,6 +185,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 2,
       radius: 200,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
 
     system.update(16, 16);
@@ -198,6 +210,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 250,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
@@ -240,6 +255,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 250,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
@@ -270,6 +288,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 250,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
@@ -300,6 +321,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 250,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
@@ -331,6 +355,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 250,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
@@ -351,6 +378,157 @@ describe('BlackHoleSystem', () => {
     expect(bombDish.forceDestroy).toHaveBeenCalledWith(true);
   });
 
+  it('grows black hole radius by ratio + flat when bomb is consumed', () => {
+    blackHoleLevel = 1;
+    blackHoleData = {
+      damageInterval: 9999,
+      damage: 2,
+      force: 200,
+      spawnInterval: 9999,
+      spawnCount: 1,
+      radius: 100,
+      bombConsumeRadiusRatio: 1,
+      consumeRadiusGrowthRatio: 0.1,
+      consumeRadiusGrowthFlat: 5,
+      consumeDamageGrowth: 0,
+    };
+    mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
+
+    const bombDish: MockDish = {
+      active: true,
+      x: 640,
+      y: 360,
+      isDangerous: vi.fn(() => true),
+      applyDamageWithUpgrades: vi.fn(),
+      setBeingPulled: vi.fn(),
+      forceDestroy: vi.fn(() => {
+        bombDish.active = false;
+      }),
+    };
+    dishes.push(bombDish);
+
+    system.update(16, 16);
+
+    const holes = system.getBlackHoles();
+    expect(holes).toHaveLength(1);
+    expect(holes[0].radius).toBeCloseTo(115);
+    expect(bombDish.forceDestroy).toHaveBeenCalledWith(true);
+  });
+
+  it('increases boss tick damage after bomb consume growth in the same frame', () => {
+    blackHoleLevel = 1;
+    blackHoleData = {
+      damageInterval: 10,
+      damage: 2,
+      force: 200,
+      spawnInterval: 9999,
+      spawnCount: 1,
+      radius: 120,
+      bombConsumeRadiusRatio: 1,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 5,
+      consumeDamageGrowth: 1,
+    };
+    mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
+    bosses = [{ id: 'boss_1', x: 680, y: 360, radius: 40 }];
+
+    const bombDish: MockDish = {
+      active: true,
+      x: 640,
+      y: 360,
+      isDangerous: vi.fn(() => true),
+      applyDamageWithUpgrades: vi.fn(),
+      setBeingPulled: vi.fn(),
+      forceDestroy: vi.fn(() => {
+        bombDish.active = false;
+      }),
+    };
+    dishes.push(bombDish);
+
+    system.update(16, 16);
+
+    expect(damageBoss).toHaveBeenCalledTimes(1);
+    expect(damageBoss).toHaveBeenCalledWith('boss_1', 3, 640, 360, false);
+  });
+
+  it('grows radius and damage when a normal dish is destroyed by black hole tick', () => {
+    blackHoleLevel = 1;
+    blackHoleData = {
+      damageInterval: 100,
+      damage: 2,
+      force: 200,
+      spawnInterval: 9999,
+      spawnCount: 1,
+      radius: 100,
+      bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 5,
+      consumeDamageGrowth: 3,
+    };
+    mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
+    bosses = [{ id: 'boss_1', x: 700, y: 360, radius: 40 }];
+
+    const normalDish: MockDish = {
+      active: true,
+      x: 640,
+      y: 360,
+      isDangerous: vi.fn(() => false),
+      applyDamageWithUpgrades: vi.fn(() => {
+        normalDish.active = false;
+      }),
+      setBeingPulled: vi.fn(),
+      forceDestroy: vi.fn(),
+    };
+    dishes.push(normalDish);
+
+    system.update(100, 100);
+
+    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledWith(2, 0, 0);
+    expect(system.getBlackHoles()[0].radius).toBe(105);
+    expect(damageBoss).toHaveBeenCalledWith('boss_1', 5, 640, 360, false);
+  });
+
+  it('resets grown radius and damage to base values on spawn replacement', () => {
+    blackHoleLevel = 1;
+    blackHoleData = {
+      damageInterval: 1000,
+      damage: 2,
+      force: 200,
+      spawnInterval: 50,
+      spawnCount: 1,
+      radius: 100,
+      bombConsumeRadiusRatio: 1,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 5,
+      consumeDamageGrowth: 3,
+    };
+    mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
+    bosses = [{ id: 'boss_1', x: 700, y: 360, radius: 40 }];
+
+    const bombDish: MockDish = {
+      active: true,
+      x: 640,
+      y: 360,
+      isDangerous: vi.fn(() => true),
+      applyDamageWithUpgrades: vi.fn(),
+      setBeingPulled: vi.fn(),
+      forceDestroy: vi.fn(() => {
+        bombDish.active = false;
+      }),
+    };
+    dishes.push(bombDish);
+
+    system.update(16, 16);
+    expect(system.getBlackHoles()[0].radius).toBe(105);
+
+    system.update(50, 66);
+    expect(system.getBlackHoles()[0].radius).toBe(100);
+
+    system.update(1000, 1066);
+    expect(damageBoss).toHaveBeenCalledTimes(1);
+    expect(damageBoss).toHaveBeenCalledWith('boss_1', 2, 640, 360, false);
+  });
+
   it('applies periodic damage only at damage interval', () => {
     blackHoleLevel = 1;
     blackHoleData = {
@@ -361,6 +539,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 180,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(600).mockReturnValueOnce(360);
 
@@ -397,6 +578,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 120,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
     bosses = [{ id: 'boss_1', x: 680, y: 360, radius: 50 }];
@@ -419,6 +603,9 @@ describe('BlackHoleSystem', () => {
       spawnCount: 1,
       radius: 120,
       bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
     bosses = [{ id: 'boss_1', x: 680, y: 360, radius: 50 }];

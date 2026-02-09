@@ -303,6 +303,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
         spawnCount: 1,
         radius: 210,
         bombConsumeRadiusRatio: 0.35,
+        consumeRadiusGrowthRatio: 0,
+        consumeRadiusGrowthFlat: 5,
+        consumeDamageGrowth: 1,
       });
     });
 
@@ -322,6 +325,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
         spawnCount: 1,
         radius: 330,
         bombConsumeRadiusRatio: 0.75,
+        consumeRadiusGrowthRatio: 0,
+        consumeRadiusGrowthFlat: 5,
+        consumeDamageGrowth: 1,
       });
     });
   });

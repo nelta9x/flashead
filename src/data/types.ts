@@ -929,6 +929,9 @@ export interface BlackHoleLevelData {
   spawnCount: number;
   radius: number;
   bombConsumeRadiusRatio: number;
+  consumeRadiusGrowthRatio: number;
+  consumeRadiusGrowthFlat: number;
+  consumeDamageGrowth: number;
 }
 
 export type SystemUpgradeLevelData =

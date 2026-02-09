@@ -13,6 +13,10 @@ export interface BlackHoleSnapshot {
   spawnedAt: number;
 }
 
+interface ActiveBlackHole extends BlackHoleSnapshot {
+  damage: number;
+}
+
 interface BossSnapshot {
   id: string;
   x: number;
@@ -32,7 +36,7 @@ export class BlackHoleSystem {
     isCritical: boolean
   ) => void;
 
-  private blackHoles: BlackHoleSnapshot[] = [];
+  private blackHoles: ActiveBlackHole[] = [];
   private timeSinceLastSpawn = 0;
   private timeSinceLastDamageTick = 0;
   private lastAppliedLevel = 0;
@@ -101,16 +105,22 @@ export class BlackHoleSystem {
   }
 
   public getBlackHoles(): BlackHoleSnapshot[] {
-    return this.blackHoles.map((hole) => ({ ...hole }));
+    return this.blackHoles.map((hole) => ({
+      x: hole.x,
+      y: hole.y,
+      radius: hole.radius,
+      spawnedAt: hole.spawnedAt,
+    }));
   }
 
   private spawnBlackHoles(data: BlackHoleLevelData, gameTime: number): void {
     const safeRadius = this.getSafeRadius(data.radius);
     const spawnCount = Math.max(1, Math.floor(data.spawnCount));
-    const holes: BlackHoleSnapshot[] = [];
+    const holes: ActiveBlackHole[] = [];
+    const baseDamage = Math.max(0, data.damage);
 
     for (let i = 0; i < spawnCount; i++) {
-      holes.push(this.createHole(safeRadius, gameTime));
+      holes.push(this.createHole(safeRadius, gameTime, baseDamage));
     }
 
     this.blackHoles = holes;
@@ -121,7 +131,7 @@ export class BlackHoleSystem {
     return Phaser.Math.Clamp(radius, 1, maxRadius);
   }
 
-  private createHole(radius: number, spawnedAt: number): BlackHoleSnapshot {
+  private createHole(radius: number, spawnedAt: number, damage: number): ActiveBlackHole {
     const minX = radius;
     const maxX = GAME_WIDTH - radius;
     const minY = radius;
@@ -132,6 +142,7 @@ export class BlackHoleSystem {
       y: Phaser.Math.FloatBetween(minY, maxY),
       radius,
       spawnedAt,
+      damage,
     };
   }
 
@@ -156,6 +167,9 @@ export class BlackHoleSystem {
         if (distance > hole.radius) continue;
         if (dangerous && distance <= hole.radius * consumeRatio) {
           dish.forceDestroy(true);
+          if (!dish.active) {
+            this.applyConsumeGrowth(hole, data);
+          }
           bombConsumed = true;
           break;
         }
@@ -184,6 +198,9 @@ export class BlackHoleSystem {
         if (movedDistance > hole.radius) continue;
         if (movedDistance <= hole.radius * consumeRatio) {
           dish.forceDestroy(true);
+          if (!dish.active) {
+            this.applyConsumeGrowth(hole, data);
+          }
           break;
         }
       }
@@ -201,7 +218,11 @@ export class BlackHoleSystem {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, dish.x, dish.y);
         if (distance > hole.radius) continue;
 
-        dish.applyDamageWithUpgrades(data.damage, 0, criticalChanceBonus);
+        const wasActive = dish.active;
+        dish.applyDamageWithUpgrades(hole.damage, 0, criticalChanceBonus);
+        if (wasActive && !dish.active) {
+          this.applyConsumeGrowth(hole, data);
+        }
         break;
       }
     }
@@ -212,11 +233,18 @@ export class BlackHoleSystem {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, boss.x, boss.y);
         if (distance > hole.radius + boss.radius) continue;
 
-        const criticalResult = this.resolveCriticalDamage(data.damage, criticalChanceBonus);
+        const criticalResult = this.resolveCriticalDamage(hole.damage, criticalChanceBonus);
         this.damageBoss(boss.id, criticalResult.damage, hole.x, hole.y, criticalResult.isCritical);
         break;
       }
     }
+  }
+
+  private applyConsumeGrowth(hole: ActiveBlackHole, data: BlackHoleLevelData): void {
+    const nextRadius =
+      hole.radius * (1 + data.consumeRadiusGrowthRatio) + data.consumeRadiusGrowthFlat;
+    hole.radius = this.getSafeRadius(nextRadius);
+    hole.damage = Math.max(0, hole.damage + data.consumeDamageGrowth);
   }
 
   private resolveCriticalDamage(

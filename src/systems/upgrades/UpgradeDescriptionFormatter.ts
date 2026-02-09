@@ -44,7 +44,8 @@ export class UpgradeDescriptionFormatter {
       key === 'sizeBonus' ||
       key === 'missileThicknessBonus' ||
       key === 'dropChanceBonus' ||
-      key === 'criticalChance'
+      key === 'criticalChance' ||
+      key === 'consumeRadiusGrowthRatio'
     ) {
       return Math.round(value * 100);
     }
