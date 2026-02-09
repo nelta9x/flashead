@@ -313,7 +313,6 @@ export class DamageText {
   showShakingText(x: number, y: number, text: string, color: number): void {
     const hexColor = '#' + color.toString(16).padStart(6, '0');
     const config = Data.feedback.damageText;
-    const animation = config.animation;
     const style = config.style;
 
     let textObj = this.pool.find((t) => !this.activeTexts.has(t));
@@ -333,11 +332,10 @@ export class DamageText {
 
     const baseX = x;
     const baseY = y;
-    const shakeCycles = Math.max(1, animation.shake.repeat + 2);
-    const shakeDuration = Math.max(1, animation.shake.duration * shakeCycles);
-    const fadeDelay = animation.scalePop.duration + shakeDuration + animation.hold.duration;
-    const totalDuration = fadeDelay + animation.shrinkFade.duration;
-    const riseDistance = Math.max(44, Math.round(config.normal.fontSize * 2.4));
+    const tiltDuration = 220;
+    const fadeDelay = 860;
+    const fadeDuration = 420;
+    const riseDistance = 18;
 
     textObj.setText(text);
     textObj.setPosition(baseX, baseY);
@@ -345,43 +343,28 @@ export class DamageText {
     textObj.setFontSize(config.normal.fontSize);
     textObj.setVisible(true);
     textObj.setAlpha(1);
-    textObj.setScale(0.7);
+    textObj.setScale(1);
     textObj.setRotation(0);
     this.activeTexts.add(textObj);
 
     this.scene.tweens.add({
       targets: textObj,
-      scaleX: 1.28,
-      scaleY: 1.28,
-      duration: animation.scalePop.duration,
-      ease: animation.scalePop.ease,
-    });
-
-    this.scene.tweens.add({
-      targets: textObj,
-      y: baseY - riseDistance,
-      duration: totalDuration,
-      ease: 'Sine.easeOut',
-    });
-
-    this.scene.tweens.add({
-      targets: textObj,
-      x: { from: baseX - animation.shake.distance, to: baseX + animation.shake.distance },
-      angle: { from: -8, to: 8 },
-      duration: animation.shake.duration,
-      ease: animation.shake.ease,
+      angle: { from: -4, to: 4 },
+      duration: tiltDuration,
+      ease: 'Sine.easeInOut',
       yoyo: true,
-      repeat: shakeCycles,
+      repeat: 1,
     });
 
     this.scene.tweens.add({
       targets: textObj,
       alpha: 0,
-      scaleX: animation.shrinkFade.targetScale,
-      scaleY: animation.shrinkFade.targetScale,
-      duration: animation.shrinkFade.duration,
+      y: baseY - riseDistance,
+      scaleX: 0.92,
+      scaleY: 0.92,
+      duration: fadeDuration,
       delay: fadeDelay,
-      ease: animation.shrinkFade.ease,
+      ease: 'Sine.easeOut',
       onComplete: () => this.releaseText(textObj),
     });
   }

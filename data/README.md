@@ -485,7 +485,7 @@ import { COLORS, FONTS } from '../data/constants';
   "baseSpawnChance": 0.04, // 스폰 체크 1회당 기본 확률
   "checkInterval": 5000,  // 스폰 확률 체크 간격 (ms)
   "preMissWarningDistance": 120, // 화면 상단 이탈 전 경고 이벤트 트리거 거리(px, 소멸선 기준)
-  "preMissWarningTextOffsetY": -26 // 경고 텍스트 Y 오프셋(px, 힐팩 기준)
+  "preMissWarningTextOffsetY": 14 // 경고 텍스트 Y 오프셋(px, 힐팩 기준, 양수일수록 아래)
 }
 ```
 
