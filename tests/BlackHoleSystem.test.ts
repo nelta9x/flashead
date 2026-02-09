@@ -406,7 +406,7 @@ describe('BlackHoleSystem', () => {
     system.update(100, 116);
 
     expect(damageBoss).toHaveBeenCalledTimes(1);
-    expect(damageBoss).toHaveBeenCalledWith('boss_1', 3, 640, 360);
+    expect(damageBoss).toHaveBeenCalledWith('boss_1', 3, 640, 360, false);
   });
 
   it('applies critical multiplier to boss damage tick when critical chance bonus guarantees crit', () => {
@@ -428,7 +428,7 @@ describe('BlackHoleSystem', () => {
     system.update(16, 16);
     system.update(100, 116);
 
-    expect(damageBoss).toHaveBeenCalledWith('boss_1', 6, 640, 360);
+    expect(damageBoss).toHaveBeenCalledWith('boss_1', 6, 640, 360, true);
     randomSpy.mockRestore();
   });
 });

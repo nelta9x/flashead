@@ -28,7 +28,8 @@ export class BlackHoleSystem {
     bossId: string,
     amount: number,
     sourceX: number,
-    sourceY: number
+    sourceY: number,
+    isCritical: boolean
   ) => void;
 
   private blackHoles: BlackHoleSnapshot[] = [];
@@ -40,7 +41,13 @@ export class BlackHoleSystem {
     upgradeSystem: UpgradeSystem,
     getDishPool: () => ObjectPool<Dish>,
     getBosses: () => BossSnapshot[],
-    damageBoss: (bossId: string, amount: number, sourceX: number, sourceY: number) => void
+    damageBoss: (
+      bossId: string,
+      amount: number,
+      sourceX: number,
+      sourceY: number,
+      isCritical: boolean
+    ) => void
   ) {
     this.upgradeSystem = upgradeSystem;
     this.getDishPool = getDishPool;
@@ -205,14 +212,17 @@ export class BlackHoleSystem {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, boss.x, boss.y);
         if (distance > hole.radius + boss.radius) continue;
 
-        const finalDamage = this.resolveCriticalDamage(data.damage, criticalChanceBonus);
-        this.damageBoss(boss.id, finalDamage, hole.x, hole.y);
+        const criticalResult = this.resolveCriticalDamage(data.damage, criticalChanceBonus);
+        this.damageBoss(boss.id, criticalResult.damage, hole.x, hole.y, criticalResult.isCritical);
         break;
       }
     }
   }
 
-  private resolveCriticalDamage(baseDamage: number, criticalChanceBonus: number): number {
+  private resolveCriticalDamage(
+    baseDamage: number,
+    criticalChanceBonus: number
+  ): { damage: number; isCritical: boolean } {
     const damageConfig = Data.dishes.damage;
     const criticalChance = Phaser.Math.Clamp(
       (damageConfig.criticalChance ?? 0) + criticalChanceBonus,
@@ -220,15 +230,15 @@ export class BlackHoleSystem {
       1
     );
     if (criticalChance <= 0) {
-      return baseDamage;
+      return { damage: baseDamage, isCritical: false };
     }
 
     const isCritical = Math.random() < criticalChance;
     if (!isCritical) {
-      return baseDamage;
+      return { damage: baseDamage, isCritical: false };
     }
 
     const criticalMultiplier = damageConfig.criticalMultiplier ?? 1;
-    return baseDamage * criticalMultiplier;
+    return { damage: baseDamage * criticalMultiplier, isCritical: true };
   }
 }

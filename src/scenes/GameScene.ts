@@ -197,8 +197,14 @@ export class GameScene extends Phaser.Scene {
       this.upgradeSystem,
       () => this.dishPool,
       () => this.bossCombatCoordinator?.getAliveVisibleBossSnapshotsWithRadius() ?? [],
-      (bossId, amount, sourceX, sourceY) =>
-        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY)
+      (bossId, amount, sourceX, sourceY, isCritical) => {
+        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY);
+
+        const bossTarget = this.bossCombatCoordinator?.getAliveBossTarget(bossId);
+        const textX = bossTarget?.x ?? sourceX;
+        const textY = bossTarget?.y ?? sourceY;
+        this.feedbackSystem.onBossContactDamaged(textX, textY, amount, isCritical);
+      }
     );
 
     this.hud = new HUD(this, this.waveSystem, this.healthSystem, this.upgradeSystem);
