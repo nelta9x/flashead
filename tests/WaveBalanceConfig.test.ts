@@ -49,13 +49,15 @@ describe('Wave balance config', () => {
     expect(getWeight(14, 'golden')).toBeGreaterThan(getWeight(13, 'golden'));
   });
 
-  it('only wave 15 has two bosses among predefined waves', () => {
-    for (let w = 1; w <= 14; w++) {
+  it('waves 1-12 have one boss, waves 13-15 have two bosses', () => {
+    for (let w = 1; w <= 12; w++) {
       expect(getWave(w).bosses).toHaveLength(1);
     }
-    expect(getWave(15).bosses).toHaveLength(2);
-    expect(getWave(15).bosses?.some((boss) => boss.id === 'boss_left')).toBe(true);
-    expect(getWave(15).bosses?.some((boss) => boss.id === 'boss_right')).toBe(true);
+    for (let w = 13; w <= 15; w++) {
+      expect(getWave(w).bosses).toHaveLength(2);
+      expect(getWave(w).bosses?.some((boss) => boss.id === 'boss_left')).toBe(true);
+      expect(getWave(w).bosses?.some((boss) => boss.id === 'boss_right')).toBe(true);
+    }
   });
 
   it('wave 13 introduces dual laser (maxCount 2)', () => {
@@ -66,33 +68,34 @@ describe('Wave balance config', () => {
   });
 
   it('matches infinite scaling rebalance values', () => {
-    expect(Data.waves.infiniteScaling).toEqual({
-      spawnIntervalReduction: 5,
-      minSpawnInterval: 640,
-      bombWeightIncrease: 0.002,
-      maxBombWeight: 0.18,
-      goldenWeightDecrease: 0.002,
-      minGoldenWeight: 0.16,
-      bossHpIncrease: 150,
-      bossTotalHpIncrease: 150,
-      infiniteBossCount: 2,
-      minDishCountIncrease: 0,
-      maxMinDishCount: 7,
-      amberStartWaveOffset: 1,
-      amberStartWeight: 0.02,
-      amberWeightIncrease: 0.02,
-      maxAmberWeight: 0.16,
-    });
+    const scaling = Data.waves.infiniteScaling;
+    expect(scaling.spawnIntervalReduction).toBe(5);
+    expect(scaling.minSpawnInterval).toBe(640);
+    expect(scaling.bombWeightIncrease).toBe(0.002);
+    expect(scaling.maxBombWeight).toBe(0.18);
+    expect(scaling.goldenWeightDecrease).toBe(0.002);
+    expect(scaling.minGoldenWeight).toBe(0.16);
+    expect(scaling.bossHpIncrease).toBe(150);
+    expect(scaling.bossTotalHpIncrease).toBe(150);
+    expect(scaling.infiniteBossCount).toBe(3);
+    expect(scaling.infiniteBossFullHp).toBe(true);
+    expect(scaling.infiniteBossTemplate).toHaveLength(3);
+    expect(scaling.minDishCountIncrease).toBe(0);
+    expect(scaling.maxMinDishCount).toBe(7);
+    expect(scaling.amberStartWaveOffset).toBe(1);
+    expect(scaling.amberStartWeight).toBe(0.02);
+    expect(scaling.amberWeightIncrease).toBe(0.02);
+    expect(scaling.maxAmberWeight).toBe(0.16);
   });
 
-  it('introduces amber from wave 16 while keeping infinite waves normalized with two bosses', () => {
+  it('introduces amber from wave 16 with three full-hp bosses', () => {
     const resolver = new WaveConfigResolver();
     const wave16Config = resolver.resolveWaveConfig(16);
     const wave16AmberWeight =
       wave16Config.dishTypes.find((dishType) => dishType.type === 'amber')?.weight ?? 0;
 
     expect(wave16AmberWeight).toBeGreaterThan(0);
-    expect(wave16Config.bosses).toHaveLength(2);
+    expect(wave16Config.bosses).toHaveLength(3);
 
     for (let waveNumber = 16; waveNumber <= 30; waveNumber++) {
       const waveConfig = resolver.resolveWaveConfig(waveNumber);
@@ -100,9 +103,16 @@ describe('Wave balance config', () => {
       const basicWeight =
         waveConfig.dishTypes.find((dishType) => dishType.type === 'basic')?.weight ?? 0;
 
-      expect(waveConfig.bosses).toHaveLength(2);
+      expect(waveConfig.bosses).toHaveLength(3);
       expect(totalWeight).toBeCloseTo(1, 6);
       expect(basicWeight).toBeGreaterThanOrEqual(0.05);
+
+      // each boss gets full bossTotalHp (not divided)
+      const perBossHp = waveConfig.bossTotalHp / waveConfig.bosses.length;
+      const baseTotalHp = getWave(15).bossTotalHp ?? 0;
+      const wavesBeyond = waveNumber - 15;
+      const expectedPerBoss = baseTotalHp + wavesBeyond * 150;
+      expect(perBossHp).toBe(expectedPerBoss);
     }
   });
 });

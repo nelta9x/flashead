@@ -828,6 +828,8 @@ export interface InfiniteScalingConfig {
   bossHpIncrease?: number;
   bossTotalHpIncrease?: number;
   infiniteBossCount?: number;
+  infiniteBossFullHp?: boolean;
+  infiniteBossTemplate?: WaveBossConfig[];
   minDishCountIncrease: number;
   maxMinDishCount: number;
   amberStartWaveOffset: number;

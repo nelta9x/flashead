@@ -125,10 +125,20 @@ export function resolveWaveBossConfig(waveNumber: number): ResolvedWaveBossConfi
     Math.floor(scaling.infiniteBossCount ?? baseBosses.length)
   );
 
+  const bosses =
+    scaling.infiniteBossTemplate && scaling.infiniteBossTemplate.length > 0
+      ? scaling.infiniteBossTemplate.map(cloneBossConfig)
+      : resolveInfiniteBossTemplate(baseBosses, infiniteBossCount);
+
+  const perBossHp = Math.max(1, baseBossTotalHp + wavesBeyond * hpIncrease);
+  const effectiveTotalHp = scaling.infiniteBossFullHp
+    ? perBossHp * bosses.length
+    : perBossHp;
+
   return {
     waveNumber,
-    bossTotalHp: Math.max(1, baseBossTotalHp + wavesBeyond * hpIncrease),
-    bosses: resolveInfiniteBossTemplate(baseBosses, infiniteBossCount),
+    bossTotalHp: effectiveTotalHp,
+    bosses,
     bossSpawnMinDistance: Math.max(
       0,
       Math.floor(baseWave.bossSpawnMinDistance ?? Data.spawn?.minBossDistance ?? 150)

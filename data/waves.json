@@ -271,13 +271,19 @@
       "bossTotalHp": 1700,
       "bosses": [
         {
-          "id": "boss_center",
+          "id": "boss_left",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 2, "minInterval": 3800, "maxInterval": 6500 }
+          "spawnRange": { "minX": 320, "maxX": 440, "minY": 90, "maxY": 120 },
+          "laser": { "maxCount": 1, "minInterval": 3800, "maxInterval": 6500 }
+        },
+        {
+          "id": "boss_right",
+          "hpWeight": 1,
+          "spawnRange": { "minX": 840, "maxX": 960, "minY": 90, "maxY": 120 },
+          "laser": { "maxCount": 1, "minInterval": 3800, "maxInterval": 6500 }
         }
       ],
-      "bossSpawnMinDistance": 150,
+      "bossSpawnMinDistance": 280,
       "laser": { "maxCount": 2, "minInterval": 3800, "maxInterval": 6500 }
     },
     {
@@ -295,13 +301,19 @@
       "bossTotalHp": 1500,
       "bosses": [
         {
-          "id": "boss_center",
+          "id": "boss_left",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
+          "spawnRange": { "minX": 320, "maxX": 440, "minY": 90, "maxY": 120 },
+          "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 9000 }
+        },
+        {
+          "id": "boss_right",
+          "hpWeight": 1,
+          "spawnRange": { "minX": 840, "maxX": 960, "minY": 90, "maxY": 120 },
           "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 9000 }
         }
       ],
-      "bossSpawnMinDistance": 150,
+      "bossSpawnMinDistance": 280,
       "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 9000 }
     },
     {
@@ -355,7 +367,28 @@
     "minGoldenWeight": 0.16,
     "bossHpIncrease": 150,
     "bossTotalHpIncrease": 150,
-    "infiniteBossCount": 2,
+    "infiniteBossCount": 3,
+    "infiniteBossFullHp": true,
+    "infiniteBossTemplate": [
+      {
+        "id": "boss_left",
+        "hpWeight": 1,
+        "spawnRange": { "minX": 280, "maxX": 400, "minY": 90, "maxY": 120 },
+        "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5500 }
+      },
+      {
+        "id": "boss_center",
+        "hpWeight": 1,
+        "spawnRange": { "minX": 560, "maxX": 720, "minY": 90, "maxY": 120 },
+        "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5500 }
+      },
+      {
+        "id": "boss_right",
+        "hpWeight": 1,
+        "spawnRange": { "minX": 880, "maxX": 1000, "minY": 90, "maxY": 120 },
+        "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5500 }
+      }
+    ],
     "minDishCountIncrease": 0,
     "maxMinDishCount": 7,
     "amberStartWaveOffset": 1,
