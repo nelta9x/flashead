@@ -323,6 +323,8 @@ export class GameScene extends Phaser.Scene {
           if (Data.fallingBomb.resetCombo) {
             this.comboSystem.reset();
           }
+        } else {
+          this.damageText.showText(payload.x, payload.y - 40, Data.t('feedback.bomb_removed'), COLORS.CYAN);
         }
         this.feedbackSystem.onBombExploded(payload.x, payload.y, !!payload.byAbility);
       },

@@ -116,7 +116,6 @@ export class FeedbackSystem {
       if (bombShake) this.screenShake.shake(bombShake.intensity, bombShake.duration);
       this.soundSystem.playDestroySound('bomb');
     } else {
-      this.damageText.showText(x, y, Data.t('feedback.bomb_removed'), 0xff0044);
       const removedShake = Data.feedback.shakePresets['bombRemoved'];
       if (removedShake) this.screenShake.shake(removedShake.intensity, removedShake.duration);
     }
