@@ -30,6 +30,9 @@ test-results/
 blob-report/
 output/
 
+# PWA dev artifacts
+dev-dist/
+
 # Misc
 *.tgz
 progress.md
