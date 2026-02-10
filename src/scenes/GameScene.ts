@@ -689,10 +689,8 @@ export class GameScene extends Phaser.Scene {
       Data.gameConfig.player.input.smoothing
     );
 
-    if (!result.skipped) {
-      this.cursorX = result.x;
-      this.cursorY = result.y;
-    }
+    this.cursorX = result.x;
+    this.cursorY = result.y;
   }
 
   private resetMovementInput(): void {

@@ -118,9 +118,7 @@
   "cursorTrail": {
     "enabled": true,
     "color": "#bbddff",
-    "alpha": 0.4,
     "lifespan": 400,
-    "maxWidth": 40,
     "minWidth": 4,
     "maxLength": 25,
     "minDistance": 4,

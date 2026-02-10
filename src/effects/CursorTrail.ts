@@ -14,7 +14,6 @@ interface TrailConfig {
   lifespan: number;
   maxLength: number;
   minDistance: number;
-  alpha: number;
   minWidth: number;
   speedAlphaMin: number;
   speedAlphaMax: number;
@@ -69,10 +68,9 @@ export class CursorTrail {
       currentY
     );
 
-    // 프레임 간 속도 계산 (pixels/sec)
-    this.lastFrameSpeed = delta > 0 ? (dist / delta) * 1000 : 0;
-
     if (dist >= this.config.minDistance) {
+      // 프레임 간 속도 계산 (pixels/sec) — minDistance 이상 이동 시에만
+      this.lastFrameSpeed = delta > 0 ? (dist / delta) * 1000 : 0;
       // 이동 각도 계산
       const angle = Phaser.Math.Angle.Between(
         this.lastCenter.x,
@@ -95,6 +93,9 @@ export class CursorTrail {
 
       // 중심점 업데이트
       this.lastCenter = { x: currentX, y: currentY };
+    } else {
+      // 미세 떨림에서 alpha 상승 방지
+      this.lastFrameSpeed = 0;
     }
 
     // 오래된 포인트 제거

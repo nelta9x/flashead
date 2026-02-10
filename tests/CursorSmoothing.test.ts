@@ -12,7 +12,7 @@ const DEFAULT_CONFIG: CursorSmoothingConfig = {
 const FRAME_16 = 16.67; // ~60fps
 
 describe('computeCursorSmoothing', () => {
-  it('거리=0 → factor ≈ baseLerp (즉시 snap by convergenceThreshold)', () => {
+  it('거리=0 → snap to target', () => {
     const result = computeCursorSmoothing(100, 100, 100, 100, FRAME_16, DEFAULT_CONFIG);
     expect(result.x).toBe(100);
     expect(result.y).toBe(100);
@@ -45,7 +45,6 @@ describe('computeCursorSmoothing', () => {
     expect(result.x).toBeGreaterThan(0);
     expect(result.x).toBeLessThan(50);
     expect(result.snapped).toBe(false);
-    expect(result.skipped).toBe(false);
   });
 
   it('convergenceThreshold 이하 → 즉시 snap', () => {
@@ -56,12 +55,13 @@ describe('computeCursorSmoothing', () => {
     expect(result.snapped).toBe(true);
   });
 
-  it('deadZone 이내 → 이동 없음', () => {
+  it('deadZone 이내 → snap to target (not stuck)', () => {
     // distance = 2.0 (> convergenceThreshold=0.5, < deadZone=2.5)
+    // 수정 전: 이 영역에서 skip되어 커서가 영구 정지하는 버그가 있었음
     const result = computeCursorSmoothing(100, 100, 102, 100, FRAME_16, DEFAULT_CONFIG);
-    expect(result.x).toBe(100);
+    expect(result.x).toBe(102);
     expect(result.y).toBe(100);
-    expect(result.skipped).toBe(true);
+    expect(result.snapped).toBe(true);
   });
 
   it('프레임 독립 보정: delta=16.67ms vs 33.33ms', () => {
@@ -99,5 +99,38 @@ describe('computeCursorSmoothing', () => {
 
     // 높은 baseLerp → 더 빠르게 목표에 도달
     expect(hardResult.x).toBeGreaterThan(softResult.x);
+  });
+
+  it('연속 프레임 수렴 테스트: 100프레임 후 목표 도달', () => {
+    let cx = 0;
+    let cy = 0;
+    const tx = 200;
+    const ty = 150;
+
+    for (let i = 0; i < 100; i++) {
+      const result = computeCursorSmoothing(cx, cy, tx, ty, FRAME_16, DEFAULT_CONFIG);
+      cx = result.x;
+      cy = result.y;
+    }
+
+    // 100프레임(~1.67초) 후 목표 지점에 충분히 수렴해야 함
+    expect(cx).toBeCloseTo(tx, 1);
+    expect(cy).toBeCloseTo(ty, 1);
+  });
+
+  it('delta=0 → 현재 위치 유지', () => {
+    const result = computeCursorSmoothing(50, 50, 200, 200, 0, DEFAULT_CONFIG);
+    expect(result.x).toBe(50);
+    expect(result.y).toBe(50);
+    expect(result.snapped).toBe(false);
+  });
+
+  it('delta=5000ms (탭 전환 후 복귀) → 안전하게 보간', () => {
+    // 매우 큰 delta에서도 NaN/Infinity 없이 정상 동작
+    const result = computeCursorSmoothing(0, 0, 100, 0, 5000, DEFAULT_CONFIG);
+    expect(Number.isFinite(result.x)).toBe(true);
+    expect(Number.isFinite(result.y)).toBe(true);
+    // 5초 프레임이면 사실상 목표에 도달
+    expect(result.x).toBeCloseTo(100, 1);
   });
 });

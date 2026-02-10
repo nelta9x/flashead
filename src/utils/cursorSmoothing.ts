@@ -4,7 +4,6 @@ export interface SmoothingResult {
   x: number;
   y: number;
   snapped: boolean;
-  skipped: boolean;
 }
 
 /**
@@ -26,18 +25,19 @@ export function computeCursorSmoothing(
   delta: number,
   config: CursorSmoothingConfig
 ): SmoothingResult {
+  // delta <= 0 → 현재 위치 유지 (탭 전환 등 비정상 프레임)
+  if (delta <= 0) {
+    return { x: currentX, y: currentY, snapped: false };
+  }
+
   const dx = targetX - currentX;
   const dy = targetY - currentY;
   const distance = Math.sqrt(dx * dx + dy * dy);
 
-  // convergenceThreshold 이하 → 즉시 snap
-  if (distance <= config.convergenceThreshold) {
-    return { x: targetX, y: targetY, snapped: true, skipped: false };
-  }
-
-  // deadZone 이내 → 이동 건너뜀
-  if (distance <= config.deadZone) {
-    return { x: currentX, y: currentY, snapped: false, skipped: true };
+  // convergenceThreshold 또는 deadZone 이하 → 즉시 snap
+  const snapRadius = Math.max(config.convergenceThreshold, config.deadZone);
+  if (distance <= snapRadius) {
+    return { x: targetX, y: targetY, snapped: true };
   }
 
   // 적응형 lerp: 거리가 멀수록 factor → 1.0
@@ -51,6 +51,5 @@ export function computeCursorSmoothing(
     x: currentX + dx * smoothFactor,
     y: currentY + dy * smoothFactor,
     snapped: false,
-    skipped: false,
   };
 }

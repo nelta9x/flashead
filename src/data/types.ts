@@ -692,9 +692,7 @@ export interface EnergyEffectConfig {
 export interface CursorTrailConfig {
   enabled: boolean;
   color: string;
-  alpha: number;
   lifespan: number;
-  maxWidth: number;
   minWidth: number;
   maxLength: number;
   minDistance: number;

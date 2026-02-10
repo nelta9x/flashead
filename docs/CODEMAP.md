@@ -207,6 +207,7 @@
 
 - **`ObjectPool.ts`**: 빈번하게 생성/삭제되는 `Dish`, `HealthPack`, `FallingBomb` 리소스를 관리하여 가비지 컬렉션 부하를 줄임.
 - **`EventBus.ts`**: 전역 이벤트 발행/구독 시스템 및 모든 게임 이벤트 상수(`GameEvents`)가 정의된 곳.
+- **`cursorSmoothing.ts`**: 적응형 커서 스무딩 순수 함수. 거리 기반 lerp 보간 + 프레임 독립 보정을 수행하며, `snapRadius(= max(convergenceThreshold, deadZone))` 이하에서 즉시 snap하여 정지 버그를 방지합니다.
 
 ---
 
