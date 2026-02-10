@@ -1,6 +1,6 @@
 // ============================================
 // 게임 상수 - DataManager에서 로드
-// 기존 코드 호환성을 위해 export 유지
+// 자주 참조되는 값만 re-export
 // ============================================
 
 import { Data } from './DataManager';
@@ -58,24 +58,6 @@ export const COLORS_HEX = {
   PROGRESS_BAR_BG: Data.colors.hex.progressBarBg,
 } as const;
 
-// 업그레이드 간격 (가속 후 감속 시스템)
-export const UPGRADE_TIMING = {
-  BASE_INTERVAL: Data.upgrades.timing.baseInterval,
-  INCREMENT: Data.upgrades.timing.increment,
-  MAX_INTERVAL: Data.upgrades.timing.maxInterval,
-} as const;
-
-// 동적 희귀도 가중치 (업그레이드 횟수별)
-export const RARITY_WEIGHTS_BY_COUNT: Record<
-  string,
-  { common: number; rare: number; epic: number; legendary: number }
-> = {
-  early: Data.upgrades.rarityWeights.early,
-  mid: Data.upgrades.rarityWeights.mid,
-  late: Data.upgrades.rarityWeights.late,
-  endgame: Data.upgrades.rarityWeights.endgame,
-} as const;
-
 // HP 시스템
 export const INITIAL_HP = Data.gameConfig.player.initialHp;
 
@@ -89,14 +71,6 @@ export const FONTS = {
   },
 } as const;
 
-// 접시 생존 시간 (밀리초)
-export const DISH_LIFETIME = {
-  basic: Data.dishes.dishes.basic.lifetime,
-  golden: Data.dishes.dishes.golden.lifetime,
-  crystal: Data.dishes.dishes.crystal.lifetime,
-  bomb: Data.dishes.dishes.bomb.lifetime,
-} as const;
-
 // 스폰 영역
 export const SPAWN_AREA = {
   minX: Data.spawn.area.minX,
@@ -108,12 +82,6 @@ export const SPAWN_AREA = {
 // 접시 간 최소 거리
 export const MIN_DISH_DISTANCE = Data.spawn.minDishDistance;
 export const MIN_BOSS_DISTANCE = Data.spawn.minBossDistance;
-
-// 접시 데미지 시스템
-export const DISH_DAMAGE = {
-  PLAYER_DAMAGE: Data.dishes.damage.playerDamage,
-  DAMAGE_INTERVAL: Data.dishes.damage.damageInterval,
-} as const;
 
 // 커서 히트박스 (플레이어 공격 범위)
 export const CURSOR_HITBOX = {

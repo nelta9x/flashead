@@ -14,7 +14,6 @@ export type {
   UpgradePreviewStatId,
   RarityThresholds,
   RarityWeights,
-  StatEffect,
   SystemUpgradeData,
   SystemUpgradeLevelData,
   UpgradeTimingConfig,

@@ -234,15 +234,6 @@ class DataManager {
     return this.weapons[weaponType];
   }
 
-  // 편의 메서드: HP 기반 힐팩 스폰 확률
-  public getHealthPackSpawnChance(hp: number): number {
-    const legacyByHp = this.healthPack.spawnChanceByHp;
-    if (legacyByHp) {
-      return legacyByHp[hp.toString()] ?? this.healthPack.baseSpawnChance;
-    }
-    return this.healthPack.baseSpawnChance;
-  }
-
   // 편의 메서드: 콤보 마일스톤 효과 가져오기
   public getComboMilestoneEffect(milestone: number) {
     return this.feedback.comboMilestones[milestone.toString()];

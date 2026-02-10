@@ -3,17 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mock constants
 vi.mock('../src/data/constants', () => ({
   INITIAL_HP: 5,
-  UPGRADE_TIMING: {
-    BASE_INTERVAL: 15000,
-    INCREMENT: 5000,
-    MAX_INTERVAL: 30000,
-  },
-  RARITY_WEIGHTS_BY_COUNT: {
-    early: { common: 60, rare: 30, epic: 10, legendary: 0 },
-    mid: { common: 45, rare: 35, epic: 17, legendary: 3 },
-    late: { common: 30, rare: 35, epic: 25, legendary: 10 },
-    endgame: { common: 20, rare: 30, epic: 30, legendary: 20 },
-  },
 }));
 
 // Mock EventBus

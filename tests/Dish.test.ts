@@ -82,7 +82,7 @@ vi.mock('../data/game-config.json', () => ({
 }));
 vi.mock('../data/spawn.json', () => ({ default: { area: {}, dynamicSpawn: {} } }));
 vi.mock('../data/combo.json', () => ({ default: { timeout: {}, milestones: [], multiplier: {} } }));
-vi.mock('../data/health-pack.json', () => ({ default: { spawnChanceByHp: {} } }));
+vi.mock('../data/health-pack.json', () => ({ default: {} }));
 vi.mock('../data/feedback.json', () => ({
   default: {
     comboMilestones: {},
@@ -106,16 +106,6 @@ vi.mock('../src/data/constants', () => ({
     RED: 0xff0044,
     GREEN: 0x00ff88,
     WHITE: 0xffffff,
-  },
-  DISH_LIFETIME: {
-    basic: 2000,
-    golden: 1500,
-    crystal: 1800,
-    bomb: 1200,
-  },
-  DISH_DAMAGE: {
-    PLAYER_DAMAGE: 10,
-    DAMAGE_INTERVAL: 200,
   },
   CURSOR_HITBOX: {
     BASE_RADIUS: 30,

@@ -613,7 +613,6 @@ export interface HealthPackConfig {
   checkInterval: number;
   preMissWarningDistance: number;
   preMissWarningTextOffsetY: number;
-  spawnChanceByHp?: Record<string, number>;
   spawnMargin: number;
 }
 
@@ -961,11 +960,6 @@ export interface DishesConfig {
 }
 
 // ========== 업그레이드 시스템 ==========
-export interface StatEffect {
-  stat: string;
-  add?: number;
-  multiply?: number;
-}
 
 // 레벨별 데이터 인터페이스
 export interface CursorSizeLevelData {
