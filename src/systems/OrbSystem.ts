@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Dish } from '../entities/Dish';
+import type { FallingBomb } from '../entities/FallingBomb';
 import { UpgradeSystem } from './UpgradeSystem';
 import { ObjectPool } from '../utils/ObjectPool';
 import type { SystemUpgradeData } from '../data/types';
@@ -40,7 +41,8 @@ export class OrbSystem {
     playerY: number,
     dishPool: ObjectPool<Dish>,
     getBossSnapshots: () => BossRadiusSnapshot[] = () => [],
-    onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {}
+    onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {},
+    fallingBombPool?: ObjectPool<FallingBomb>
   ): void {
     const level = this.upgradeSystem.getOrbitingOrbLevel();
     if (level <= 0) {
@@ -100,7 +102,8 @@ export class OrbSystem {
       criticalChanceBonus,
       overclockConfig,
       getBossSnapshots,
-      onBossDamage
+      onBossDamage,
+      fallingBombPool
     );
   }
 
@@ -113,7 +116,8 @@ export class OrbSystem {
     criticalChanceBonus: number,
     overclockConfig: OrbOverclockConfig,
     getBossSnapshots: () => BossRadiusSnapshot[],
-    onBossDamage: (bossId: string, damage: number, x: number, y: number) => void
+    onBossDamage: (bossId: string, damage: number, x: number, y: number) => void,
+    fallingBombPool?: ObjectPool<FallingBomb>
   ): void {
     dishPool.forEach((dish) => {
       if (!dish.active) return;
@@ -164,6 +168,22 @@ export class OrbSystem {
           break;
         }
       }
+    }
+
+    // Falling bomb collision check
+    if (fallingBombPool) {
+      fallingBombPool.forEach((bomb) => {
+        if (!bomb.active || !bomb.isDangerous() || !bomb.isFullySpawned()) return;
+
+        for (const orb of this.orbPositions) {
+          const dist = Phaser.Math.Distance.Between(orb.x, orb.y, bomb.x, bomb.y);
+          if (dist <= (orbSize + bomb.getSize()) * 1.5) {
+            bomb.forceDestroy(true);
+            this.activateOverclock(gameTime, overclockConfig);
+            break;
+          }
+        }
+      });
     }
   }
 

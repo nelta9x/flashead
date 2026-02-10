@@ -557,6 +557,20 @@ export interface HealthPackConfig {
   spawnChanceByHp?: Record<string, number>;
 }
 
+// ========== 낙하 폭탄 시스템 ==========
+export interface FallingBombConfig {
+  moveSpeed: number;
+  visualSize: number;
+  hitboxSize: number;
+  cooldown: number;
+  maxActive: number;
+  baseSpawnChance: number;
+  checkInterval: number;
+  playerDamage: number;
+  resetCombo: boolean;
+  minWave: number;
+}
+
 // ========== 피드백 효과 ==========
 export interface ComboMilestoneEffect {
   shake: number;

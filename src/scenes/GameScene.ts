@@ -16,6 +16,7 @@ import { WaveSystem } from '../systems/WaveSystem';
 import { UpgradeSystem } from '../systems/UpgradeSystem';
 import { HealthSystem } from '../systems/HealthSystem';
 import { HealthPackSystem } from '../systems/HealthPackSystem';
+import { FallingBombSystem } from '../systems/FallingBombSystem';
 import { HUD } from '../ui/HUD';
 import { ParticleManager } from '../effects/ParticleManager';
 import { ScreenShake } from '../effects/ScreenShake';
@@ -55,6 +56,7 @@ export class GameScene extends Phaser.Scene {
   private upgradeSystem!: UpgradeSystem;
   private healthSystem!: HealthSystem;
   private healthPackSystem!: HealthPackSystem;
+  private fallingBombSystem!: FallingBombSystem;
   private feedbackSystem!: FeedbackSystem;
   private soundSystem!: SoundSystem;
   private monsterSystem!: MonsterSystem;
@@ -190,6 +192,7 @@ export class GameScene extends Phaser.Scene {
 
     this.healthSystem = new HealthSystem();
     this.healthPackSystem = new HealthPackSystem(this, this.upgradeSystem);
+    this.fallingBombSystem = new FallingBombSystem(this);
     this.monsterSystem = new MonsterSystem();
     this.gaugeSystem = new GaugeSystem(this.comboSystem);
     this.orbSystem = new OrbSystem(this.upgradeSystem);
@@ -204,7 +207,8 @@ export class GameScene extends Phaser.Scene {
         const textX = bossTarget?.x ?? sourceX;
         const textY = bossTarget?.y ?? sourceY;
         this.feedbackSystem.onBossContactDamaged(textX, textY, amount, isCritical);
-      }
+      },
+      () => this.fallingBombSystem.getPool()
     );
 
     this.hud = new HUD(this, this.waveSystem, this.healthSystem, this.upgradeSystem);
@@ -312,6 +316,15 @@ export class GameScene extends Phaser.Scene {
         if (this.monsterSystem.areAllDead()) {
           this.waveSystem.forceCompleteWave();
         }
+      },
+      onFallingBombDestroyed: (payload) => {
+        if (!payload.byAbility) {
+          this.healthSystem.takeDamage(Data.fallingBomb.playerDamage);
+          if (Data.fallingBomb.resetCombo) {
+            this.comboSystem.reset();
+          }
+        }
+        this.feedbackSystem.onBombExploded(payload.x, payload.y, !!payload.byAbility);
       },
     });
 
@@ -456,6 +469,7 @@ export class GameScene extends Phaser.Scene {
 
     this.dishPool.clear();
     this.healthPackSystem.clear();
+    this.fallingBombSystem.clear();
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
 
@@ -518,6 +532,8 @@ export class GameScene extends Phaser.Scene {
     this.upgradeSystem.update(delta, this.gameTime);
     this.healthPackSystem.update(delta, this.gameTime);
     this.healthPackSystem.checkCollection(this.cursorX, this.cursorY, cursorRadius);
+    this.fallingBombSystem.update(delta, this.gameTime, this.waveSystem.getCurrentWave());
+    this.fallingBombSystem.checkCursorCollision(this.cursorX, this.cursorY, cursorRadius);
 
     this.dishPool.forEach((dish) => {
       dish.update(delta);
@@ -547,7 +563,8 @@ export class GameScene extends Phaser.Scene {
         this.feedbackSystem.onBossContactDamaged(
           bossTarget?.x ?? sourceX, bossTarget?.y ?? sourceY, amount, false
         );
-      }
+      },
+      this.fallingBombSystem.getPool()
     );
     this.orbRenderer.render(this.orbSystem.getOrbs());
 

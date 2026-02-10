@@ -87,10 +87,11 @@
 - **`SoundSystem.ts`**: Phaser Sound API 및 Web Audio API 기반 사운드 시스템. 오디오 파일 재생을 우선하며, 부재 시 코드로 사운드를 합성(Fallback)합니다. 마스터 볼륨 제어, 일시정지 상태 복구 지원.
 - **`FeedbackSystem.ts`**: 시각적/청각적 피드백을 조율. `ParticleManager`, `ScreenShake`, `DamageText`를 통합 제어하여 타격감을 생성합니다. 보스 아머 파괴 및 플레이어 필살기 연출을 총괄합니다.
 - **`HealthPackSystem.ts`**: 기본 확률과 업그레이드 보너스를 기반으로 힐팩을 스폰합니다.
+- **`FallingBombSystem.ts`**: 특정 웨이브(`minWave`) 이후부터 화면 위에서 아래로 떨어지는 낙하 폭탄을 확률 기반으로 스폰합니다. 커서 접촉 시 데미지를 주며, 수호 오브(`OrbSystem`)와 블랙홀(`BlackHoleSystem`)에 의해 제거될 수 있습니다.
 
 ### 3. 엔티티 및 오브젝트 (Entities)
 
-`src/entities/` 디렉토리에는 물리적인 게임 오브젝트가 위치하며, `Dish`와 `HealthPack`은 `ObjectPool`에 의해 재사용됩니다.
+`src/entities/` 디렉토리에는 물리적인 게임 오브젝트가 위치하며, `Dish`, `HealthPack`, `FallingBomb`은 `ObjectPool`에 의해 재사용됩니다.
 
 - **`Dish.ts`**: 주요 적인 '접시'.
   - `spawn()`: 초기화 및 애니메이션 시작.
@@ -100,6 +101,7 @@
   - 외형 렌더링: `DishRenderer`에 위임 (인게임/메뉴 공용 스타일).
 - **`Boss.ts`**: 보스 몬스터의 로직 엔티티. 각 인스턴스는 자신의 `bossId` 이벤트(`MONSTER_HP_CHANGED`/`MONSTER_DIED`)만 처리하며, 시각화는 `BossRenderer`에 위임합니다.
 - **`HealthPack.ts`**: 화면 하단에서 스폰되어 상단으로 이동하는 힐 아이템 오브젝트. 커서와 충돌 시 `HEALTH_PACK_COLLECTED`, 상단 이탈 직전 `HEALTH_PACK_PASSING` 이벤트를 발생시키며, 외형 렌더링은 `HealthPackRenderer`에 위임합니다.
+- **`FallingBomb.ts`**: 화면 상단에서 스폰되어 하단으로 떨어지는 위험 오브젝트. 커서 접촉 시 `FALLING_BOMB_DESTROYED`(데미지), 하단 이탈 시 `FALLING_BOMB_MISSED` 이벤트를 발생시킵니다. 외형은 `DishRenderer.renderDangerDish()`를 재사용합니다.
 
 ### 4. 시각 효과 및 UI (Effects & UI)
 
@@ -157,6 +159,7 @@
   - `feedback.json`: 연출용 수치 (흔들림 강도, 파티클 개수, 슬로우모션 강도, 커서 트레일 설정).
   - `combo.json`: 콤보 타임아웃, 마일스톤, 배율 공식, 게이지 보너스.
   - `health-pack.json`: 힐팩 기본 스폰 확률, 이동 속도 등 설정.
+  - `falling-bomb.json`: 낙하 폭탄 이동 속도, 스폰 확률, 피해, 최소 등장 웨이브 등 설정.
   - `spawn.json`: 스폰 영역(Area) 및 로직 설정.
   - `weapons.json`: 무기(공격) 기본 데미지 및 관련 데이터.
 
@@ -190,6 +193,9 @@
 |                   | `HEALTH_PACK_PASSING`   | 힐팩 상단 이탈 직전            | `HealthPack`      | `GameScene` (피드백 텍스트)            |
 |                   | `HEALTH_PACK_COLLECTED` | 힐팩 획득 시                   | `HealthPack`      | `HealthPackSystem`, `GameScene`        |
 |                   | `HEALTH_PACK_MISSED`    | 힐팩 놓쳤을 때                 | `HealthPack`      | `HealthPackSystem`                     |
+| **낙하 폭탄**     | `FALLING_BOMB_SPAWNED`  | 낙하 폭탄 스폰 시             | `FallingBomb`     | —                                      |
+|                   | `FALLING_BOMB_DESTROYED`| 낙하 폭탄 제거 시             | `FallingBomb`     | `FallingBombSystem`, `GameScene`       |
+|                   | `FALLING_BOMB_MISSED`   | 낙하 폭탄 하단 이탈 시        | `FallingBomb`     | `FallingBombSystem`                    |
 | **보스 & 게이지** | `MONSTER_HP_CHANGED`    | `bossId`별 보스 HP 변화 시     | `MonsterSystem`   | `Boss`, `GameScene`                    |
 |                   | `MONSTER_DIED`          | `bossId`별 보스 사망 시        | `MonsterSystem`   | `Boss`, `GameScene`                    |
 |                   | `GAUGE_UPDATED`         | 게이지 수치 변경 시            | `GaugeSystem`     | `GameScene`                            |
@@ -199,7 +205,7 @@
 
 ## 🛠️ 주요 유틸리티
 
-- **`ObjectPool.ts`**: 빈번하게 생성/삭제되는 `Dish`와 `HealthPack` 리소스를 관리하여 가비지 컬렉션 부하를 줄임.
+- **`ObjectPool.ts`**: 빈번하게 생성/삭제되는 `Dish`, `HealthPack`, `FallingBomb` 리소스를 관리하여 가비지 컬렉션 부하를 줄임.
 - **`EventBus.ts`**: 전역 이벤트 발행/구독 시스템 및 모든 게임 이벤트 상수(`GameEvents`)가 정의된 곳.
 
 ---

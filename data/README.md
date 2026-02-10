@@ -15,6 +15,7 @@
    - [combo.json](#combojson)
    - [upgrades.json](#upgradesjson)
    - [health-pack.json](#health-packjson)
+   - [falling-bomb.json](#falling-bombjson)
    - [feedback.json](#feedbackjson)
    - [spawn.json](#spawnjson)
    - [colors.json](#colorsjson)
@@ -35,6 +36,8 @@
 | **업그레이드 출현율** | `upgrades.json` | `rarityWeights` |
 | **업그레이드 효과** | `upgrades.json` | `system` |
 | **힐팩 스폰 확률** | `health-pack.json` | `baseSpawnChance` |
+| **낙하 폭탄 스폰 확률** | `falling-bomb.json` | `baseSpawnChance` |
+| **낙하 폭탄 등장 시작 웨이브** | `falling-bomb.json` | `minWave` |
 | **플레이어 초기 HP** | `game-config.json` | `player.initialHp` |
 | **플레이어 HP 링 스타일** | `game-config.json` | `player.hpRing` |
 | **보스 HP 세그먼트 스케일** | `boss.json` | `visual.armor.hpSegments` |
@@ -526,6 +529,33 @@ import { COLORS, FONTS } from '../data/constants';
   "preMissWarningTextOffsetY": 14 // 경고 텍스트 Y 오프셋(px, 힐팩 기준, 양수일수록 아래)
 }
 ```
+
+---
+
+### falling-bomb.json
+
+낙하 폭탄 시스템을 설정합니다. 화면 상단에서 하단으로 떨어지는 위험 오브젝트입니다.
+
+```json
+{
+  "moveSpeed": 80,           // 이동 속도 (px/sec, 상단 -> 하단)
+  "visualSize": 24,          // 시각적 크기 (px)
+  "hitboxSize": 30,          // 히트박스 크기 (px)
+  "cooldown": 12000,         // 스폰 쿨다운 (ms)
+  "maxActive": 2,            // 동시에 존재 가능한 최대 개수
+  "baseSpawnChance": 0.06,   // 스폰 체크 1회당 기본 확률
+  "checkInterval": 4000,     // 스폰 확률 체크 간격 (ms)
+  "playerDamage": 1,         // 커서 접촉 시 플레이어 데미지
+  "resetCombo": true,        // 커서 접촉 시 콤보 리셋 여부
+  "minWave": 3               // 최소 등장 웨이브 (이 웨이브 이전에는 스폰 안 됨)
+}
+```
+
+**특성**:
+- 수호 구슬(`OrbSystem`)과 블랙홀(`BlackHoleSystem`)에 의해 `byAbility=true`로 제거 가능
+- 기존 폭탄 접시와 동일한 제거 규칙(오버클럭 발동, 블랙홀 성장) 적용
+- 화면 하단 이탈 시 데미지 없이 사라짐
+- 외형은 `DishRenderer.renderDangerDish()` 재사용
 
 ---
 

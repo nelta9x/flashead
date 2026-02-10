@@ -48,6 +48,7 @@ vi.mock('../src/utils/EventBus', () => ({
     GAUGE_UPDATED: 'gauge:updated',
     PLAYER_ATTACK: 'player:attack',
     MONSTER_DIED: 'monster:died',
+    FALLING_BOMB_DESTROYED: 'fallingBomb:destroyed',
   },
 }));
 
@@ -78,6 +79,7 @@ describe('GameSceneEventBinder', () => {
       onGaugeUpdated: vi.fn(),
       onPlayerAttack: vi.fn(),
       onMonsterDied: vi.fn(),
+      onFallingBombDestroyed: vi.fn(),
     });
 
     binder.bind();
@@ -114,6 +116,7 @@ describe('GameSceneEventBinder', () => {
       onGaugeUpdated: vi.fn(),
       onPlayerAttack: vi.fn(),
       onMonsterDied: vi.fn(),
+      onFallingBombDestroyed: vi.fn(),
     });
 
     binder.bind();

@@ -3,6 +3,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../data/constants';
 import { Data } from '../data/DataManager';
 import type { BlackHoleLevelData } from '../data/types';
 import type { Dish } from '../entities/Dish';
+import type { FallingBomb } from '../entities/FallingBomb';
 import type { ObjectPool } from '../utils/ObjectPool';
 import type { UpgradeSystem } from './UpgradeSystem';
 
@@ -36,6 +37,7 @@ export class BlackHoleSystem {
     sourceY: number,
     isCritical: boolean
   ) => void;
+  private readonly getFallingBombPool?: () => ObjectPool<FallingBomb>;
 
   private blackHoles: ActiveBlackHole[] = [];
   private timeSinceLastSpawn = 0;
@@ -52,12 +54,14 @@ export class BlackHoleSystem {
       sourceX: number,
       sourceY: number,
       isCritical: boolean
-    ) => void
+    ) => void,
+    getFallingBombPool?: () => ObjectPool<FallingBomb>
   ) {
     this.upgradeSystem = upgradeSystem;
     this.getDishPool = getDishPool;
     this.getBosses = getBosses;
     this.damageBoss = damageBoss;
+    this.getFallingBombPool = getFallingBombPool;
   }
 
   update(delta: number, gameTime: number): void {
@@ -213,6 +217,62 @@ export class BlackHoleSystem {
         if (movedDistance <= hole.radius * consumeRatio) {
           dish.forceDestroy(true);
           if (!dish.active) {
+            this.applyConsumeGrowth(hole, data);
+          }
+          break;
+        }
+      }
+    }
+
+    // 낙하 폭탄 풀/소비
+    if (!this.getFallingBombPool) return;
+    const bombs = this.getFallingBombPool().getActiveObjects();
+
+    for (const bomb of bombs) {
+      if (!bomb.active || !bomb.isFullySpawned()) continue;
+
+      let bombPullX = 0;
+      let bombPullY = 0;
+      let bombPulled = false;
+      let bombConsumed = false;
+
+      for (const hole of this.blackHoles) {
+        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, bomb.x, bomb.y);
+        if (distance > hole.radius) continue;
+
+        if (distance <= hole.radius * consumeRatio) {
+          bomb.forceDestroy(true);
+          if (!bomb.active) {
+            this.applyConsumeGrowth(hole, data);
+          }
+          bombConsumed = true;
+          break;
+        }
+
+        if (distance <= 0.001) continue;
+
+        const pullStrength = 1 - distance / hole.radius;
+        const pullAmount = data.force * pullStrength * deltaSeconds;
+        const angle = Phaser.Math.Angle.Between(bomb.x, bomb.y, hole.x, hole.y);
+
+        bombPullX += Math.cos(angle) * pullAmount;
+        bombPullY += Math.sin(angle) * pullAmount;
+        bombPulled = true;
+      }
+
+      if (bombConsumed || !bomb.active) continue;
+      if (!bombPulled) continue;
+
+      bomb.x = Phaser.Math.Clamp(bomb.x + bombPullX, 0, GAME_WIDTH);
+      bomb.y = Phaser.Math.Clamp(bomb.y + bombPullY, 0, GAME_HEIGHT);
+
+      // 이동 후 소비 체크
+      for (const hole of this.blackHoles) {
+        const movedDistance = Phaser.Math.Distance.Between(hole.x, hole.y, bomb.x, bomb.y);
+        if (movedDistance > hole.radius) continue;
+        if (movedDistance <= hole.radius * consumeRatio) {
+          bomb.forceDestroy(true);
+          if (!bomb.active) {
             this.applyConsumeGrowth(hole, data);
           }
           break;

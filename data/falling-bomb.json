@@ -1,0 +1,12 @@
+{
+  "moveSpeed": 80,
+  "visualSize": 24,
+  "hitboxSize": 30,
+  "cooldown": 12000,
+  "maxActive": 2,
+  "baseSpawnChance": 0.06,
+  "checkInterval": 4000,
+  "playerDamage": 1,
+  "resetCombo": true,
+  "minWave": 3
+}

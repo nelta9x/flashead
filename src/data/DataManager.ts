@@ -9,6 +9,7 @@ import type {
   SpawnConfig,
   ComboConfig,
   HealthPackConfig,
+  FallingBombConfig,
   FeedbackConfig,
   ColorsConfig,
   WavesConfig,
@@ -34,6 +35,7 @@ import dishesJson from '../../data/dishes.json';
 import upgradesJson from '../../data/upgrades.json';
 import weaponsJson from '../../data/weapons.json';
 import bossJson from '../../data/boss.json';
+import fallingBombJson from '../../data/falling-bomb.json';
 import localesJson from '../../data/locales.json';
 
 class DataManager {
@@ -53,6 +55,7 @@ class DataManager {
   public readonly weapons: WeaponsConfig;
   public readonly magnet: MagnetConfig;
   public readonly boss: BossConfig;
+  public readonly fallingBomb: FallingBombConfig;
   public readonly locales: LocalesConfig;
 
   private currentLang: 'en' | 'ko' = 'en';
@@ -85,6 +88,7 @@ class DataManager {
     this.weapons = weaponsJson as WeaponsConfig;
     this.magnet = gameConfigJson.magnet as MagnetConfig;
     this.boss = bossJson as BossConfig;
+    this.fallingBomb = fallingBombJson as FallingBombConfig;
     this.locales = localesJson as LocalesConfig;
 
     // 지원하는 언어 목록 확인

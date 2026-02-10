@@ -136,3 +136,17 @@ export const HEAL_PACK = {
   BASE_SPAWN_CHANCE: Data.healthPack.baseSpawnChance,
   CHECK_INTERVAL: Data.healthPack.checkInterval,
 } as const;
+
+// 낙하 폭탄 시스템
+export const FALLING_BOMB = {
+  MOVE_SPEED: Data.fallingBomb.moveSpeed,
+  VISUAL_SIZE: Data.fallingBomb.visualSize,
+  HITBOX_SIZE: Data.fallingBomb.hitboxSize,
+  COOLDOWN: Data.fallingBomb.cooldown,
+  MAX_ACTIVE: Data.fallingBomb.maxActive,
+  BASE_SPAWN_CHANCE: Data.fallingBomb.baseSpawnChance,
+  CHECK_INTERVAL: Data.fallingBomb.checkInterval,
+  PLAYER_DAMAGE: Data.fallingBomb.playerDamage,
+  RESET_COMBO: Data.fallingBomb.resetCombo,
+  MIN_WAVE: Data.fallingBomb.minWave,
+} as const;

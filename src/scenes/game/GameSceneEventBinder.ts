@@ -33,6 +33,13 @@ interface GaugeUpdatedPayload {
   ratio: number;
 }
 
+interface FallingBombDestroyedPayload {
+  bomb: unknown;
+  x: number;
+  y: number;
+  byAbility: boolean;
+}
+
 export interface GameSceneEventBinderHandlers {
   onDishDestroyed: (payload: DishDestroyedEventPayload) => void;
   onDishDamaged: (payload: DishDamagedEventPayload) => void;
@@ -52,6 +59,7 @@ export interface GameSceneEventBinderHandlers {
   onGaugeUpdated: (payload: GaugeUpdatedPayload) => void;
   onPlayerAttack: () => void;
   onMonsterDied: () => void;
+  onFallingBombDestroyed: (payload: FallingBombDestroyedPayload) => void;
 }
 
 interface EventSubscription {
@@ -138,6 +146,10 @@ export class GameSceneEventBinder {
     });
     this.addSubscription(GameEvents.MONSTER_DIED, () => {
       this.handlers.onMonsterDied();
+    });
+    this.addSubscription(GameEvents.FALLING_BOMB_DESTROYED, (...args: unknown[]) => {
+      const payload = args[0] as FallingBombDestroyedPayload;
+      this.handlers.onFallingBombDestroyed(payload);
     });
 
     this.isBound = true;

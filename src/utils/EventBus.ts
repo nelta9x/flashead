@@ -133,6 +133,11 @@ export const GameEvents = {
   HEALTH_PACK_MISSED: 'healthPack:missed',
   HEALTH_PACK_UPGRADED: 'healthPack:upgraded',
 
+  // 낙하 폭탄 관련
+  FALLING_BOMB_SPAWNED: 'fallingBomb:spawned',
+  FALLING_BOMB_DESTROYED: 'fallingBomb:destroyed',
+  FALLING_BOMB_MISSED: 'fallingBomb:missed',
+
   // 몬스터 & 게이지 관련
   MONSTER_HP_CHANGED: 'monster:hpChanged',
   MONSTER_DIED: 'monster:died',
