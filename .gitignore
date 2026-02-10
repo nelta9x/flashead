@@ -28,8 +28,7 @@ coverage/
 playwright-report/
 test-results/
 blob-report/
-output/web-game/
-output/web-game-*/
+output/
 
 # Misc
 *.tgz
