@@ -29,8 +29,8 @@ export default defineConfig({
         background_color: '#0a0a0f',
         display: 'standalone',
         orientation: 'landscape',
-        scope: '/',
-        start_url: '/',
+        scope: './',
+        start_url: './',
         categories: ['games', 'entertainment'],
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
