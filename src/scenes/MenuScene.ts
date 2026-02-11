@@ -76,6 +76,12 @@ export class MenuScene extends Phaser.Scene {
       },
     });
     this.inputController.setup();
+
+    this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 8, 'v0.1', {
+      fontFamily: FONTS.MAIN,
+      fontSize: '12px',
+      color: '#ffffff',
+    }).setOrigin(1, 1).setAlpha(0.5).setDepth(DEPTHS.background + 1);
   }
 
   private createTitle(): void {
