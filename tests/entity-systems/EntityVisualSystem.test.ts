@@ -1,41 +1,86 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+
+// Mock DataManager before import
+vi.mock('../../src/data/DataManager', () => ({
+  Data: {
+    boss: {
+      feedback: { vibrationThreshold: 0.5, vibrationIntensity: 10 },
+    },
+  },
+}));
+
+import { World } from '../../src/world/World';
 import { EntityVisualSystem } from '../../src/systems/entity-systems/EntityVisualSystem';
 
-function createMockEntity(overrides: { active?: boolean; isDead?: boolean } = {}) {
-  return {
-    active: overrides.active ?? true,
-    getIsDead: vi.fn().mockReturnValue(overrides.isDead ?? false),
-    tickVisual: vi.fn(),
-  };
-}
-
 describe('EntityVisualSystem', () => {
-  it('calls tickVisual with delta on active entities', () => {
-    const system = new EntityVisualSystem();
-    const e1 = createMockEntity();
-    const e2 = createMockEntity();
+  let world: World;
+  let system: EntityVisualSystem;
 
-    system.tick([e1, e2] as never, 16);
+  beforeEach(() => {
+    world = new World();
+    system = new EntityVisualSystem(world);
+  });
 
-    expect(e1.tickVisual).toHaveBeenCalledWith(16);
-    expect(e2.tickVisual).toHaveBeenCalledWith(16);
+  it('increments pullPhase when isBeingPulled', () => {
+    world.createEntity('e1');
+    world.visualState.set('e1', {
+      hitFlashPhase: 0, wobblePhase: 0, blinkPhase: 0, isBeingPulled: true, pullPhase: 0,
+    });
+
+    system.tick([] as never, 16);
+
+    expect(world.visualState.getRequired('e1').pullPhase).toBe(0.5);
+  });
+
+  it('decrements hitFlashPhase', () => {
+    world.createEntity('e1');
+    world.visualState.set('e1', {
+      hitFlashPhase: 1, wobblePhase: 0, blinkPhase: 0, isBeingPulled: false, pullPhase: 0,
+    });
+
+    system.tick([] as never, 100);
+
+    expect(world.visualState.getRequired('e1').hitFlashPhase).toBe(0);
+  });
+
+  it('blinks when near lifetime end', () => {
+    world.createEntity('e1');
+    world.visualState.set('e1', {
+      hitFlashPhase: 0, wobblePhase: 0, blinkPhase: 0, isBeingPulled: false, pullPhase: 0,
+    });
+    world.lifetime.set('e1', {
+      elapsedTime: 4000, movementTime: 0, lifetime: 5000, spawnDuration: 150, globalSlowPercent: 0,
+    });
+    world.transform.set('e1', { x: 0, y: 0, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 });
+
+    system.tick([] as never, 16);
+
+    // timeRatio = 1 - 4000/5000 = 0.2 < 0.3 → blink active
+    expect(world.visualState.getRequired('e1').blinkPhase).toBeGreaterThan(0);
+    expect(world.transform.getRequired('e1').alpha).not.toBe(1);
+  });
+
+  it('skips player entity', () => {
+    world.createEntity('player');
+    world.visualState.set('player', {
+      hitFlashPhase: 1, wobblePhase: 0, blinkPhase: 0, isBeingPulled: true, pullPhase: 0,
+    });
+
+    system.tick([] as never, 16);
+
+    const vs = world.visualState.getRequired('player');
+    expect(vs.pullPhase).toBe(0); // not updated
+    expect(vs.hitFlashPhase).toBe(1); // not decremented
   });
 
   it('skips inactive entities', () => {
-    const system = new EntityVisualSystem();
-    const inactive = createMockEntity({ active: false });
+    world.visualState.set('e1', {
+      hitFlashPhase: 1, wobblePhase: 0, blinkPhase: 0, isBeingPulled: true, pullPhase: 0,
+    });
 
-    system.tick([inactive] as never, 16);
+    system.tick([] as never, 16);
 
-    expect(inactive.tickVisual).not.toHaveBeenCalled();
-  });
-
-  it('skips dead entities', () => {
-    const system = new EntityVisualSystem();
-    const dead = createMockEntity({ isDead: true });
-
-    system.tick([dead] as never, 16);
-
-    expect(dead.tickVisual).not.toHaveBeenCalled();
+    const vs = world.visualState.getRequired('e1');
+    expect(vs.pullPhase).toBe(0);
   });
 });

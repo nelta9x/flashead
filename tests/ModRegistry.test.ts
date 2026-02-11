@@ -12,6 +12,7 @@ import { ModSystemRegistry } from '../src/plugins/ModSystemRegistry';
 import { EntitySystemPipeline } from '../src/systems/EntitySystemPipeline';
 import { StatusEffectManager } from '../src/systems/StatusEffectManager';
 import { ModRegistry } from '../src/plugins/ModRegistry';
+import { World } from '../src/world/World';
 import type { ModModule, ModContext } from '../src/plugins/types/ModTypes';
 import type { AbilityPlugin, EntityTypePlugin } from '../src/plugins/types';
 import type { EntitySystem } from '../src/systems/entity-systems/EntitySystem';
@@ -61,6 +62,7 @@ describe('ModRegistry', () => {
       entitySystemPipeline,
       statusEffectManager,
       eventBus,
+      new World(),
     );
   });
 

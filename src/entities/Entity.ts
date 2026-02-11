@@ -254,18 +254,78 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     this.syncToWorld();
   }
 
-  /** Dual-write: Entity 필드를 World store에 동기 기록 */
+  /** Dual-write: Entity 필드를 World store에 동기 기록 (아키타입 기반) */
   private syncToWorld(): void {
     const w = Entity.world;
     if (!w) return;
 
     const id = this._entityId;
-    w.createEntity(id);
+    const archetypeId = this.typePlugin?.config.archetypeId
+      ?? (this._isGatekeeper ? 'boss' : 'dish');
 
+    const archetype = w.archetypeRegistry.get(archetypeId);
+    if (!archetype) {
+      // 아키타입이 없으면 fallback으로 직접 기록
+      this.syncToWorldDirect(w, id);
+      return;
+    }
+
+    const values: Record<string, unknown> = {
+      identity: {
+        entityId: id, entityType: this._entityType, isGatekeeper: this._isGatekeeper,
+      },
+      transform: {
+        x: this.x, y: this.y,
+        baseX: this.baseX, baseY: this.baseY,
+        alpha: this.alpha, scaleX: this.scaleX, scaleY: this.scaleY,
+      },
+      health: { currentHp: this._currentHp, maxHp: this._maxHp },
+      statusCache: {
+        isFrozen: this._isFrozen, slowFactor: this.slowFactor, isShielded: false,
+      },
+      lifetime: {
+        elapsedTime: this._elapsedTime, movementTime: this.movementTime,
+        lifetime: this.lifetime, spawnDuration: this.spawnDuration,
+        globalSlowPercent: this.upgradeOptions.globalSlowPercent ?? 0,
+      },
+      dishProps: {
+        dangerous: this.dangerous, invulnerable: this.invulnerable,
+        color: this.color, size: this._size,
+        interactiveRadius: this.interactiveRadius,
+        upgradeOptions: this.upgradeOptions,
+        destroyedByAbility: this.destroyedByAbility,
+      },
+      cursorInteraction: {
+        isHovered: this._isHovered, isBeingDamaged: this.isBeingDamaged,
+        damageInterval: this.damageInterval,
+        damageTimerHandle: this.damageTimer,
+        cursorInteractionType: this.typePlugin?.config.cursorInteraction ?? 'dps',
+      },
+      visualState: {
+        hitFlashPhase: this.hitFlashPhase, wobblePhase: this.wobblePhase,
+        blinkPhase: this.blinkPhase, isBeingPulled: this._isBeingPulled,
+        pullPhase: this.pullPhase,
+      },
+      movement: { strategy: this.movementStrategy },
+      phaserNode: {
+        container: this, graphics: this.graphics,
+        body: this.body as Phaser.Physics.Arcade.Body | null,
+        spawnTween: this.spawnTween,
+      },
+    };
+
+    if (this.bossBehavior) {
+      values['bossBehavior'] = { behavior: this.bossBehavior };
+    }
+
+    w.spawnFromArchetype(archetype, id, values);
+  }
+
+  /** 아키타입 없을 때 직접 기록 (fallback) */
+  private syncToWorldDirect(w: World, id: string): void {
+    w.createEntity(id);
     w.identity.set(id, {
-      entityId: id,
-      entityType: this._entityType,
-      isGatekeeper: this._isGatekeeper,
+      entityId: id, entityType: this._entityType, isGatekeeper: this._isGatekeeper,
     });
     w.transform.set(id, {
       x: this.x, y: this.y,
@@ -300,108 +360,48 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
       pullPhase: this.pullPhase,
     });
     w.movement.set(id, { strategy: this.movementStrategy });
-
     w.phaserNode.set(id, {
       container: this, graphics: this.graphics,
       body: this.body as Phaser.Physics.Arcade.Body | null,
       spawnTween: this.spawnTween,
     });
-
     if (this.bossBehavior) {
       w.bossBehavior.set(id, { behavior: this.bossBehavior });
     }
   }
 
-  // === Tick Phase Methods (called by external systems) ===
-
-  /** EntityStatusSystem: derive freeze/slow cache from StatusEffectManager */
-  tickStatusEffects(): void {
-    const sem = Entity.statusEffectManager;
-    if (sem) {
-      const id = this._entityId;
-      this._isFrozen = sem.hasEffect(id, 'freeze') || sem.hasEffect(id, 'slow');
-      const slowEffects = sem.getEffectsByType(id, 'slow');
-      this.slowFactor = slowEffects.length > 0
-        ? Math.min(...slowEffects.map(e => (e.data['factor'] as number) ?? 1.0))
-        : 1.0;
-    } else {
-      this._isFrozen = false;
-      this.slowFactor = 1.0;
-    }
-  }
-
-  /** EntityTimingSystem: accumulate time + check lifetime. Returns true if timed out */
-  tickTimeDelta(delta: number): boolean {
-    const globalSlowPercent = this.upgradeOptions.globalSlowPercent ?? 0;
-    const globalSlowFactor = 1 - globalSlowPercent;
-    const effectiveDelta = delta * this.slowFactor * globalSlowFactor;
-    this._elapsedTime += effectiveDelta;
-    this.movementTime += delta;
-
-    if (this.lifetime !== null && this._elapsedTime >= this.lifetime) {
-      this.onTimeout();
-      return true;
-    }
-    return false;
-  }
-
-  /** EntityMovementSystem: execute movement strategy + boss offsets, or wobble */
-  tickMovement(delta: number): void {
-    const isStunned = this.bossBehavior?.isHitStunned ?? false;
-    if (this.movementStrategy && !this._isFrozen && !isStunned) {
-      const pos = this.movementStrategy.update(delta, this._isFrozen, isStunned);
-      this.baseX = pos.x;
-      this.baseY = pos.y;
-
-      const shakeX = this.bossBehavior?.shakeOffsetX ?? 0;
-      const shakeY = this.bossBehavior?.shakeOffsetY ?? 0;
-      const pushX = this.bossBehavior?.pushOffsetX ?? 0;
-      const pushY = this.bossBehavior?.pushOffsetY ?? 0;
-      this.x = this.baseX + shakeX + pushX;
-      this.y = this.baseY + shakeY + pushY;
-    } else if (!this.movementStrategy) {
-      this.wobblePhase += 0.1 * this.slowFactor;
-    }
-  }
-
-  /** EntityVisualSystem: visual counters + blink + boss vibration */
-  tickVisual(delta: number): void {
-    if (this._isBeingPulled) {
-      this.pullPhase += 0.5;
-    }
-
-    if (this.hitFlashPhase > 0) {
-      this.hitFlashPhase -= delta / 100;
-      if (this.hitFlashPhase < 0) this.hitFlashPhase = 0;
-    }
-
-    if (this.lifetime !== null) {
-      const timeRatio = this.getTimeRatio();
-      if (timeRatio < 0.3) {
-        this.blinkPhase += 0.3;
-        this.setAlpha(0.5 + Math.sin(this.blinkPhase) * 0.5);
-      }
-    }
-
-    if (this._isGatekeeper && this._maxHp > 0) {
-      const dangerLevel = 1 - this._currentHp / this._maxHp;
-      const bossFeedback = Data.boss.feedback;
-      if (dangerLevel > bossFeedback.vibrationThreshold) {
-        const intensity = bossFeedback.vibrationIntensity * dangerLevel;
-        this.x += (Math.random() - 0.5) * intensity;
-        this.y += (Math.random() - 0.5) * intensity;
-      }
-    }
-  }
-
-  /** EntityRenderSystem: drawEntity + typePlugin.onUpdate */
-  tickRender(delta: number): void {
-    this.drawEntity();
-    this.typePlugin?.onUpdate?.(this, delta, this.movementTime);
+  /** plugin.onUpdate 호출 (전이기: RenderSystem에서 사용) */
+  tickPluginUpdate(delta: number, movementTime: number): void {
+    this.typePlugin?.onUpdate?.(this, delta, movementTime);
   }
 
   /** Dead state accessor for system guards */
   getIsDead(): boolean { return this._isDead; }
+
+  /** Entity → World 스토어 동기 (데미지/상태 변경 시 호출) */
+  private syncDamageToWorld(): void {
+    const w = Entity.world;
+    if (!w) return;
+    const id = this._entityId;
+    const health = w.health.get(id);
+    if (health) {
+      health.currentHp = this._currentHp;
+      health.maxHp = this._maxHp;
+    }
+    const vs = w.visualState.get(id);
+    if (vs) {
+      vs.hitFlashPhase = this.hitFlashPhase;
+    }
+    const ci = w.cursorInteraction.get(id);
+    if (ci) {
+      ci.isHovered = this._isHovered;
+      ci.isBeingDamaged = this.isBeingDamaged;
+    }
+    const dp = w.dishProps.get(id);
+    if (dp) {
+      dp.destroyedByAbility = this.destroyedByAbility;
+    }
+  }
 
   // === Damage ===
 
@@ -453,6 +453,7 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
 
     this._currentHp -= damage;
     this.hitFlashPhase = 1;
+    this.syncDamageToWorld();
 
     EventBus.getInstance().emit(
       GameEvents.DISH_DAMAGED,
@@ -473,6 +474,7 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     this.destroyedByAbility = true;
     this._currentHp -= damage;
     this.hitFlashPhase = 1;
+    this.syncDamageToWorld();
 
     EventBus.getInstance().emit(
       GameEvents.DISH_DAMAGED,
@@ -498,6 +500,7 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     this._currentHp -= totalDamage;
     this.hitFlashPhase = 1;
     this.destroyedByAbility = true;
+    this.syncDamageToWorld();
 
     EventBus.getInstance().emit(
       GameEvents.DISH_DAMAGED,
@@ -519,6 +522,7 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     this._currentHp = Math.max(0, this._currentHp - damage);
     this.bossBehavior?.refreshArmorSegments(this._currentHp, this._maxHp);
     this.bossBehavior?.onDamage(sourceX, sourceY);
+    this.syncDamageToWorld();
     this.typePlugin?.onDamaged?.(this, damage, 'cursor');
 
     if (this._currentHp <= 0) {
@@ -537,6 +541,7 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     this._maxHp = Math.max(1, Math.floor(maxHp));
     this.bossBehavior?.refreshArmorSegments(this._currentHp, this._maxHp);
     this.bossBehavior?.onDamage(sourceX, sourceY);
+    this.syncDamageToWorld();
 
     if (this._currentHp <= 0) {
       this._isDead = true;
@@ -589,7 +594,11 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
 
   // === Magnet ===
 
-  setBeingPulled(pulled: boolean): void { this._isBeingPulled = pulled; }
+  setBeingPulled(pulled: boolean): void {
+    this._isBeingPulled = pulled;
+    const vs = Entity.world?.visualState.get(this._entityId);
+    if (vs) vs.isBeingPulled = pulled;
+  }
 
   // === Force destroy ===
 
@@ -686,7 +695,8 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     this.deactivate();
   }
 
-  private onTimeout(): void {
+  /** Timeout 처리 (EntityTimingSystem에서 호출). */
+  handleTimeout(): void {
     if (!this.active) return;
     this.clearDamageTimer();
 

@@ -1,25 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { World } from '../src/world/World';
-import type { StatusEffectManager, StatusEffect } from '../src/systems/StatusEffectManager';
 import type { CursorRenderer } from '../src/effects/CursorRenderer';
 import type { CursorTrail } from '../src/effects/CursorTrail';
 import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
 import type { HealthSystem } from '../src/systems/HealthSystem';
 import type { Entity } from '../src/entities/Entity';
-
-function createMockSEM(overrides: Partial<StatusEffectManager> = {}): StatusEffectManager {
-  return {
-    hasEffect: vi.fn(() => false),
-    getEffectsByType: vi.fn(() => []),
-    applyEffect: vi.fn(),
-    removeEffect: vi.fn(),
-    tick: vi.fn(),
-    clearEntity: vi.fn(),
-    getEffects: vi.fn(() => []),
-    clear: vi.fn(),
-    ...overrides,
-  } as unknown as StatusEffectManager;
-}
 
 function createMockCursorRenderer(): CursorRenderer {
   return {
@@ -74,7 +59,6 @@ function setupPlayerEntity(world: World): void {
 
 describe('PlayerTickSystem', () => {
   let world: World;
-  let sem: StatusEffectManager;
   let cursorRenderer: CursorRenderer;
   let cursorTrail: CursorTrail;
   let upgradeSystem: UpgradeSystem;
@@ -93,7 +77,6 @@ describe('PlayerTickSystem', () => {
     PlayerTickSystem = mod.PlayerTickSystem;
 
     world = new World();
-    sem = createMockSEM();
     cursorRenderer = createMockCursorRenderer();
     cursorTrail = createMockCursorTrail();
     upgradeSystem = createMockUpgradeSystem();
@@ -101,7 +84,7 @@ describe('PlayerTickSystem', () => {
   });
 
   function createSystem() {
-    return new PlayerTickSystem(world, sem, cursorRenderer, cursorTrail, upgradeSystem, healthSystem);
+    return new PlayerTickSystem(world, cursorRenderer, cursorTrail, upgradeSystem, healthSystem);
   }
 
   describe('tick', () => {
@@ -159,38 +142,6 @@ describe('PlayerTickSystem', () => {
       expect(call[7]).toBe(1000); // gameTime
       expect(call[8]).toBe(5); // currentHp
       expect(call[9]).toBe(5); // maxHp
-    });
-  });
-
-  describe('syncStatusEffects', () => {
-    it('SEM에서 freeze/slow 상태를 statusCache에 반영해야 함', () => {
-      setupPlayerEntity(world);
-      const frozenSem = createMockSEM({
-        hasEffect: vi.fn((_id: string, type: string) => type === 'freeze' || type === 'slow'),
-        getEffectsByType: vi.fn((_id: string, type: string) => {
-          if (type === 'slow') {
-            return [{ id: 'player:slow', type: 'slow', data: { factor: 0.5 }, duration: 1000, remaining: 500 }] as StatusEffect[];
-          }
-          return [];
-        }),
-      });
-
-      const system = new PlayerTickSystem(world, frozenSem, cursorRenderer, cursorTrail, upgradeSystem, healthSystem);
-      system.tick([] as Entity[], 16);
-
-      const statusCache = world.statusCache.getRequired('player');
-      expect(statusCache.isFrozen).toBe(true);
-      expect(statusCache.slowFactor).toBe(0.5);
-    });
-
-    it('SEM에 효과가 없으면 기본값을 유지해야 함', () => {
-      setupPlayerEntity(world);
-      const system = createSystem();
-      system.tick([] as Entity[], 16);
-
-      const statusCache = world.statusCache.getRequired('player');
-      expect(statusCache.isFrozen).toBe(false);
-      expect(statusCache.slowFactor).toBe(1.0);
     });
   });
 

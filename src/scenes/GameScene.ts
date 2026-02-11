@@ -250,23 +250,25 @@ export class GameScene extends Phaser.Scene {
 
     // ECS-style entity system pipeline (data-driven 순서)
     this.entitySystemPipeline = new EntitySystemPipeline(Data.gameConfig.entityPipeline);
-    this.entitySystemPipeline.register(new EntityStatusSystem());
-    this.entitySystemPipeline.register(new EntityTimingSystem());
-    this.entitySystemPipeline.register(new EntityMovementSystem());
-    this.entitySystemPipeline.register(new EntityVisualSystem());
-    this.entitySystemPipeline.register(new EntityRenderSystem());
+    this.entitySystemPipeline.register(new EntityStatusSystem(this.ecsWorld, this.statusEffectManager));
+    this.entitySystemPipeline.register(new EntityTimingSystem(this.ecsWorld, (id) => this.findEntityById(id)));
+    this.entitySystemPipeline.register(new EntityMovementSystem(this.ecsWorld));
+    this.entitySystemPipeline.register(new EntityVisualSystem(this.ecsWorld));
+    this.entitySystemPipeline.register(new EntityRenderSystem(this.ecsWorld, (id) => this.findEntityById(id)));
 
-    // Player entity 생성
-    this.ecsWorld.createEntity('player');
-    this.ecsWorld.identity.set('player', { entityId: 'player', entityType: 'player', isGatekeeper: false });
-    this.ecsWorld.transform.set('player', { x: 0, y: 0, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 });
-    this.ecsWorld.health.set('player', { currentHp: INITIAL_HP, maxHp: INITIAL_HP });
-    this.ecsWorld.statusCache.set('player', { isFrozen: false, slowFactor: 1.0, isShielded: false });
-    this.ecsWorld.playerInput.set('player', {
-      targetX: 0, targetY: 0,
-      smoothingConfig: Data.gameConfig.player.input.smoothing,
+    // Player entity 생성 (아키타입 기반)
+    const playerArchetype = this.ecsWorld.archetypeRegistry.getRequired('player');
+    this.ecsWorld.spawnFromArchetype(playerArchetype, 'player', {
+      identity: { entityId: 'player', entityType: 'player', isGatekeeper: false },
+      transform: { x: 0, y: 0, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 },
+      health: { currentHp: INITIAL_HP, maxHp: INITIAL_HP },
+      statusCache: { isFrozen: false, slowFactor: 1.0, isShielded: false },
+      playerInput: {
+        targetX: 0, targetY: 0,
+        smoothingConfig: Data.gameConfig.player.input.smoothing,
+      },
+      playerRender: { gaugeRatio: 0, gameTime: 0 },
     });
-    this.ecsWorld.playerRender.set('player', { gaugeRatio: 0, gameTime: 0 });
 
     // 플러그인 등록 및 초기화
     PluginRegistry.resetInstance();
@@ -280,6 +282,7 @@ export class GameScene extends Phaser.Scene {
       this.entitySystemPipeline,
       this.statusEffectManager,
       EventBus.getInstance(),
+      this.ecsWorld,
     );
     // Future: new ModLoader().loadMultiple(userMods, this.modRegistry);
 
@@ -318,7 +321,6 @@ export class GameScene extends Phaser.Scene {
     // PlayerTickSystem 등록 (cursorRenderer/cursorTrail 의존)
     this.playerTickSystem = new PlayerTickSystem(
       this.ecsWorld,
-      this.statusEffectManager,
       this.cursorRenderer,
       this.cursorTrail,
       this.upgradeSystem,
@@ -726,6 +728,18 @@ export class GameScene extends Phaser.Scene {
     this.dishPool.forEach((dish) => entities.push(dish));
     this.bossCombatCoordinator.forEachBoss((boss) => entities.push(boss));
     return entities;
+  }
+
+  private findEntityById(entityId: string): Entity | undefined {
+    let found: Entity | undefined;
+    this.dishPool.forEach((dish) => {
+      if (!found && dish.getEntityId() === entityId) found = dish;
+    });
+    if (found) return found;
+    this.bossCombatCoordinator.forEachBoss((boss) => {
+      if (!found && boss.getEntityId() === entityId) found = boss;
+    });
+    return found;
   }
 
   private clearAllDishes(): void {

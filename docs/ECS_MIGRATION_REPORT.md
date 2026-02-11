@@ -426,11 +426,40 @@ Player를 ECS World의 entity로 통합. 커서 위치가 World store에서 관�
 - 483 테스트 전체 통과 (469 기존 + 14 신규)
 - lint, build 모두 통과
 
-### 다음 단계 (Phase 4c~4e, 별도 세션)
+### Phase 4c: ComponentDef 토큰 + Archetype + 시스템 → World 스토어 읽기 (2026-02-11)
 
-1. **Phase 4c**: 5개 기존 entity 시스템 → World store 직접 읽기 전환
-2. **Phase 4d**: Entity tick 메서드 제거 → Entity 경량화
-3. **Phase 4e**: 외부 소비자(28파일) DishLike → store 읽기 전환
+**완료 항목:**
+1. `ComponentDef<T>` 토큰 인프라 (`defineComponent()`) — MOD가 커스텀 컴포넌트 정의 가능
+2. World 동적 스토어 레지스트리 (`register/store/getStoreByName/unregisterStore`)
+3. `ArchetypeRegistry` + 빌트인 3개 아키타입 (player/dish/boss)
+4. `World.spawnFromArchetype()` — 아키타입 기반 엔티티 스폰
+5. Entity.syncToWorld() 아키타입 기반 리팩토링, `handleTimeout()` public 추가
+6. GameScene player 생성 → `spawnFromArchetype()` 1호출로 전환
+7. 5개 시스템 World 스토어 직접 읽기 전환:
+   - EntityStatusSystem: World.statusCache + SEM 기반 (player 포함)
+   - EntityTimingSystem: World.lifetime 기반, entity.handleTimeout() 위임
+   - EntityMovementSystem: World.movement/transform 기반, strategy.update() 직접 호출
+   - EntityVisualSystem: World.visualState 기반, blink/hitFlash/pullPhase/boss 진동
+   - EntityRenderSystem: World → Phaser Container 동기화, DishRenderer/BossRenderer 직접 호출
+8. PlayerTickSystem.syncStatusEffects() 제거 (EntityStatusSystem이 전역 처리)
+9. ModContext에 `world` + `archetypeRegistry` 추가, ModRegistry 아키타입/스토어 추적+해제
+10. Entity 데미지 → World 스토어 동기 (syncDamageToWorld)
+11. Entity 레거시 tick 메서드 5개 제거 (tickStatusEffects/tickTimeDelta/tickMovement/tickVisual/tickRender)
+12. EntityManager.updateAll() 레거시 경로 제거
+
+**수치:** 521 테스트 통과, lint 0 에러, build 성공
+
+**접근 패턴 3가지:**
+| 사용자 | 접근 방식 | 타입 안전성 |
+|--------|----------|------------|
+| 빌트인 코드 | `world.transform.get(id)` | 완전 (기존 호환) |
+| 새 코드/시스템 | `world.store(C_Transform).get(id)` | 완전 (Def 토큰 기반) |
+| 아키타입 스폰 | `world.getStoreByName(name)` | unknown (내부만 사용) |
+
+### 다음 단계 (Phase 4d~4e, 별도 세션)
+
+1. **Phase 4d**: Entity tick 메서드 제거 → Entity 경량화
+2. **Phase 4e**: 외부 소비자(28파일) DishLike → store 읽기 전환
 
 ### Phaser 4 stable 출시 모니터링
 

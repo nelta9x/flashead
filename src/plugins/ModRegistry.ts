@@ -4,6 +4,7 @@ import type { StatusEffectManager } from '../systems/StatusEffectManager';
 import type { ModModule, ModContext } from './types/ModTypes';
 import type { PluginRegistry } from './PluginRegistry';
 import type { ModSystemRegistry } from './ModSystemRegistry';
+import type { World } from '../world/World';
 import { ScopedEventBusWrapper } from './ScopedEventBusWrapper';
 
 interface ModRegistration {
@@ -12,6 +13,8 @@ interface ModRegistration {
   readonly entityTypeIds: string[];
   readonly modSystemIds: string[];
   readonly entitySystemIds: string[];
+  readonly archetypeIds: string[];
+  readonly storeNames: string[];
   readonly scopedEventBus: ScopedEventBusWrapper;
 }
 
@@ -27,6 +30,7 @@ export class ModRegistry {
   private readonly entitySystemPipeline: EntitySystemPipeline;
   private readonly statusEffectManager: StatusEffectManager;
   private readonly eventBus: EventBus;
+  private readonly world: World;
 
   constructor(
     pluginRegistry: PluginRegistry,
@@ -34,12 +38,14 @@ export class ModRegistry {
     entitySystemPipeline: EntitySystemPipeline,
     statusEffectManager: StatusEffectManager,
     eventBus: EventBus,
+    world: World,
   ) {
     this.pluginRegistry = pluginRegistry;
     this.modSystemRegistry = modSystemRegistry;
     this.entitySystemPipeline = entitySystemPipeline;
     this.statusEffectManager = statusEffectManager;
     this.eventBus = eventBus;
+    this.world = world;
   }
 
   loadMod(mod: ModModule): boolean {
@@ -52,6 +58,8 @@ export class ModRegistry {
     const entityTypesBefore = new Set(this.pluginRegistry.getAllEntityTypes().keys());
     const modSystemsBefore = new Set(this.modSystemRegistry.getSystemIds());
     const entitySystemsBefore = new Set(this.entitySystemPipeline.getRegisteredIds());
+    const archetypesBefore = new Set(this.world.archetypeRegistry.getIds());
+    const storesBefore = new Set(this.world.getStoreNames());
 
     const scopedEventBus = new ScopedEventBusWrapper(this.eventBus);
 
@@ -61,6 +69,8 @@ export class ModRegistry {
       entitySystemPipeline: this.entitySystemPipeline,
       statusEffectManager: this.statusEffectManager,
       events: scopedEventBus,
+      world: this.world,
+      archetypeRegistry: this.world.archetypeRegistry,
     };
 
     try {
@@ -74,6 +84,8 @@ export class ModRegistry {
         entityTypesBefore,
         modSystemsBefore,
         entitySystemsBefore,
+        archetypesBefore,
+        storesBefore,
       );
       this.rollbackRegistration(reg);
       return false;
@@ -86,6 +98,8 @@ export class ModRegistry {
       entityTypesBefore,
       modSystemsBefore,
       entitySystemsBefore,
+      archetypesBefore,
+      storesBefore,
     );
     this.mods.set(mod.id, reg);
     return true;
@@ -103,6 +117,8 @@ export class ModRegistry {
       entitySystemPipeline: this.entitySystemPipeline,
       statusEffectManager: this.statusEffectManager,
       events: reg.scopedEventBus,
+      world: this.world,
+      archetypeRegistry: this.world.archetypeRegistry,
     };
 
     try {
@@ -143,6 +159,8 @@ export class ModRegistry {
     entityTypesBefore: Set<string>,
     modSystemsBefore: Set<string>,
     entitySystemsBefore: Set<string>,
+    archetypesBefore: Set<string>,
+    storesBefore: Set<string>,
   ): ModRegistration {
     const newAbilities = [...this.pluginRegistry.getAllAbilities().keys()]
       .filter((id) => !abilitiesBefore.has(id));
@@ -152,6 +170,10 @@ export class ModRegistry {
       .filter((id) => !modSystemsBefore.has(id));
     const newEntitySystems = this.entitySystemPipeline.getRegisteredIds()
       .filter((id) => !entitySystemsBefore.has(id));
+    const newArchetypes = this.world.archetypeRegistry.getIds()
+      .filter((id) => !archetypesBefore.has(id));
+    const newStores = this.world.getStoreNames()
+      .filter((name) => !storesBefore.has(name));
 
     return {
       mod,
@@ -159,6 +181,8 @@ export class ModRegistry {
       entityTypeIds: newEntityTypes,
       modSystemIds: newModSystems,
       entitySystemIds: newEntitySystems,
+      archetypeIds: newArchetypes,
+      storeNames: newStores,
       scopedEventBus,
     };
   }
@@ -175,6 +199,12 @@ export class ModRegistry {
     }
     for (const id of reg.entitySystemIds) {
       this.entitySystemPipeline.unregister(id);
+    }
+    for (const id of reg.archetypeIds) {
+      this.world.archetypeRegistry.unregister(id);
+    }
+    for (const name of reg.storeNames) {
+      this.world.unregisterStore(name);
     }
     reg.scopedEventBus.removeAll();
   }

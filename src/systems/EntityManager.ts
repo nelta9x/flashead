@@ -81,31 +81,6 @@ export class EntityManager {
     return entity;
   }
 
-  // === Update ===
-
-  updateAll(delta: number, _gameTime: number): void {
-    // Phase 1: collect dead entities
-    const deadIds: string[] = [];
-    for (const [entityId, entity] of this.activeEntities) {
-      if (!entity.active) {
-        deadIds.push(entityId);
-      } else {
-        entity.tickStatusEffects();
-        if (!entity.tickTimeDelta(delta)) {
-          entity.tickMovement(delta);
-          entity.tickVisual(delta);
-          entity.tickRender(delta);
-        }
-      }
-    }
-    // Phase 2: remove dead entries
-    for (const entityId of deadIds) {
-      this.activeEntities.delete(entityId);
-      this.gatekeepers.delete(entityId);
-      this.entityPoolType.delete(entityId);
-    }
-  }
-
   // === Cursor interaction ===
 
   updateCursorInteraction(cursorX: number, cursorY: number, cursorRadius: number): void {

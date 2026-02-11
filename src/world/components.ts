@@ -3,6 +3,7 @@ import type { MovementStrategy } from '../plugins/types';
 import type { DishUpgradeOptions } from '../entities/EntityTypes';
 import type { CursorInteractionType } from '../plugins/types';
 import type { CursorSmoothingConfig } from '../data/types';
+import { defineComponent } from './ComponentDef';
 
 // === C1: Identity ===
 export interface IdentityComponent {
@@ -10,6 +11,7 @@ export interface IdentityComponent {
   entityType: string;
   isGatekeeper: boolean;
 }
+export const C_Identity = defineComponent<IdentityComponent>('identity');
 
 // === C2: Transform ===
 export interface TransformComponent {
@@ -21,12 +23,14 @@ export interface TransformComponent {
   scaleX: number;
   scaleY: number;
 }
+export const C_Transform = defineComponent<TransformComponent>('transform');
 
 // === C3: Health ===
 export interface HealthComponent {
   currentHp: number;
   maxHp: number;
 }
+export const C_Health = defineComponent<HealthComponent>('health');
 
 // === C4: StatusCache (frame-level cache from StatusEffectManager) ===
 export interface StatusCacheComponent {
@@ -34,6 +38,7 @@ export interface StatusCacheComponent {
   slowFactor: number;
   isShielded: boolean;
 }
+export const C_StatusCache = defineComponent<StatusCacheComponent>('statusCache');
 
 // === C5: Lifetime (time-based entities) ===
 export interface LifetimeComponent {
@@ -43,6 +48,7 @@ export interface LifetimeComponent {
   spawnDuration: number;
   globalSlowPercent: number;
 }
+export const C_Lifetime = defineComponent<LifetimeComponent>('lifetime');
 
 // === C6: DishProps (dish-specific data) ===
 export interface DishPropsComponent {
@@ -54,6 +60,7 @@ export interface DishPropsComponent {
   upgradeOptions: DishUpgradeOptions;
   destroyedByAbility: boolean;
 }
+export const C_DishProps = defineComponent<DishPropsComponent>('dishProps');
 
 // === C7: CursorInteraction ===
 export interface CursorInteractionComponent {
@@ -63,6 +70,7 @@ export interface CursorInteractionComponent {
   damageTimerHandle: unknown;
   cursorInteractionType: CursorInteractionType;
 }
+export const C_CursorInteraction = defineComponent<CursorInteractionComponent>('cursorInteraction');
 
 // === C8: VisualState (animation phases) ===
 export interface VisualStateComponent {
@@ -72,11 +80,13 @@ export interface VisualStateComponent {
   isBeingPulled: boolean;
   pullPhase: number;
 }
+export const C_VisualState = defineComponent<VisualStateComponent>('visualState');
 
 // === C9: Movement ===
 export interface MovementComponent {
   strategy: MovementStrategy | null;
 }
+export const C_Movement = defineComponent<MovementComponent>('movement');
 
 // === C10: PhaserNode (Phaser object references) ===
 export interface PhaserNodeComponent {
@@ -85,11 +95,13 @@ export interface PhaserNodeComponent {
   body: Phaser.Physics.Arcade.Body | null;
   spawnTween: Phaser.Tweens.Tween | null;
 }
+export const C_PhaserNode = defineComponent<PhaserNodeComponent>('phaserNode');
 
 // === C11: BossBehavior ===
 export interface BossBehaviorComponent {
   behavior: BossEntityBehavior;
 }
+export const C_BossBehavior = defineComponent<BossBehaviorComponent>('bossBehavior');
 
 // === Player-specific components ===
 
@@ -99,9 +111,11 @@ export interface PlayerInputComponent {
   targetY: number;
   smoothingConfig: CursorSmoothingConfig;
 }
+export const C_PlayerInput = defineComponent<PlayerInputComponent>('playerInput');
 
 // === P2: PlayerRender ===
 export interface PlayerRenderComponent {
   gaugeRatio: number;
   gameTime: number;
 }
+export const C_PlayerRender = defineComponent<PlayerRenderComponent>('playerRender');

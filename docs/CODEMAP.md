@@ -113,13 +113,15 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 
 `src/world/` 디렉토리에는 컴포넌트 기반 ECS 인프라가 위치합니다.
 
+- **`ComponentDef.ts`**: `ComponentDef<T>` 토큰 인터페이스 + `defineComponent<T>(name)` 팩토리. MOD가 커스텀 컴포넌트를 정의할 수 있음.
 - **`ComponentStore.ts`**: `Map<string, T>` 기반 제네릭 컴포넌트 저장소. `set`/`get`/`getRequired`/`has`/`delete`/`forEach`/`entities`/`size`/`clear` API.
-- **`components.ts`**: 13개 컴포넌트 인터페이스 정의.
-  - Entity용 (C1~C11): `IdentityComponent`, `TransformComponent`, `HealthComponent`, `StatusCacheComponent`, `LifetimeComponent`, `DishPropsComponent`, `CursorInteractionComponent`, `VisualStateComponent`, `MovementComponent`, `PhaserNodeComponent`, `BossBehaviorComponent`
-  - Player용 (P1~P2): `PlayerInputComponent` (커서 목표 좌표 + smoothing 설정), `PlayerRenderComponent` (gaugeRatio, gameTime)
-- **`World.ts`**: 모든 ComponentStore를 보유하고 entity lifecycle 관리. `createEntity`/`destroyEntity`/`markDead`/`flushDead` + `query(...stores)` (교차 쿼리). Player entity(`'player'`)가 transform/health/statusCache/playerInput/playerRender 컴포넌트를 보유.
-- **Dual-write 마이그레이션**: Entity가 spawn 시 내부 필드 + World store에 동시 기록. 기존 시스템은 Entity 메서드를 계속 사용하며, 신규 시스템(PlayerTickSystem)은 World store를 직접 읽음.
-- **GameScene 연결**: `initializeSystems()`에서 World 생성 + player entity 등록, `cleanup()`에서 `world.clear()` 호출. 커서 위치는 `world.transform.get('player')` 에서 읽음 (기존 `cursorX`/`cursorY` 필드 제거).
+- **`components.ts`**: 13개 컴포넌트 인터페이스 + `C_Xxx` Def 토큰 정의.
+  - Entity용 (C1~C11): `C_Identity`, `C_Transform`, `C_Health`, `C_StatusCache`, `C_Lifetime`, `C_DishProps`, `C_CursorInteraction`, `C_VisualState`, `C_Movement`, `C_PhaserNode`, `C_BossBehavior`
+  - Player용 (P1~P2): `C_PlayerInput`, `C_PlayerRender`
+- **`archetypes.ts`**: `ArchetypeDefinition` (ComponentDef 토큰 배열), `ArchetypeRegistry` (등록/조회/해제), 빌트인 3개 아키타입 (player/dish/boss).
+- **`World.ts`**: 동적 스토어 레지스트리 + entity lifecycle 관리. `register(def)`/`store(def)`/`getStoreByName()`/`unregisterStore()` + `spawnFromArchetype()` + `archetypeRegistry`. 빌트인 13개 스토어는 typed property로 직접 접근 가능 (기존 호환).
+- **시스템 파이프라인**: 6개 시스템이 World 스토어를 직접 읽음 (Entity tick 메서드 없음). EntityStatusSystem(World+SEM), EntityTimingSystem(World.lifetime), EntityMovementSystem(World.movement/transform), EntityVisualSystem(World.visualState), EntityRenderSystem(World→Phaser 동기화+DishRenderer), PlayerTickSystem(smoothing+cursor).
+- **GameScene 연결**: `initializeSystems()`에서 World 생성 + `spawnFromArchetype()` 기반 player 등록, `cleanup()`에서 `world.clear()` 호출. 커서 위치는 `world.transform.get('player')` 에서 읽음.
 
 ### 2.6 플러그인 아키텍처
 
@@ -131,8 +133,8 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
   - `EntityTypePlugin.ts`: 엔티티 타입 플러그인 인터페이스, `EntityRef`, `EntityTypeRenderer`, `DamageSource`.
   - `MovementStrategy.ts`: 이동 전략 인터페이스 (DriftMovement 등).
   - `AttackPattern.ts`: 공격 패턴 인터페이스 (LaserAttackPattern 등).
-  - `ModTypes.ts`: MOD 계약 인터페이스. `ModModule` (MOD 진입점), `ModContext` (레지스트리 원본 직접 전달), `ModFactory` (지연 생성), `ScopedEventBus` (구독 추적 인터페이스).
-- **`ModRegistry.ts`**: MOD 라이프사이클 관리자. **스냅샷 diff**로 `registerMod()` 전후 레지스트리 상태를 비교하여 MOD가 등록한 ability/entityType/modSystem/entitySystem을 추적. `unloadMod()` / `unloadAll()` 시 diff 기반 일괄 해제 + ScopedEventBus 구독 정리.
+  - `ModTypes.ts`: MOD 계약 인터페이스. `ModModule` (MOD 진입점), `ModContext` (레지스트리 + `world` + `archetypeRegistry` 전달), `ModFactory` (지연 생성), `ScopedEventBus` (구독 추적 인터페이스).
+- **`ModRegistry.ts`**: MOD 라이프사이클 관리자. **스냅샷 diff**로 `registerMod()` 전후 레지스트리 상태를 비교하여 MOD가 등록한 ability/entityType/modSystem/entitySystem/archetype/store를 추적. `unloadMod()` / `unloadAll()` 시 diff 기반 일괄 해제 + ScopedEventBus 구독 정리.
 - **`ScopedEventBusWrapper.ts`**: MOD별 EventBus 구독 추적 래퍼. `on()`/`once()`/`off()` 위임 + 내부 tracking, `removeAll()`로 일괄 해제.
 - **`ModLoader.ts`**: MOD 모듈 해석 + 에러 격리 전담. `ModFactory` → `ModModule` 변환, `load()` (단일), `loadMultiple()` (순차, 실패 건너뜀) 제공.
 - **`builtin/abilities/`**: 내장 어빌리티 플러그인 (CursorSize, CriticalChance, Missile, HealthPack, Magnet, ElectricShock, Orb, BlackHole).

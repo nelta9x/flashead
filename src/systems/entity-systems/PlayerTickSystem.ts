@@ -1,7 +1,6 @@
 import { CURSOR_HITBOX } from '../../data/constants';
 import type { Entity } from '../../entities/Entity';
 import type { World } from '../../world';
-import type { StatusEffectManager } from '../StatusEffectManager';
 import type { CursorRenderer } from '../../effects/CursorRenderer';
 import type { CursorTrail } from '../../effects/CursorTrail';
 import type { UpgradeSystem } from '../UpgradeSystem';
@@ -12,6 +11,7 @@ import { computeCursorSmoothing } from '../../utils/cursorSmoothing';
 /**
  * PlayerTickSystem: Player entity의 위치 보간, 커서 트레일, 커서 렌더링을 처리.
  * EntitySystemPipeline에 등록되어 ECS 파이프라인 내에서 실행된다.
+ * 상태효과(freeze/slow)는 EntityStatusSystem이 전역 처리하므로 여기서는 생략.
  */
 export class PlayerTickSystem implements EntitySystem {
   readonly id = 'core:player';
@@ -19,7 +19,6 @@ export class PlayerTickSystem implements EntitySystem {
 
   constructor(
     private readonly world: World,
-    private readonly sem: StatusEffectManager,
     private readonly cursorRenderer: CursorRenderer,
     private readonly cursorTrail: CursorTrail,
     private readonly upgradeSystem: UpgradeSystem,
@@ -30,7 +29,6 @@ export class PlayerTickSystem implements EntitySystem {
     const playerId = 'player';
     if (!this.world.isActive(playerId)) return;
 
-    this.syncStatusEffects(playerId);
     this.updatePosition(playerId, delta);
 
     const cursorRadius = this.computeCursorRadius();
@@ -45,17 +43,6 @@ export class PlayerTickSystem implements EntitySystem {
     const cursorRadius = this.computeCursorRadius();
     this.updateVisual('player', delta, cursorRadius);
     this.renderCursor('player', cursorRadius);
-  }
-
-  private syncStatusEffects(id: string): void {
-    const statusCache = this.world.statusCache.get(id);
-    if (!statusCache) return;
-
-    statusCache.isFrozen = this.sem.hasEffect(id, 'freeze') || this.sem.hasEffect(id, 'slow');
-    const slowEffects = this.sem.getEffectsByType(id, 'slow');
-    statusCache.slowFactor = slowEffects.length > 0
-      ? Math.min(...slowEffects.map(e => (e.data['factor'] as number) ?? 1.0))
-      : 1.0;
   }
 
   private updatePosition(id: string, delta: number): void {

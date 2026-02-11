@@ -2,6 +2,8 @@ import type { PluginRegistry } from '../PluginRegistry';
 import type { ModSystemRegistry } from '../ModSystemRegistry';
 import type { EntitySystemPipeline } from '../../systems/EntitySystemPipeline';
 import type { StatusEffectManager } from '../../systems/StatusEffectManager';
+import type { World } from '../../world/World';
+import type { ArchetypeRegistry } from '../../world/archetypes';
 
 type EventCallback = (...args: unknown[]) => void;
 
@@ -18,6 +20,8 @@ export interface ModContext {
   readonly entitySystemPipeline: EntitySystemPipeline;
   readonly statusEffectManager: StatusEffectManager;
   readonly events: ScopedEventBus;
+  readonly world: World;
+  readonly archetypeRegistry: ArchetypeRegistry;
 }
 
 export interface ModModule {

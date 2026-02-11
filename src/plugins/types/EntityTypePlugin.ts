@@ -25,6 +25,7 @@ export interface EntityTypeConfig {
   defaultLifetime: number | null;
   isGatekeeper: boolean;
   cursorInteraction: CursorInteractionType;
+  archetypeId?: string;
 }
 
 /** 엔티티 타입별 렌더러 */
