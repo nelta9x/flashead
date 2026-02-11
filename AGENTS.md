@@ -5,7 +5,7 @@ FLASHEAD - Phaser 4 기반 웹 슈팅 게임
 
 ## 기술 스택
 - TypeScript
-- Phaser 3
+- Phaser 4 (RC6)
 - Vite
 - Vitest
 

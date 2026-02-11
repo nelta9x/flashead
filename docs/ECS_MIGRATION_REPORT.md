@@ -1,6 +1,6 @@
 # ECS 마이그레이션 보고서
 
-> 최종 수정: 2026-02-11
+> 최종 수정: 2026-02-12
 > 현재 Phaser 버전: `4.0.0-rc.6` (Phase 1 완료)
 
 ---
@@ -165,7 +165,7 @@ ECS 채택은 선택사항이며, 성능이 중요한 경로부터 점진적으�
 
 ### 권장 경로 (수정판)
 
-**Phase 0 완료. Phase 1 완료. Phase 2 (경량 MOD 인프라) 완료. Phase 2.1 (배관 연결 + freeze/slow 마이그레이션) 완료. Phase 2.2 (Entity.update() → ECS 스타일 시스템 분리) 완료. Phase 2.2 보완 (Data-driven Pipeline + 갭 수정) 완료. Phase 3 (MOD Loader & Lifecycle) 완료.**
+**전체 마이그레이션 완료. Phase 0 → 1 → 2 → 2.1 → 2.2 → 2.2 보완 → 3 → 4a → 4b → 4c → 4d → 4e → 5 (A-H).**
 
 ### Phase 1 실행 결과 (2026-02-11)
 
@@ -206,7 +206,25 @@ Phase 3: MOD Loader & Lifecycle ✅ 완료
   - ModLoader (Factory 해석 + 에러 격리)
   - PluginRegistry unregister API
        ↓
-Phase 4: 플레이어 Entity 통합
+Phase 4a: 컴포넌트 인프라 (ComponentStore + World + 컴포넌트 정의) ✅ 완료
+       ↓
+Phase 4b: Player Entity 통합 (PlayerTickSystem) ✅ 완료
+       ↓
+Phase 4c: ComponentDef + Archetype + 시스템 → World 스토어 ✅ 완료
+       ↓
+Phase 4d: Entity 경량화 (God Object → Thin Wrapper) ✅ 완료
+       ↓
+Phase 4e: External Consumer Migration (EntityRef/DishLike 제거) ✅ 완료
+       ↓
+Phase 5: True ECS (A-H) ✅ 완료
+  - World.query() 제너레이터
+  - 태그 컴포넌트 (C_DishTag, C_BossTag)
+  - MovementComponent 순수 데이터화
+  - BossEntityBehavior → BossStateComponent + BossReactionSystem
+  - DishFieldEffectService → MagnetSystem + CursorAttackSystem
+  - 하드코딩 제거 (feedback.json 데이터화)
+  - FallingBomb/HealthPack ECS 통합
+  - 레거시 파일 삭제 (Dish.ts, Boss.ts, FallingBomb.ts, HealthPack.ts)
 ```
 
 ### Phase 2 실행 결과 (2026-02-11)
@@ -466,10 +484,83 @@ Player를 ECS World의 entity로 통합. 커서 위치가 World store에서 관�
 - **쿼리**: `FallingBombSystem`, `HealthPackSystem`, `BlackHoleSystem`, `OrbSystem`에서 태그 제거 + destructuring 인덱스 조정
 - **스폰 데이터**: `fallingBombTag: {}`, `healthPackTag: {}` 제거
 
-### 다음 단계 (Phase 4d~4e, 별도 세션)
+### Phase 4d: Entity 경량화 실행 결과 (2026-02-11)
 
-1. **Phase 4d**: Entity tick 메서드 제거 → Entity 경량화
-2. **Phase 4e**: 외부 소비자(28파일) DishLike → store 읽기 전환
+Entity.ts의 God Object를 Thin Phaser Wrapper로 경량화. 785줄 → 328줄.
+
+**완료 항목:**
+1. `EntityDamageService.ts` 추출 — 데미지/상태효과/파괴 로직을 별도 서비스로 분리
+2. `EntitySpawnInitializer.ts` 추출 — spawn 초기화를 별도 모듈로 분리
+3. Entity getters → World SSOT delegation
+4. Entity의 8개 private 필드만 유지
+5. `EntitySystem.tick(delta)`, `EntitySystemPipeline.run(delta)` — entities 파라미터 제거
+
+### Phase 4e: External Consumer Migration 실행 결과 (2026-02-11)
+
+EntityRef/DishLike 인터페이스 제거 완료. Entity.ts: 328줄 → ~200줄.
+
+**완료 항목:**
+1. `EntityRef` 인터페이스 삭제
+2. `DishLike` 인터페이스 삭제
+3. `EntitySnapshot` 값 타입으로 이벤트 payload 대체
+4. Plugin API: `(entity: EntityRef)` → `(entityId: string, world: World)` 시그니처 전환
+5. DishFieldEffectService, BlackHoleSystem, OrbSystem, PlayerAttackController → World + EntityDamageService 직접 접근
+6. Boss controllers (BossLaserController, BossRosterSync) → EntityDamageService for freeze/unfreeze
+7. Entity getters (15+) 삭제, damage delegation methods 삭제
+8. DishEventPayloadFactory → EntitySnapshot 사용
+9. EntityManager.ts 삭제 (dead code)
+
+### Phase 5: True ECS (A-H) 실행 결과 (2026-02-12)
+
+ECS 아키텍처를 완성하여 모든 시스템이 World 스토어를 직접 쿼리하고, 모든 컴포넌트가 순수 데이터로 관리됨.
+
+**Phase 5A: World.query() 제너레이터**
+- `World.query(C_DishTag, C_DishProps, C_Transform)` → `[id, ...components]` 튜플 제너레이터
+- 엔티티 조회를 ComponentStore 직접 접근에서 선언적 쿼리로 전환
+
+**Phase 5B: 태그 컴포넌트**
+- `C_DishTag` / `C_BossTag` 태그 컴포넌트 도입
+- 엔티티 타입 필터링을 identity.entityType 문자열 비교에서 태그 기반으로 전환
+
+**Phase 5C: MovementComponent 순수 데이터화**
+- `MovementComponent` = `{type, homeX, homeY, drift}` 순수 데이터 (클래스 인스턴스 없음)
+- `EntityTypePlugin.createMovementData(entityId, homeX, homeY)` 반환값이 순수 데이터
+
+**Phase 5D: BossEntityBehavior → BossStateComponent + BossReactionSystem**
+- `BossEntityBehavior.ts` 삭제
+- `BossStateComponent` (순수 데이터): 아머/HP슬롯/쉐이크/푸시/히트스턴/리액션 트윈
+- `BossReactionSystem` (`core:boss_reaction`): 피격/사망 리액션 트윈 처리
+
+**Phase 5E: DishFieldEffectService → MagnetSystem + CursorAttackSystem**
+- `MagnetSystem` (`core:magnet`): 자석 흡인 로직을 EntitySystem으로 분리
+- `CursorAttackSystem` (`core:cursor_attack`): 커서 DPS/접촉/폭발 상호작용을 EntitySystem으로 분리
+- `DishFieldEffectService`는 여전히 존재하나 이 두 시스템을 오케스트레이션
+
+**Phase 5F: 하드코딩 제거**
+- `feedback.json`에 `shakeKeys` + `particles[type].sparkBurst/shockwave/skipEnergyEffect` 데이터화
+- amber critical laser cancel 하드코딩 제거
+- bombWarning/particles 데이터 주도화
+
+**Phase 5G-H: FallingBomb/HealthPack ECS 통합**
+- `FallingBombSystem` + `HealthPackSystem` → `EntitySystem` 인터페이스 구현
+- World query(`C_FallingBomb`/`C_HealthPack`, `C_Transform`) 기반, ObjectPool 미사용
+- Phaser Container를 시스템이 직접 생성하고 World에 컴포넌트로 등록
+- `BlackHoleSystem` + `OrbSystem` → `setFallingBombSystem()` 연동 유지
+
+**레거시 파일 삭제:**
+- `src/entities/Dish.ts`, `src/entities/Boss.ts` 삭제
+- `src/entities/FallingBomb.ts`, `src/entities/HealthPack.ts` 삭제
+- `src/entities/BossEntityBehavior.ts` 삭제
+- `src/systems/EntityManager.ts` 삭제
+
+**최종 파이프라인 (13개 시스템):**
+```
+status → timing → player → movement → boss_reaction →
+magnet → cursor_attack → black_hole → orb →
+falling_bomb → health_pack → visual → render
+```
+
+**검증:** 512 테스트 통과, lint 0 에러, build 성공
 
 ### Phaser 4 stable 출시 모니터링
 
