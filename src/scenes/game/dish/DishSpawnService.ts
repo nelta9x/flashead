@@ -75,14 +75,12 @@ export class DishSpawnService {
   }
 
   private showBombWarningAndSpawn(x: number, y: number, speedMultiplier: number): void {
+    const bombData = Data.getDishData('bomb');
+    const warning = bombData?.bombWarning ?? { duration: 500, radius: 50, blinkInterval: 100 };
     this.getPlayerAttackRenderer().showBombWarning(
       x,
       y,
-      {
-        duration: 500,
-        radius: 50,
-        blinkInterval: 100,
-      },
+      warning,
       () => {
         if (!this.isGameOver()) {
           this.spawnDishImmediate('bomb', x, y, speedMultiplier);

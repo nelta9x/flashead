@@ -34,9 +34,16 @@ export class WaveConfigResolver {
     const scaling = wavesData.infiniteScaling;
     const wavesBeyond = waveNumber - wavesData.waves.length;
 
-    const laserCount = 4;
-    const minInterval = Math.max(1500, 1800 - wavesBeyond * 50);
-    const maxInterval = Math.max(3000, 4000 - wavesBeyond * 100);
+    const laserCfg = scaling.laserScaling;
+    const laserCount = laserCfg?.baseMaxCount ?? 4;
+    const minInterval = Math.max(
+      laserCfg?.minMinInterval ?? 1500,
+      (laserCfg?.baseMinInterval ?? 1800) - wavesBeyond * (laserCfg?.minIntervalReduction ?? 50)
+    );
+    const maxInterval = Math.max(
+      laserCfg?.minMaxInterval ?? 3000,
+      (laserCfg?.baseMaxInterval ?? 4000) - wavesBeyond * (laserCfg?.maxIntervalReduction ?? 100)
+    );
 
     const minDishCount = Math.min(
       scaling.maxMinDishCount,

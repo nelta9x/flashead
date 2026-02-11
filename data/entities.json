@@ -51,7 +51,8 @@
       "cursorInteraction": "explode",
       "playerDamage": 1,
       "resetCombo": true,
-      "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
+      "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" },
+      "bombWarning": { "duration": 500, "radius": 50, "blinkInterval": 100 }
     },
     "mini": {
       "name": "미니 접시",

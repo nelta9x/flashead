@@ -926,6 +926,17 @@ export interface InfiniteScalingConfig {
   dishTypeScaling?: DishTypeScalingEntry[];
   remainderType?: string;
   remainderMinWeight?: number;
+  laserScaling?: InfiniteLaserScalingConfig;
+}
+
+export interface InfiniteLaserScalingConfig {
+  baseMaxCount: number;
+  baseMinInterval: number;
+  baseMaxInterval: number;
+  minIntervalReduction: number;
+  maxIntervalReduction: number;
+  minMinInterval: number;
+  minMaxInterval: number;
 }
 
 export interface FeverConfig {
@@ -958,6 +969,13 @@ export interface DishData {
   spawnAnimation: SpawnAnimationConfig;
   playerDamage?: number;
   resetCombo?: boolean;
+  bombWarning?: BombWarningConfig;
+}
+
+export interface BombWarningConfig {
+  duration: number;
+  radius: number;
+  blinkInterval: number;
 }
 
 export interface DishDamageConfig {

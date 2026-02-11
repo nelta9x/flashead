@@ -403,6 +403,15 @@
       }
     ],
     "remainderType": "basic",
-    "remainderMinWeight": 0.05
+    "remainderMinWeight": 0.05,
+    "laserScaling": {
+      "baseMaxCount": 4,
+      "baseMinInterval": 1800,
+      "baseMaxInterval": 4000,
+      "minIntervalReduction": 50,
+      "maxIntervalReduction": 100,
+      "minMinInterval": 1500,
+      "minMaxInterval": 3000
+    }
   }
 }
