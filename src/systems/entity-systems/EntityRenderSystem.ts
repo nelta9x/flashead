@@ -14,14 +14,23 @@ export class EntityRenderSystem implements EntitySystem {
       if (entityId === 'player') return;
       if (!this.world.isActive(entityId)) return;
 
-      // World transform → Phaser Container 동기화
+      // World transform ↔ Phaser Container 동기화
       const transform = this.world.transform.get(entityId);
       if (transform) {
         node.container.x = transform.x;
         node.container.y = transform.y;
-        node.container.alpha = transform.alpha;
-        node.container.scaleX = transform.scaleX;
-        node.container.scaleY = transform.scaleY;
+
+        if (node.spawnTween) {
+          // 스폰 트윈이 Container를 제어 → World로 역동기화
+          transform.alpha = node.container.alpha;
+          transform.scaleX = node.container.scaleX;
+          transform.scaleY = node.container.scaleY;
+        } else {
+          // 정상: World SSOT → Container
+          node.container.alpha = transform.alpha;
+          node.container.scaleX = transform.scaleX;
+          node.container.scaleY = transform.scaleY;
+        }
       }
 
       // Drawing: World 스토어에서 직접 읽어 렌더링

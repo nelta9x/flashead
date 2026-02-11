@@ -105,6 +105,37 @@ describe('EntityRenderSystem', () => {
     expect(mockContainer.x).toBe(0); // not synced
   });
 
+  it('reverse-syncs alpha/scale from container to World when spawnTween is active', () => {
+    const mockContainer = { x: 0, y: 0, alpha: 0.3, scaleX: 0.5, scaleY: 0.5, getTypePlugin: () => null };
+    const system = new EntityRenderSystem(world);
+
+    world.createEntity('e1');
+    const transform = { x: 50, y: 60, baseX: 50, baseY: 60, alpha: 0, scaleX: 0, scaleY: 0 };
+    world.transform.set('e1', transform);
+    world.phaserNode.set('e1', {
+      container: mockContainer as never,
+      graphics: {} as never,
+      body: null,
+      spawnTween: {} as never, // truthy = active tween
+      bossRenderer: null,
+    });
+    world.identity.set('e1', { entityId: 'e1', entityType: 'basic', isGatekeeper: false });
+
+    system.tick(16);
+
+    // Container values should be preserved (not overwritten by World)
+    expect(mockContainer.alpha).toBe(0.3);
+    expect(mockContainer.scaleX).toBe(0.5);
+    expect(mockContainer.scaleY).toBe(0.5);
+    // World should be updated from Container
+    expect(transform.alpha).toBe(0.3);
+    expect(transform.scaleX).toBe(0.5);
+    expect(transform.scaleY).toBe(0.5);
+    // Position always syncs World → Container
+    expect(mockContainer.x).toBe(50);
+    expect(mockContainer.y).toBe(60);
+  });
+
   it('skips inactive entities', () => {
     const mockContainer = { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1 };
     const system = new EntityRenderSystem(world);

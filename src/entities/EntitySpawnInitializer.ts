@@ -118,6 +118,8 @@ export function initializeEntitySpawn(
       onComplete: () => {
         if (!entity.scene) return;
         entity.setSpawnTween(null);
+        const pn = world.phaserNode.get(config.entityId);
+        if (pn) pn.spawnTween = null;
       },
     });
   } else {
@@ -135,6 +137,8 @@ export function initializeEntitySpawn(
       onComplete: () => {
         if (!entity.scene) return;
         entity.setSpawnTween(null);
+        const pn = world.phaserNode.get(config.entityId);
+        if (pn) pn.spawnTween = null;
       },
     });
   }
