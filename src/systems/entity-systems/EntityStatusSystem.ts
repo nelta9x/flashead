@@ -1,4 +1,3 @@
-import type { Entity } from '../../entities/Entity';
 import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
 import type { StatusEffectManager } from '../StatusEffectManager';
@@ -12,7 +11,7 @@ export class EntityStatusSystem implements EntitySystem {
     private readonly sem: StatusEffectManager,
   ) {}
 
-  tick(_entities: Entity[], _delta: number): void {
+  tick(_delta: number): void {
     this.world.statusCache.forEach((entityId, statusCache) => {
       if (!this.world.isActive(entityId)) return;
 

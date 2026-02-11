@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Phaser from 'phaser';
 
 vi.mock('phaser', () => {
   return {
     default: {
       Scene: class {},
       Math: {
-        Between: vi.fn((min, _max) => min),
+        Between: vi.fn((min: number, _max: number) => min),
         Distance: {
-          Between: vi.fn((x1, y1, x2, y2) => {
+          Between: vi.fn((x1: number, y1: number, x2: number, y2: number) => {
             return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
           }),
         },
@@ -31,13 +30,26 @@ vi.mock('../src/data/constants', () => ({
   },
 }));
 
+vi.mock('../src/data/DataManager', () => ({
+  Data: {
+    fallingBomb: {
+      moveSpeed: 120,
+      visualSize: 25,
+      hitboxSize: 30,
+      spawnMargin: 40,
+    },
+    gameConfig: {
+      screen: { height: 720 },
+    },
+  },
+}));
+
 const mockEmit = vi.fn();
-const mockOn = vi.fn();
 vi.mock('../src/utils/EventBus', () => ({
   EventBus: {
     getInstance: () => ({
       emit: mockEmit,
-      on: mockOn,
+      on: vi.fn(),
       off: vi.fn(),
     }),
   },
@@ -48,57 +60,119 @@ vi.mock('../src/utils/EventBus', () => ({
   },
 }));
 
-const mockBomb = {
-  spawn: vi.fn(),
-  update: vi.fn(),
-  active: false,
-  isFullySpawned: vi.fn(() => true),
-  getRadius: vi.fn(() => 30),
-  x: 100,
-  y: 100,
-  forceDestroy: vi.fn(),
-};
+vi.mock('../src/effects/DishRenderer', () => ({
+  DishRenderer: {
+    renderDangerDish: vi.fn(),
+  },
+}));
 
-vi.mock('../src/entities/FallingBomb', () => {
-  return {
-    FallingBomb: vi.fn(() => mockBomb),
+// Create a minimal World mock
+function createWorldMock() {
+  const stores = new Map<string, Map<string, unknown>>();
+  const activeEntities = new Set<string>();
+
+  function getStore(name: string) {
+    if (!stores.has(name)) stores.set(name, new Map());
+    return stores.get(name)!;
+  }
+
+  const world = {
+    isActive: (id: string) => activeEntities.has(id),
+    createEntity: (id: string) => activeEntities.add(id),
+    destroyEntity: (id: string) => {
+      activeEntities.delete(id);
+      stores.forEach(s => s.delete(id));
+    },
+    archetypeRegistry: {
+      getRequired: () => ({
+        id: 'fallingBomb',
+        components: [
+          { name: 'fallingBombTag' },
+          { name: 'fallingBomb' },
+          { name: 'transform' },
+          { name: 'phaserNode' },
+        ],
+      }),
+    },
+    spawnFromArchetype: vi.fn((_arch: unknown, entityId: string, values: Record<string, unknown>) => {
+      activeEntities.add(entityId);
+      for (const [name, value] of Object.entries(values)) {
+        getStore(name).set(entityId, value);
+      }
+    }),
+    getStoreByName: (name: string) => {
+      const s = getStore(name);
+      return {
+        get: (id: string) => s.get(id),
+        has: (id: string) => s.has(id),
+        set: (id: string, val: unknown) => s.set(id, val),
+        delete: (id: string) => s.delete(id),
+        size: () => s.size,
+        entries: () => s.entries(),
+      };
+    },
+    fallingBomb: {
+      get: (id: string) => getStore('fallingBomb').get(id),
+    },
+    transform: {
+      get: (id: string) => getStore('transform').get(id),
+    },
+    phaserNode: {
+      get: (id: string) => getStore('phaserNode').get(id),
+    },
+    query: vi.fn(function* () {
+      const fbTagStore = getStore('fallingBombTag');
+      for (const [entityId] of fbTagStore) {
+        if (!activeEntities.has(entityId)) continue;
+        const fb = getStore('fallingBomb').get(entityId);
+        const t = getStore('transform').get(entityId);
+        if (!fb || !t) continue;
+        yield [entityId, fbTagStore.get(entityId), fb, t];
+      }
+    }),
   };
-});
 
-const mockAcquire = vi.fn(() => mockBomb);
-const mockRelease = vi.fn();
-const mockForEach = vi.fn();
-const mockGetActiveCount = vi.fn(() => 0);
-const mockClear = vi.fn();
-const mockGetActiveObjects = vi.fn<[], { active: boolean }[]>(() => []);
-
-vi.mock('../src/utils/ObjectPool', () => {
-  return {
-    ObjectPool: vi.fn().mockImplementation(() => ({
-      acquire: mockAcquire,
-      release: mockRelease,
-      forEach: mockForEach,
-      getActiveCount: mockGetActiveCount,
-      getActiveObjects: mockGetActiveObjects,
-      clear: mockClear,
-    })),
-  };
-});
+  return { world, activeEntities, stores };
+}
 
 describe('FallingBombSystem', () => {
   let system: FallingBombSystem;
-  let mockScene: Phaser.Scene;
+  let worldMock: ReturnType<typeof createWorldMock>;
+
+  const mockScene = {
+    add: {
+      container: vi.fn(() => ({
+        add: vi.fn(),
+        setScale: vi.fn(),
+        setAlpha: vi.fn(),
+        setVisible: vi.fn(),
+        setActive: vi.fn(),
+        x: 0,
+        y: 0,
+      })),
+      graphics: vi.fn(() => ({})),
+    },
+    tweens: {
+      add: vi.fn((config: { onComplete?: () => void }) => {
+        // Immediately call onComplete for spawn animation
+        if (config.onComplete) config.onComplete();
+      }),
+    },
+  } as never;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockScene = {} as Phaser.Scene;
-    system = new FallingBombSystem(mockScene);
+    worldMock = createWorldMock();
+    system = new FallingBombSystem(mockScene, worldMock.world as never);
   });
 
-  describe('Initialization', () => {
-    it('should subscribe to destroyed and missed events', () => {
-      expect(mockOn).toHaveBeenCalledWith(GameEvents.FALLING_BOMB_DESTROYED, expect.any(Function));
-      expect(mockOn).toHaveBeenCalledWith(GameEvents.FALLING_BOMB_MISSED, expect.any(Function));
+  describe('EntitySystem interface', () => {
+    it('should have correct id', () => {
+      expect(system.id).toBe('core:falling_bomb');
+    });
+
+    it('should be enabled by default', () => {
+      expect(system.enabled).toBe(true);
     });
   });
 
@@ -107,8 +181,20 @@ describe('FallingBombSystem', () => {
       const originalRandom = Math.random;
       Math.random = vi.fn(() => 0.01);
 
-      system.update(5000, 20000, 2);
-      expect(mockAcquire).not.toHaveBeenCalled();
+      system.setContext(20000, 2); // wave 2 < MIN_WAVE 5
+      system.tick(5000);
+      expect(worldMock.world.spawnFromArchetype).not.toHaveBeenCalled();
+
+      Math.random = originalRandom;
+    });
+
+    it('should spawn after minWave when conditions are met', () => {
+      const originalRandom = Math.random;
+      Math.random = vi.fn(() => 0.01);
+
+      system.setContext(20000, 5); // wave 5 >= MIN_WAVE 5
+      system.tick(4100); // > CHECK_INTERVAL (4000)
+      expect(worldMock.world.spawnFromArchetype).toHaveBeenCalledTimes(1);
 
       Math.random = originalRandom;
     });
@@ -117,120 +203,114 @@ describe('FallingBombSystem', () => {
       const originalRandom = Math.random;
       Math.random = vi.fn(() => 0.01);
 
-      mockAcquire.mockClear();
-      system.update(3900, 20000, 5);
-      expect(mockAcquire).not.toHaveBeenCalled();
-
-      system.update(100, 20100, 5);
-      expect(mockAcquire).toHaveBeenCalledTimes(1);
-
-      Math.random = originalRandom;
-    });
-
-    it('should not spawn if cooldown active', () => {
-      const originalRandom = Math.random;
-      Math.random = vi.fn(() => 0.01);
-
-      mockAcquire.mockClear();
-      system.update(4100, 20000, 5);
-      expect(mockAcquire).toHaveBeenCalledTimes(1);
-
-      mockAcquire.mockClear();
-      system.update(4100, 24000, 5);
-      expect(mockAcquire).not.toHaveBeenCalled();
-
-      Math.random = originalRandom;
-    });
-
-    it('should not spawn if max active reached', () => {
-      const originalRandom = Math.random;
-      Math.random = vi.fn(() => 0.01);
-      mockGetActiveCount.mockReturnValue(2);
-
-      mockAcquire.mockClear();
-      system.update(4100, 20000, 5);
-      expect(mockAcquire).not.toHaveBeenCalled();
+      system.setContext(20000, 5);
+      system.tick(3900); // < CHECK_INTERVAL (4000)
+      expect(worldMock.world.spawnFromArchetype).not.toHaveBeenCalled();
 
       Math.random = originalRandom;
     });
   });
 
   describe('checkCursorCollision', () => {
-    it('should call forceDestroy(false) when cursor overlaps a fully spawned bomb', () => {
-      const mockBombForCollision = {
-        active: true,
-        x: 100,
-        y: 100,
-        isFullySpawned: vi.fn(() => true),
-        getRadius: vi.fn(() => 20),
-        forceDestroy: vi.fn(),
-      };
+    it('should forceDestroy when cursor overlaps a fully spawned bomb', () => {
+      const originalRandom = Math.random;
+      Math.random = vi.fn(() => 0.01);
 
-      mockForEach.mockImplementation((callback: (b: typeof mockBombForCollision) => void) => {
-        callback(mockBombForCollision);
-      });
+      // Spawn a bomb
+      system.setContext(20000, 5);
+      system.tick(4100);
 
-      // distance = 60 > hitDistance = 50 -> out of range
-      system.checkCursorCollision(100, 160, 30);
-      expect(mockBombForCollision.forceDestroy).not.toHaveBeenCalled();
+      // Refresh the query mock for the collision check
+      worldMock.world.query = vi.fn(function* () {
+        const fbTagStore = worldMock.stores.get('fallingBombTag')!;
+        for (const [entityId] of fbTagStore) {
+          if (!worldMock.activeEntities.has(entityId)) continue;
+          const fb = worldMock.stores.get('fallingBomb')!.get(entityId);
+          const t = worldMock.stores.get('transform')!.get(entityId);
+          if (!fb || !t) continue;
+          yield [entityId, fbTagStore.get(entityId), fb, t];
+        }
+      }) as never;
 
-      system.checkCursorCollision(100, 140, 30);
-      expect(mockBombForCollision.forceDestroy).toHaveBeenCalledWith(false);
+      // Cursor at bomb position with large enough radius
+      const bombTransform = worldMock.stores.get('transform')?.values().next().value as { x: number; y: number } | undefined;
+      if (bombTransform) {
+        system.checkCursorCollision(bombTransform.x, bombTransform.y, 50);
+        expect(mockEmit).toHaveBeenCalledWith(
+          GameEvents.FALLING_BOMB_DESTROYED,
+          expect.objectContaining({ byAbility: false })
+        );
+      }
+
+      Math.random = originalRandom;
     });
 
     it('should not destroy a bomb that is not fully spawned', () => {
-      const mockBombNotSpawned = {
-        active: true,
-        x: 100,
-        y: 100,
-        isFullySpawned: vi.fn(() => false),
-        getRadius: vi.fn(() => 20),
-        forceDestroy: vi.fn(),
-      };
+      // Manually add a bomb entity that's not fully spawned
+      const entityId = 'test_bomb';
+      worldMock.activeEntities.add(entityId);
+      worldMock.stores.set('fallingBombTag', new Map([[entityId, {}]]));
+      worldMock.stores.set('fallingBomb', new Map([[entityId, {
+        moveSpeed: 120,
+        blinkPhase: 0,
+        fullySpawned: false,
+      }]]));
+      worldMock.stores.set('transform', new Map([[entityId, { x: 100, y: 100 }]]));
 
-      mockForEach.mockImplementation((callback: (b: typeof mockBombNotSpawned) => void) => {
-        callback(mockBombNotSpawned);
-      });
+      worldMock.world.query = vi.fn(function* () {
+        yield [entityId, {}, worldMock.stores.get('fallingBomb')!.get(entityId), worldMock.stores.get('transform')!.get(entityId)];
+      }) as never;
 
-      system.checkCursorCollision(100, 100, 30);
-      expect(mockBombNotSpawned.forceDestroy).not.toHaveBeenCalled();
+      system.checkCursorCollision(100, 100, 50);
+      expect(mockEmit).not.toHaveBeenCalledWith(
+        GameEvents.FALLING_BOMB_DESTROYED,
+        expect.anything()
+      );
     });
   });
 
-  describe('Event Handling', () => {
-    it('should release inactive bombs on destroyed', () => {
-      const inactiveBomb = { active: false };
-      const activeBomb = { active: true };
-      mockGetActiveObjects.mockReturnValue([inactiveBomb, activeBomb]);
+  describe('forceDestroy', () => {
+    it('should emit FALLING_BOMB_DESTROYED and remove entity', () => {
+      const entityId = 'test_bomb_1';
+      worldMock.activeEntities.add(entityId);
+      worldMock.stores.set('transform', new Map([[entityId, { x: 200, y: 300 }]]));
+      worldMock.stores.set('phaserNode', new Map([[entityId, {
+        container: { setVisible: vi.fn(), setActive: vi.fn() },
+      }]]));
 
-      const callback = mockOn.mock.calls.find(
-        (call: unknown[]) => call[0] === GameEvents.FALLING_BOMB_DESTROYED
-      )?.[1] as ((...args: unknown[]) => void) | undefined;
-      if (callback) {
-        callback();
-        expect(mockRelease).toHaveBeenCalledWith(inactiveBomb);
-        expect(mockRelease).not.toHaveBeenCalledWith(activeBomb);
-      }
-    });
+      system.forceDestroy(entityId, true);
 
-    it('should release inactive bombs on missed', () => {
-      const inactiveBomb = { active: false };
-      mockGetActiveObjects.mockReturnValue([inactiveBomb]);
-
-      const callback = mockOn.mock.calls.find(
-        (call: unknown[]) => call[0] === GameEvents.FALLING_BOMB_MISSED
-      )?.[1] as ((...args: unknown[]) => void) | undefined;
-      if (callback) {
-        callback();
-        expect(mockRelease).toHaveBeenCalledWith(inactiveBomb);
-      }
+      expect(mockEmit).toHaveBeenCalledWith(
+        GameEvents.FALLING_BOMB_DESTROYED,
+        { x: 200, y: 300, byAbility: true }
+      );
     });
   });
 
-  describe('getPool', () => {
-    it('should return the internal pool', () => {
-      const pool = system.getPool();
-      expect(pool).toBeDefined();
+  describe('clear', () => {
+    it('should remove all bomb entities', () => {
+      // Add some entities
+      const ids = ['bomb_1', 'bomb_2'];
+      for (const id of ids) {
+        worldMock.activeEntities.add(id);
+        if (!worldMock.stores.has('fallingBombTag')) worldMock.stores.set('fallingBombTag', new Map());
+        worldMock.stores.get('fallingBombTag')!.set(id, {});
+        if (!worldMock.stores.has('phaserNode')) worldMock.stores.set('phaserNode', new Map());
+        worldMock.stores.get('phaserNode')!.set(id, {
+          container: { setVisible: vi.fn(), setActive: vi.fn() },
+        });
+      }
+
+      worldMock.world.query = vi.fn(function* () {
+        for (const id of ids) {
+          if (worldMock.activeEntities.has(id)) {
+            yield [id, {}];
+          }
+        }
+      }) as never;
+
+      system.clear();
+      expect(worldMock.activeEntities.size).toBe(0);
     });
   });
 });

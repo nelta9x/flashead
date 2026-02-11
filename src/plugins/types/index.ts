@@ -1,7 +1,5 @@
-export type { MovementStrategy } from './MovementStrategy';
 export type { AttackPattern } from './AttackPattern';
 export type {
-  EntityRef,
   CursorInteractionType,
   EntityTypeConfig,
   EntityTypeRenderer,

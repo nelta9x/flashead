@@ -74,8 +74,56 @@ describe('PlayerAttackController', () => {
     getAliveBossTarget: vi.fn(),
     cancelChargingLasers: vi.fn(),
   };
-  const dishPool = {
-    forEach: vi.fn(),
+
+  // World store mocks (per-entity)
+  const dishTagStore = new Map<string, Record<string, never>>();
+  const dishPropsStore = new Map<string, { dangerous: boolean; size: number }>();
+  const lifetimeStore = new Map<string, { elapsedTime: number; spawnDuration: number } | null>();
+  const transformStore = new Map<string, { x: number; y: number }>();
+  const activeEntities = new Set<string>();
+
+  const mockWorld = {
+    dishTag: {
+      get: (id: string) => dishTagStore.get(id),
+      has: (id: string) => dishTagStore.has(id),
+      size: () => dishTagStore.size,
+      entries: () => dishTagStore.entries(),
+    },
+    dishProps: {
+      get: (id: string) => dishPropsStore.get(id) ?? { dangerous: false, size: 30 },
+      has: (id: string) => dishPropsStore.has(id),
+      size: () => dishPropsStore.size,
+      entries: () => dishPropsStore.entries(),
+    },
+    lifetime: {
+      get: (id: string) => lifetimeStore.get(id) ?? null,
+      has: (id: string) => lifetimeStore.has(id),
+      size: () => lifetimeStore.size,
+      entries: () => lifetimeStore.entries(),
+    },
+    transform: {
+      get: (id: string) => transformStore.get(id),
+      has: (id: string) => transformStore.has(id),
+      size: () => transformStore.size,
+      entries: () => transformStore.entries(),
+    },
+    isActive: (id: string) => activeEntities.has(id),
+    query: vi.fn(function () {
+      return (function* () {
+        for (const [entityId] of dishTagStore) {
+          if (!activeEntities.has(entityId)) continue;
+          const dp = dishPropsStore.get(entityId);
+          const t = transformStore.get(entityId);
+          const lt = lifetimeStore.get(entityId);
+          if (!dp || !t || !lt) continue;
+          yield [entityId, dishTagStore.get(entityId), dp, t, lt];
+        }
+      })();
+    }),
+  };
+
+  const mockDamageService = {
+    forceDestroy: vi.fn(),
   };
 
   function createController(): PlayerAttackController {
@@ -96,6 +144,8 @@ describe('PlayerAttackController', () => {
           },
         },
       } as never,
+      world: mockWorld as never,
+      damageService: mockDamageService as never,
       upgradeSystem: {
         getMissileLevel: () => 0,
         getMissileCount: () => 1,
@@ -120,7 +170,6 @@ describe('PlayerAttackController', () => {
         createSparkBurst: vi.fn(),
         createHitEffect: vi.fn(),
       } as never,
-      dishPool: dishPool as never,
       getCursor: () => ({ x: 100, y: 100 }),
       getPlayerAttackRenderer: () =>
         ({
@@ -146,6 +195,11 @@ describe('PlayerAttackController', () => {
     vi.clearAllMocks();
     wave = 10;
     isGameOver = false;
+    dishTagStore.clear();
+    dishPropsStore.clear();
+    lifetimeStore.clear();
+    transformStore.clear();
+    activeEntities.clear();
   });
 
   it('retargets missile to nearest alive boss when initial target is dead', () => {
@@ -193,52 +247,44 @@ describe('PlayerAttackController', () => {
   });
 
   it('destroys dishes along missile path except not-fully-spawned dangerous dishes', () => {
+    // Set up per-entity world data via stores
+    activeEntities.add('dns');
+    dishTagStore.set('dns', {} as Record<string, never>);
+    dishPropsStore.set('dns', { dangerous: true, size: 80 });
+    transformStore.set('dns', { x: 100, y: 100 });
+    lifetimeStore.set('dns', { elapsedTime: 100, spawnDuration: 500 }); // not fully spawned
+
+    activeEntities.add('ds');
+    dishTagStore.set('ds', {} as Record<string, never>);
+    dishPropsStore.set('ds', { dangerous: true, size: 80 });
+    transformStore.set('ds', { x: 100, y: 100 });
+    lifetimeStore.set('ds', { elapsedTime: 9999, spawnDuration: 500 }); // fully spawned
+
+    activeEntities.add('nd');
+    dishTagStore.set('nd', {} as Record<string, never>);
+    dishPropsStore.set('nd', { dangerous: false, size: 80 });
+    transformStore.set('nd', { x: 100, y: 100 });
+    lifetimeStore.set('nd', { elapsedTime: 9999, spawnDuration: 0 }); // normal dish
+
     const controller = createController();
 
-    // Boss at (200, 200) — missile starts near cursor (100,100) with offsets applied by Between(min)
+    // Boss at (200, 200) -- missile starts near cursor (100,100) with offsets applied by Between(min)
     // Between returns min, so offsets are negative. Place dishes on the missile path
-    // with generous getSize() to ensure they are within collision radius.
+    // with generous size to ensure they are within collision radius.
     bossGateway.getAliveBossTarget.mockReturnValue({ id: 'boss_a', x: 200, y: 200 });
     bossGateway.findNearestAliveBoss.mockReturnValue({ id: 'boss_a', x: 200, y: 200 });
 
-    const dangerousNotSpawned = {
-      active: true,
-      x: 100,
-      y: 100,
-      getSize: () => 80,
-      isDangerous: () => true,
-      isFullySpawned: () => false,
-      forceDestroy: vi.fn(),
-    };
-    const dangerousSpawned = {
-      active: true,
-      x: 100,
-      y: 100,
-      getSize: () => 80,
-      isDangerous: () => true,
-      isFullySpawned: () => true,
-      forceDestroy: vi.fn(),
-    };
-    const normalDish = {
-      active: true,
-      x: 100,
-      y: 100,
-      getSize: () => 80,
-      isDangerous: () => false,
-      isFullySpawned: () => true,
-      forceDestroy: vi.fn(),
-    };
-
-    dishPool.forEach.mockImplementation((callback: (dish: unknown) => void) => {
-      callback(dangerousNotSpawned);
-      callback(dangerousSpawned);
-      callback(normalDish);
-    });
-
     controller.performPlayerAttack();
 
-    expect(dangerousNotSpawned.forceDestroy).not.toHaveBeenCalled();
-    expect(dangerousSpawned.forceDestroy).toHaveBeenCalledWith(true);
-    expect(normalDish.forceDestroy).toHaveBeenCalledWith(false);
+    // dangerousNotSpawned should NOT be destroyed (elapsedTime < spawnDuration)
+    const destroyCalls = mockDamageService.forceDestroy.mock.calls as Array<[string, boolean]>;
+    const destroyedIds = destroyCalls.map((c) => c[0]);
+    expect(destroyedIds).not.toContain('dns');
+
+    // dangerousSpawned should be destroyed with dangerous=true
+    expect(destroyCalls).toContainEqual(['ds', true]);
+
+    // normalDish should be destroyed with dangerous=false
+    expect(destroyCalls).toContainEqual(['nd', false]);
   });
 });

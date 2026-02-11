@@ -246,8 +246,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     EventBus.getInstance().emit(
       GameEvents.DISH_DESTROYED,
       DishEventPayloadFactory.createDishDestroyedPayload({
-        dish: this,
-        type: this.dishType,
+        snapshot: { entityId: '', x: this.x, y: this.y, entityType: this.getDishType(), dangerous: this.isDangerous(), color: this.getColor(), size: this.getSize(), currentHp: this.getCurrentHp(), maxHp: this.getMaxHp(), hpRatio: this.getHpRatio() },
       })
     );
 
@@ -301,8 +300,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     EventBus.getInstance().emit(
       GameEvents.DISH_DAMAGED,
       DishEventPayloadFactory.createDishDamagedPayload({
-        dish: this,
-        type: this.dishType,
+        snapshot: { entityId: '', x: this.x, y: this.y, entityType: this.getDishType(), dangerous: this.isDangerous(), color: this.getColor(), size: this.getSize(), currentHp: this.getCurrentHp(), maxHp: this.getMaxHp(), hpRatio: this.getHpRatio() },
         damage,
         currentHp: this.currentHp,
         maxHp: this.maxHp,
@@ -401,8 +399,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
 
     // 현재 위치/타입 저장 (이벤트용)
     const eventData = DishEventPayloadFactory.createDishMissedPayload({
-      dish: this,
-      type: this.dishType,
+      snapshot: { entityId: '', x: this.x, y: this.y, entityType: this.getDishType(), dangerous: this.isDangerous(), color: this.getColor(), size: this.getSize(), currentHp: this.getCurrentHp(), maxHp: this.getMaxHp(), hpRatio: this.getHpRatio() },
       isDangerous: this.dangerous,
     });
 
@@ -434,8 +431,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     EventBus.getInstance().emit(
       GameEvents.DISH_DESTROYED,
       DishEventPayloadFactory.createDishDestroyedPayload({
-        dish: this,
-        type: this.dishType,
+        snapshot: { entityId: '', x: this.x, y: this.y, entityType: this.getDishType(), dangerous: this.isDangerous(), color: this.getColor(), size: this.getSize(), currentHp: this.getCurrentHp(), maxHp: this.getMaxHp(), hpRatio: this.getHpRatio() },
         byAbility: this.destroyedByAbility,
       })
     );
@@ -495,8 +491,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     EventBus.getInstance().emit(
       GameEvents.DISH_DAMAGED,
       DishEventPayloadFactory.createDishDamagedPayload({
-        dish: this,
-        type: this.dishType,
+        snapshot: { entityId: '', x: this.x, y: this.y, entityType: this.getDishType(), dangerous: this.isDangerous(), color: this.getColor(), size: this.getSize(), currentHp: this.getCurrentHp(), maxHp: this.getMaxHp(), hpRatio: this.getHpRatio() },
         damage,
         currentHp: this.currentHp,
         maxHp: this.maxHp,
@@ -553,8 +548,7 @@ export class Dish extends Phaser.GameObjects.Container implements Poolable {
     EventBus.getInstance().emit(
       GameEvents.DISH_DAMAGED,
       DishEventPayloadFactory.createDishDamagedPayload({
-        dish: this,
-        type: this.dishType,
+        snapshot: { entityId: '', x: this.x, y: this.y, entityType: this.getDishType(), dangerous: this.isDangerous(), color: this.getColor(), size: this.getSize(), currentHp: this.getCurrentHp(), maxHp: this.getMaxHp(), hpRatio: this.getHpRatio() },
         damage: totalDamage,
         currentHp: this.currentHp,
         maxHp: this.maxHp,

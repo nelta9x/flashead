@@ -5,6 +5,12 @@ export { World } from './World';
 export { ArchetypeRegistry, registerBuiltinArchetypes, BUILTIN_ARCHETYPES } from './archetypes';
 export type { ArchetypeDefinition } from './archetypes';
 export {
+  C_DishTag,
+  C_BossTag,
+  C_FallingBombTag,
+  C_FallingBomb,
+  C_HealthPackTag,
+  C_HealthPack,
   C_Identity,
   C_Transform,
   C_Health,
@@ -15,11 +21,18 @@ export {
   C_VisualState,
   C_Movement,
   C_PhaserNode,
-  C_BossBehavior,
+  C_BossState,
   C_PlayerInput,
   C_PlayerRender,
 } from './components';
 export type {
+  DishTag,
+  BossTag,
+  FallingBombTag,
+  FallingBombComponent,
+  HealthPackTag,
+  HealthPackComponent,
+  DriftData,
   IdentityComponent,
   TransformComponent,
   HealthComponent,
@@ -30,7 +43,7 @@ export type {
   VisualStateComponent,
   MovementComponent,
   PhaserNodeComponent,
-  BossBehaviorComponent,
+  BossStateComponent,
   PlayerInputComponent,
   PlayerRenderComponent,
 } from './components';

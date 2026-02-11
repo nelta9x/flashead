@@ -46,9 +46,12 @@ import { DishLifecycleController } from './game/DishLifecycleController';
 import { GameSceneEventBinder } from './game/GameSceneEventBinder';
 import { SceneInputAdapter } from './game/SceneInputAdapter';
 import type { CursorSnapshot } from './game/GameSceneContracts';
+import { C_DishTag } from '../world';
 import type { TransformComponent, PlayerInputComponent } from '../world';
 import { AbilityManager } from '../systems/AbilityManager';
 import { StatusEffectManager } from '../systems/StatusEffectManager';
+import { EntityDamageService } from '../systems/EntityDamageService';
+import { setSpawnDamageServiceGetter } from '../entities/EntitySpawnInitializer';
 import { EntityQueryService } from '../systems/EntityQueryService';
 import {
   EntityStatusSystem,
@@ -57,6 +60,9 @@ import {
   EntityVisualSystem,
   EntityRenderSystem,
   PlayerTickSystem,
+  MagnetSystem,
+  CursorAttackSystem,
+  BossReactionSystem,
 } from '../systems/entity-systems';
 import { EntitySystemPipeline } from '../systems/EntitySystemPipeline';
 import { World } from '../world';
@@ -91,6 +97,7 @@ export class GameScene extends Phaser.Scene {
   private entitySystemPipeline!: EntitySystemPipeline;
   private modRegistry!: ModRegistry;
   private ecsWorld!: World;
+  private entityDamageService!: EntityDamageService;
 
   // UI & 이펙트
   private hud!: HUD;
@@ -219,27 +226,10 @@ export class GameScene extends Phaser.Scene {
     );
 
     this.healthSystem = new HealthSystem();
-    this.healthPackSystem = new HealthPackSystem(this, this.upgradeSystem);
-    this.fallingBombSystem = new FallingBombSystem(this);
+    // HealthPackSystem created after ECS World (see below)
     this.monsterSystem = new MonsterSystem();
     this.gaugeSystem = new GaugeSystem(this.comboSystem);
-    this.orbSystem = new OrbSystem(this.upgradeSystem);
-    this.blackHoleSystem = new BlackHoleSystem(
-      this.upgradeSystem,
-      () => this.dishPool,
-      () => this.bossCombatCoordinator?.getAliveVisibleBossSnapshotsWithRadius() ?? [],
-      (bossId, amount, sourceX, sourceY, isCritical) => {
-        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY);
-
-        const bossTarget = this.bossCombatCoordinator?.getAliveBossTarget(bossId);
-        const textX = bossTarget?.x ?? sourceX;
-        const textY = bossTarget?.y ?? sourceY;
-        this.feedbackSystem.onBossContactDamaged(textX, textY, amount, isCritical);
-      },
-      () => this.fallingBombSystem.getPool()
-    );
-
-    // ECS World
+    // ECS World (BlackHoleSystem, OrbSystem 생성 전 필요)
     this.ecsWorld = new World();
     Entity.setWorld(this.ecsWorld);
 
@@ -248,13 +238,73 @@ export class GameScene extends Phaser.Scene {
     this.modSystemRegistry = new ModSystemRegistry();
     Entity.setStatusEffectManager(this.statusEffectManager);
 
+    // EntityDamageService 연결
+    this.entityDamageService = new EntityDamageService(
+      this.ecsWorld,
+      this.statusEffectManager,
+      (id) => this.findEntityById(id),
+    );
+    Entity.setDamageService(this.entityDamageService);
+    setSpawnDamageServiceGetter(() => this.entityDamageService);
+
+    // HealthPackSystem + FallingBombSystem (ECS World 필요)
+    this.healthPackSystem = new HealthPackSystem(this, this.upgradeSystem, this.ecsWorld);
+    this.fallingBombSystem = new FallingBombSystem(this, this.ecsWorld);
+
+    // OrbSystem / BlackHoleSystem (World + DamageService 필요)
+    this.orbSystem = new OrbSystem(this.upgradeSystem, this.ecsWorld, this.entityDamageService);
+    this.orbSystem.setFallingBombSystem(this.fallingBombSystem);
+    this.blackHoleSystem = new BlackHoleSystem(
+      this.upgradeSystem,
+      this.ecsWorld,
+      this.entityDamageService,
+      () => this.bossCombatCoordinator?.getAliveVisibleBossSnapshotsWithRadius() ?? [],
+      (bossId: string, amount: number, sourceX: number, sourceY: number, isCritical: boolean) => {
+        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY);
+
+        const bossTarget = this.bossCombatCoordinator?.getAliveBossTarget(bossId);
+        const textX = bossTarget?.x ?? sourceX;
+        const textY = bossTarget?.y ?? sourceY;
+        this.feedbackSystem.onBossContactDamaged(textX, textY, amount, isCritical);
+      },
+    );
+    this.blackHoleSystem.setFallingBombSystem(this.fallingBombSystem);
+
     // ECS-style entity system pipeline (data-driven 순서)
     this.entitySystemPipeline = new EntitySystemPipeline(Data.gameConfig.entityPipeline);
     this.entitySystemPipeline.register(new EntityStatusSystem(this.ecsWorld, this.statusEffectManager));
-    this.entitySystemPipeline.register(new EntityTimingSystem(this.ecsWorld, (id) => this.findEntityById(id)));
+    this.entitySystemPipeline.register(new EntityTimingSystem(this.ecsWorld, this.entityDamageService));
     this.entitySystemPipeline.register(new EntityMovementSystem(this.ecsWorld));
     this.entitySystemPipeline.register(new EntityVisualSystem(this.ecsWorld));
-    this.entitySystemPipeline.register(new EntityRenderSystem(this.ecsWorld, (id) => this.findEntityById(id)));
+    this.entitySystemPipeline.register(new EntityRenderSystem(this.ecsWorld));
+
+    // Boss reaction system (replaces BossEntityBehavior damage/death tweens)
+    this.entitySystemPipeline.register(new BossReactionSystem({
+      world: this.ecsWorld,
+      scene: this,
+      feedbackSystem: this.feedbackSystem,
+    }));
+
+    // Pipeline-managed magnet + cursor attack systems (replaces DishFieldEffectService)
+    this.entitySystemPipeline.register(new MagnetSystem({
+      world: this.ecsWorld,
+      damageService: this.entityDamageService,
+      upgradeSystem: this.upgradeSystem,
+      particleManager: this.particleManager,
+      getCursor: () => this.getCursorSnapshot(),
+    }));
+    this.entitySystemPipeline.register(new CursorAttackSystem({
+      world: this.ecsWorld,
+      damageService: this.entityDamageService,
+      upgradeSystem: this.upgradeSystem,
+      getCursor: () => this.getCursorSnapshot(),
+    }));
+
+    // Register BlackHoleSystem + OrbSystem + FallingBombSystem + HealthPackSystem as pipeline systems
+    this.entitySystemPipeline.register(this.blackHoleSystem);
+    this.entitySystemPipeline.register(this.orbSystem);
+    this.entitySystemPipeline.register(this.fallingBombSystem);
+    this.entitySystemPipeline.register(this.healthPackSystem);
 
     // Player entity 생성 (아키타입 기반)
     const playerArchetype = this.ecsWorld.archetypeRegistry.getRequired('player');
@@ -346,11 +396,13 @@ export class GameScene extends Phaser.Scene {
       laserRenderer: this.laserRenderer,
       healthSystem: this.healthSystem,
       upgradeSystem: this.upgradeSystem,
+      damageService: this.entityDamageService,
       isGameOver: () => this.isGameOver,
       isPaused: () => this.isDockPaused,
     });
 
     this.dishLifecycleController = new DishLifecycleController({
+      world: this.ecsWorld,
       dishPool: this.dishPool,
       dishes: this.dishes,
       healthSystem: this.healthSystem,
@@ -359,23 +411,22 @@ export class GameScene extends Phaser.Scene {
       feedbackSystem: this.feedbackSystem,
       soundSystem: this.soundSystem,
       damageText: this.damageText,
-      particleManager: this.particleManager,
+      damageService: this.entityDamageService,
       getPlayerAttackRenderer: () => this.getPlayerAttackRenderer(),
-      bossGateway: this.bossCombatCoordinator,
       isAnyLaserFiring: () => this.bossCombatCoordinator.isAnyLaserFiring(),
-      getCursor: () => this.getCursorSnapshot(),
       isGameOver: () => this.isGameOver,
     });
 
     this.playerAttackController = new PlayerAttackController({
       scene: this,
+      world: this.ecsWorld,
+      damageService: this.entityDamageService,
       upgradeSystem: this.upgradeSystem,
       waveSystem: this.waveSystem,
       monsterSystem: this.monsterSystem,
       feedbackSystem: this.feedbackSystem,
       soundSystem: this.soundSystem,
       particleManager: this.particleManager,
-      dishPool: this.dishPool,
       getCursor: () => this.getCursorSnapshot(),
       getPlayerAttackRenderer: () => this.getPlayerAttackRenderer(),
       bossGateway: this.bossCombatCoordinator,
@@ -590,6 +641,7 @@ export class GameScene extends Phaser.Scene {
 
     Entity.setWorld(null);
     Entity.setStatusEffectManager(null);
+    Entity.setDamageService(null);
     this.ecsWorld?.clear();
     this.statusEffectManager?.clear();
     this.modSystemRegistry?.clear();
@@ -669,17 +721,31 @@ export class GameScene extends Phaser.Scene {
     // MOD 인프라: 상태효과 틱을 엔티티 업데이트 전에 실행 (만료 처리 우선)
     this.statusEffectManager.tick(delta);
 
-    // ECS pipeline: PlayerTickSystem이 smoothing + trail + cursor render 처리
-    const allEntities = this.collectActiveEntities();
-    this.entitySystemPipeline.run(allEntities, delta);
+    // Set context for pipeline-managed systems before they run
+    this.blackHoleSystem.setGameTime(this.gameTime);
+    this.orbSystem.setContext(
+      this.gameTime, playerT.x, playerT.y,
+      () => this.bossCombatCoordinator?.getAliveVisibleBossSnapshotsWithRadius() ?? [],
+      (bossId: string, amount: number, sourceX: number, sourceY: number) => {
+        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY);
+        const bossTarget = this.bossCombatCoordinator?.getAliveBossTarget(bossId);
+        this.feedbackSystem.onBossContactDamaged(
+          bossTarget?.x ?? sourceX, bossTarget?.y ?? sourceY, amount, false
+        );
+      },
+    );
+    this.fallingBombSystem.setContext(this.gameTime, this.waveSystem.getCurrentWave());
+    this.healthPackSystem.setContext(this.gameTime);
+
+    // ECS pipeline: all entity systems including magnet, cursor attack, black hole, orb
+    this.entitySystemPipeline.run(delta);
 
     // 4. pipeline 후 player 위치 사용
     const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
     const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 
-    this.healthPackSystem.update(delta, this.gameTime);
+    // HealthPackSystem + FallingBombSystem run in pipeline; post-pipeline checks
     this.healthPackSystem.checkCollection(playerT.x, playerT.y, cursorRadius);
-    this.fallingBombSystem.update(delta, this.gameTime, this.waveSystem.getCurrentWave());
     this.fallingBombSystem.checkCursorCollision(playerT.x, playerT.y, cursorRadius);
 
     this.hud.render(this.gameTime);
@@ -688,27 +754,11 @@ export class GameScene extends Phaser.Scene {
     this.gridRenderer.update(delta);
     this.starBackground.update(delta, _time, Data.gameConfig.gameGrid.speed);
 
-    const cursor = this.getCursorSnapshot();
-    this.dishLifecycleController.updateMagnetEffect(delta, cursor);
-
-    this.blackHoleSystem.update(delta, this.gameTime);
+    // Render outputs from pipeline-managed systems
     this.blackHoleRenderer.render(this.blackHoleSystem.getBlackHoles(), this.gameTime);
-
-    this.orbSystem.update(
-      delta, this.gameTime, playerT.x, playerT.y, this.dishPool,
-      () => this.bossCombatCoordinator?.getAliveVisibleBossSnapshotsWithRadius() ?? [],
-      (bossId, amount, sourceX, sourceY) => {
-        this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY);
-        const bossTarget = this.bossCombatCoordinator?.getAliveBossTarget(bossId);
-        this.feedbackSystem.onBossContactDamaged(
-          bossTarget?.x ?? sourceX, bossTarget?.y ?? sourceY, amount, false
-        );
-      },
-      this.fallingBombSystem.getPool()
-    );
     this.orbRenderer.render(this.orbSystem.getOrbs());
 
-    this.dishLifecycleController.updateCursorAttack(cursor);
+    const cursor = this.getCursorSnapshot();
     this.bossCombatCoordinator.update(delta, this.gameTime, cursor);
 
     // MOD 시스템 실행 (새 효과 적용은 다음 프레임에 반영)
@@ -723,19 +773,12 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
-  private collectActiveEntities(): Entity[] {
-    const entities: Entity[] = [];
-    this.dishPool.forEach((dish) => entities.push(dish));
-    this.bossCombatCoordinator.forEachBoss((boss) => entities.push(boss));
-    return entities;
-  }
-
   private findEntityById(entityId: string): Entity | undefined {
+    const node = this.ecsWorld.phaserNode.get(entityId);
+    if (node) return node.container as Entity;
+
+    // Fallback: boss lookup
     let found: Entity | undefined;
-    this.dishPool.forEach((dish) => {
-      if (!found && dish.getEntityId() === entityId) found = dish;
-    });
-    if (found) return found;
     this.bossCombatCoordinator.forEachBoss((boss) => {
       if (!found && boss.getEntityId() === entityId) found = boss;
     });
@@ -743,11 +786,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private clearAllDishes(): void {
-    const activeDishes = this.dishPool.getActiveObjects();
-    for (const dish of activeDishes) {
-      dish.deactivate();
-      this.dishes.remove(dish);
-      this.dishPool.release(dish);
+    for (const [entityId] of this.ecsWorld.query(C_DishTag)) {
+      const node = this.ecsWorld.phaserNode.get(entityId);
+      if (node) {
+        const entity = node.container as Entity;
+        entity.deactivate();
+        this.dishes.remove(entity);
+        this.dishPool.release(entity);
+      }
     }
   }
 

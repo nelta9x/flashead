@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { World } from '../../src/world/World';
+import { C_Identity, C_Health, C_DishTag, C_BossTag } from '../../src/world/components';
 
 describe('World', () => {
   let world: World;
@@ -76,7 +77,7 @@ describe('World', () => {
   });
 
   describe('query', () => {
-    it('모든 store에 존재하는 active 엔티티만 반환해야 함', () => {
+    it('모든 ComponentDef에 존재하는 active 엔티티만 반환해야 함', () => {
       world.createEntity('e1');
       world.createEntity('e2');
       world.createEntity('e3');
@@ -88,16 +89,11 @@ describe('World', () => {
       world.health.set('e3', { currentHp: 5, maxHp: 5 });
 
       // only e1 has both identity and health
-      const result = world.query(world.identity, world.health);
-      expect(result).toEqual(['e1']);
-    });
-
-    it('store가 없으면 모든 active 엔티티를 반환해야 함', () => {
-      world.createEntity('e1');
-      world.createEntity('e2');
-
-      const result = world.query().sort();
-      expect(result).toEqual(['e1', 'e2']);
+      const result = [...world.query(C_Identity, C_Health)];
+      expect(result.length).toBe(1);
+      expect(result[0][0]).toBe('e1');
+      expect(result[0][1]).toEqual({ entityId: 'e1', entityType: 'a', isGatekeeper: false });
+      expect(result[0][2]).toEqual({ currentHp: 10, maxHp: 10 });
     });
 
     it('비활성 엔티티는 반환하지 않아야 함', () => {
@@ -105,7 +101,48 @@ describe('World', () => {
       world.identity.set('e1', { entityId: 'e1', entityType: 'a', isGatekeeper: false });
       world.destroyEntity('e1');
 
-      expect(world.query(world.identity)).toEqual([]);
+      const result = [...world.query(C_Identity)];
+      expect(result).toEqual([]);
+    });
+
+    it('태그 기반 쿼리가 동작해야 함', () => {
+      world.createEntity('dish1');
+      world.createEntity('boss1');
+      world.createEntity('dish2');
+
+      world.dishTag.set('dish1', {} as Record<string, never>);
+      world.dishTag.set('dish2', {} as Record<string, never>);
+      world.bossTag.set('boss1', {} as Record<string, never>);
+
+      world.health.set('dish1', { currentHp: 10, maxHp: 10 });
+      world.health.set('boss1', { currentHp: 50, maxHp: 50 });
+      world.health.set('dish2', { currentHp: 5, maxHp: 5 });
+
+      const dishes = [...world.query(C_DishTag, C_Health)];
+      expect(dishes.length).toBe(2);
+      const dishIds = dishes.map(([id]) => id).sort();
+      expect(dishIds).toEqual(['dish1', 'dish2']);
+
+      const bosses = [...world.query(C_BossTag, C_Health)];
+      expect(bosses.length).toBe(1);
+      expect(bosses[0][0]).toBe('boss1');
+    });
+
+    it('가장 작은 스토어를 pivot으로 사용해야 함', () => {
+      // Health가 더 작은 스토어
+      world.createEntity('e1');
+      world.createEntity('e2');
+      world.createEntity('e3');
+
+      world.identity.set('e1', { entityId: 'e1', entityType: 'a', isGatekeeper: false });
+      world.identity.set('e2', { entityId: 'e2', entityType: 'b', isGatekeeper: false });
+      world.identity.set('e3', { entityId: 'e3', entityType: 'c', isGatekeeper: false });
+
+      world.health.set('e2', { currentHp: 20, maxHp: 20 });
+
+      const result = [...world.query(C_Identity, C_Health)];
+      expect(result.length).toBe(1);
+      expect(result[0][0]).toBe('e2');
     });
   });
 

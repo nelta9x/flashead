@@ -151,7 +151,6 @@ vi.mock('../src/entities/Entity', () => ({
     public readonly tickVisual = vi.fn();
     public readonly tickRender = vi.fn();
     public readonly getIsDead = vi.fn().mockReturnValue(false);
-    public readonly setFeedbackSystem = vi.fn();
     public readonly deactivate = vi.fn(function(this: { visible: boolean; active: boolean }) {
       this.visible = false;
       this.active = false;
@@ -187,7 +186,7 @@ vi.mock('../src/plugins/PluginRegistry', () => ({
       getEntityType: () => ({
         typeId: 'boss_standard',
         config: { poolSize: 0, defaultLifetime: null, isGatekeeper: true, cursorInteraction: 'contact' },
-        createMovementStrategy: () => null,
+        createMovementData: () => ({ type: 'none', homeX: 0, homeY: 0, movementTime: 0, drift: null }),
       }),
     }),
   },
@@ -306,6 +305,7 @@ describe('BossCombatCoordinator', () => {
         getCursorDamageBonus: () => 0,
         getCriticalChanceBonus: () => 0,
       } as never,
+      damageService: { freeze: vi.fn(), unfreeze: vi.fn() } as never,
       isGameOver: () => isGameOver,
       isPaused: () => isPaused,
     });

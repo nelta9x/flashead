@@ -1,18 +1,15 @@
-import type { Entity } from '../../entities/Entity';
 import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
 import { DishRenderer } from '../../effects/DishRenderer';
+import type { Entity } from '../../entities/Entity';
 
 export class EntityRenderSystem implements EntitySystem {
   readonly id = 'core:entity_render';
   enabled = true;
 
-  constructor(
-    private readonly world: World,
-    private readonly entityLookup: (entityId: string) => Entity | undefined,
-  ) {}
+  constructor(private readonly world: World) {}
 
-  tick(_entities: Entity[], delta: number): void {
+  tick(delta: number): void {
     this.world.phaserNode.forEach((entityId, node) => {
       if (entityId === 'player') return;
       if (!this.world.isActive(entityId)) return;
@@ -34,12 +31,17 @@ export class EntityRenderSystem implements EntitySystem {
       const statusCache = this.world.statusCache.get(entityId);
       const visualState = this.world.visualState.get(entityId);
       const cursorInteraction = this.world.cursorInteraction.get(entityId);
-      const bossBeh = this.world.bossBehavior.get(entityId);
+      const bossState = this.world.bossState.get(entityId);
       const lifetime = this.world.lifetime.get(entityId);
 
-      if (identity?.isGatekeeper && bossBeh) {
+      if (identity?.isGatekeeper && bossState && node.bossRenderer) {
         const hpRatio = health && health.maxHp > 0 ? health.currentHp / health.maxHp : 1;
-        bossBeh.behavior.render(hpRatio, lifetime?.movementTime ?? 0);
+        node.bossRenderer.render({
+          hpRatio,
+          timeElapsed: lifetime?.movementTime ?? 0,
+          armorPieceCount: bossState.armorPieceCount,
+          filledArmorPieceCount: bossState.currentArmorCount,
+        });
       } else if (dishProps?.dangerous) {
         DishRenderer.renderDangerDish(node.graphics, {
           size: dishProps.size,
@@ -61,11 +63,10 @@ export class EntityRenderSystem implements EntitySystem {
         });
       }
 
-      // plugin.onUpdate (전이기: Entity lookup으로 EntityRef 전달)
-      const entity = this.entityLookup(entityId);
-      if (entity) {
-        entity.tickPluginUpdate(delta, lifetime?.movementTime ?? 0);
-      }
+      // plugin.onUpdate (container → Entity cast → typePlugin 조회)
+      const entity = node.container as Entity;
+      const plugin = entity.getTypePlugin();
+      plugin?.onUpdate?.(entityId, this.world, delta, lifetime?.movementTime ?? 0);
     });
   }
 }

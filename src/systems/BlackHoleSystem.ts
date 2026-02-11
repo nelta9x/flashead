@@ -3,10 +3,12 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../data/constants';
 import { Data } from '../data/DataManager';
 import type { BlackHoleLevelData } from '../data/types';
 import { EventBus, GameEvents } from '../utils/EventBus';
-import type { Entity } from '../entities/Entity';
-import type { FallingBomb } from '../entities/FallingBomb';
-import type { ObjectPool } from '../utils/ObjectPool';
+import type { EntityDamageService } from './EntityDamageService';
+import type { FallingBombSystem } from './FallingBombSystem';
 import type { UpgradeSystem } from './UpgradeSystem';
+import { C_DishTag, C_DishProps, C_Transform, C_FallingBombTag, C_FallingBomb } from '../world';
+import type { EntitySystem } from './entity-systems/EntitySystem';
+import type { World } from '../world';
 
 export interface BlackHoleSnapshot {
   x: number;
@@ -27,9 +29,12 @@ interface BossSnapshot {
   radius: number;
 }
 
-export class BlackHoleSystem {
+export class BlackHoleSystem implements EntitySystem {
+  readonly id = 'core:black_hole';
+  enabled = true;
   private readonly upgradeSystem: UpgradeSystem;
-  private readonly getDishPool: () => ObjectPool<Entity>;
+  private readonly world: World;
+  private readonly damageService: EntityDamageService;
   private readonly getBosses: () => BossSnapshot[];
   private readonly damageBoss: (
     bossId: string,
@@ -38,16 +43,18 @@ export class BlackHoleSystem {
     sourceY: number,
     isCritical: boolean
   ) => void;
-  private readonly getFallingBombPool?: () => ObjectPool<FallingBomb>;
+  private fallingBombSystem?: FallingBombSystem;
 
   private blackHoles: ActiveBlackHole[] = [];
   private timeSinceLastSpawn = 0;
   private timeSinceLastDamageTick = 0;
   private lastAppliedLevel = 0;
+  private gameTime = 0;
 
   constructor(
     upgradeSystem: UpgradeSystem,
-    getDishPool: () => ObjectPool<Entity>,
+    world: World,
+    damageService: EntityDamageService,
     getBosses: () => BossSnapshot[],
     damageBoss: (
       bossId: string,
@@ -56,13 +63,24 @@ export class BlackHoleSystem {
       sourceY: number,
       isCritical: boolean
     ) => void,
-    getFallingBombPool?: () => ObjectPool<FallingBomb>
   ) {
     this.upgradeSystem = upgradeSystem;
-    this.getDishPool = getDishPool;
+    this.world = world;
+    this.damageService = damageService;
     this.getBosses = getBosses;
     this.damageBoss = damageBoss;
-    this.getFallingBombPool = getFallingBombPool;
+  }
+
+  setFallingBombSystem(system: FallingBombSystem): void {
+    this.fallingBombSystem = system;
+  }
+
+  setGameTime(gameTime: number): void {
+    this.gameTime = gameTime;
+  }
+
+  tick(delta: number): void {
+    this.update(delta, this.gameTime);
   }
 
   update(delta: number, gameTime: number): void {
@@ -170,11 +188,10 @@ export class BlackHoleSystem {
 
     const deltaSeconds = delta / 1000;
     const consumeRatio = Phaser.Math.Clamp(data.bombConsumeRadiusRatio, 0, 1);
-    const dishes = this.getDishPool().getActiveObjects();
 
-    for (const dish of dishes) {
-      if (!dish.active) continue;
-      const dangerous = dish.isDangerous();
+    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
+      if (!this.world.isActive(entityId)) continue;
+      const dangerous = dp.dangerous;
 
       let pullX = 0;
       let pullY = 0;
@@ -182,11 +199,11 @@ export class BlackHoleSystem {
       let bombConsumed = false;
 
       for (const hole of this.blackHoles) {
-        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, dish.x, dish.y);
+        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, t.x, t.y);
         if (distance > hole.radius) continue;
         if (dangerous && distance <= hole.radius * consumeRatio) {
-          dish.forceDestroy(true);
-          if (!dish.active) {
+          this.damageService.forceDestroy(entityId, true);
+          if (!this.world.isActive(entityId)) {
             this.consumeTarget(hole, data);
           }
           bombConsumed = true;
@@ -196,28 +213,35 @@ export class BlackHoleSystem {
 
         const pullStrength = 1 - distance / hole.radius;
         const pullAmount = data.force * pullStrength * deltaSeconds;
-        const angle = Phaser.Math.Angle.Between(dish.x, dish.y, hole.x, hole.y);
+        const angle = Phaser.Math.Angle.Between(t.x, t.y, hole.x, hole.y);
 
         pullX += Math.cos(angle) * pullAmount;
         pullY += Math.sin(angle) * pullAmount;
         isPulled = true;
       }
 
-      if (bombConsumed || !dish.active) continue;
+      if (bombConsumed || !this.world.isActive(entityId)) continue;
       if (!isPulled) continue;
 
-      dish.x = Phaser.Math.Clamp(dish.x + pullX, 0, GAME_WIDTH);
-      dish.y = Phaser.Math.Clamp(dish.y + pullY, 0, GAME_HEIGHT);
-      dish.setBeingPulled(true);
+      const newX = Phaser.Math.Clamp(t.x + pullX, 0, GAME_WIDTH);
+      const newY = Phaser.Math.Clamp(t.y + pullY, 0, GAME_HEIGHT);
+      t.x = newX;
+      t.y = newY;
+      const node = this.world.phaserNode.get(entityId);
+      if (node) {
+        node.container.x = newX;
+        node.container.y = newY;
+      }
+      this.damageService.setBeingPulled(entityId, true);
 
       if (!dangerous) continue;
 
       for (const hole of this.blackHoles) {
-        const movedDistance = Phaser.Math.Distance.Between(hole.x, hole.y, dish.x, dish.y);
+        const movedDistance = Phaser.Math.Distance.Between(hole.x, hole.y, newX, newY);
         if (movedDistance > hole.radius) continue;
         if (movedDistance <= hole.radius * consumeRatio) {
-          dish.forceDestroy(true);
-          if (!dish.active) {
+          this.damageService.forceDestroy(entityId, true);
+          if (!this.world.isActive(entityId)) {
             this.consumeTarget(hole, data);
           }
           break;
@@ -225,28 +249,27 @@ export class BlackHoleSystem {
       }
     }
 
-    // 낙하 폭탄 풀/소비
-    if (!this.getFallingBombPool) return;
-    const bombs = this.getFallingBombPool().getActiveObjects();
+    // 낙하 폭탄 (ECS World query)
+    if (!this.fallingBombSystem) return;
 
-    for (const bomb of bombs) {
-      if (!bomb.active || !bomb.isFullySpawned()) continue;
+    for (const [bombId, , fb, bt] of this.world.query(C_FallingBombTag, C_FallingBomb, C_Transform)) {
+      if (!fb.fullySpawned) continue;
 
       let bombPullX = 0;
       let bombPullY = 0;
       let bombPulled = false;
-      let bombConsumed = false;
+      let bombConsumedFlag = false;
 
       for (const hole of this.blackHoles) {
-        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, bomb.x, bomb.y);
+        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, bt.x, bt.y);
         if (distance > hole.radius) continue;
 
         if (distance <= hole.radius * consumeRatio) {
-          bomb.forceDestroy(true);
-          if (!bomb.active) {
+          this.fallingBombSystem.forceDestroy(bombId, true);
+          if (!this.world.isActive(bombId)) {
             this.consumeTarget(hole, data);
           }
-          bombConsumed = true;
+          bombConsumedFlag = true;
           break;
         }
 
@@ -254,26 +277,31 @@ export class BlackHoleSystem {
 
         const pullStrength = 1 - distance / hole.radius;
         const pullAmount = data.force * pullStrength * deltaSeconds;
-        const angle = Phaser.Math.Angle.Between(bomb.x, bomb.y, hole.x, hole.y);
+        const angle = Phaser.Math.Angle.Between(bt.x, bt.y, hole.x, hole.y);
 
         bombPullX += Math.cos(angle) * pullAmount;
         bombPullY += Math.sin(angle) * pullAmount;
         bombPulled = true;
       }
 
-      if (bombConsumed || !bomb.active) continue;
+      if (bombConsumedFlag || !this.world.isActive(bombId)) continue;
       if (!bombPulled) continue;
 
-      bomb.x = Phaser.Math.Clamp(bomb.x + bombPullX, 0, GAME_WIDTH);
-      bomb.y = Phaser.Math.Clamp(bomb.y + bombPullY, 0, GAME_HEIGHT);
+      bt.x = Phaser.Math.Clamp(bt.x + bombPullX, 0, GAME_WIDTH);
+      bt.y = Phaser.Math.Clamp(bt.y + bombPullY, 0, GAME_HEIGHT);
+      const bombNode = this.world.phaserNode.get(bombId);
+      if (bombNode) {
+        bombNode.container.x = bt.x;
+        bombNode.container.y = bt.y;
+      }
 
       // 이동 후 소비 체크
       for (const hole of this.blackHoles) {
-        const movedDistance = Phaser.Math.Distance.Between(hole.x, hole.y, bomb.x, bomb.y);
+        const movedDistance = Phaser.Math.Distance.Between(hole.x, hole.y, bt.x, bt.y);
         if (movedDistance > hole.radius) continue;
         if (movedDistance <= hole.radius * consumeRatio) {
-          bomb.forceDestroy(true);
-          if (!bomb.active) {
+          this.fallingBombSystem.forceDestroy(bombId, true);
+          if (!this.world.isActive(bombId)) {
             this.consumeTarget(hole, data);
           }
           break;
@@ -285,17 +313,16 @@ export class BlackHoleSystem {
   private applyDamageTick(data: BlackHoleLevelData, criticalChanceBonus: number): void {
     if (this.blackHoles.length === 0) return;
 
-    const dishes = this.getDishPool().getActiveObjects();
-    for (const dish of dishes) {
-      if (!dish.active || dish.isDangerous()) continue;
+    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
+      if (dp.dangerous) continue;
 
       for (const hole of this.blackHoles) {
-        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, dish.x, dish.y);
+        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, t.x, t.y);
         if (distance > hole.radius) continue;
 
-        const wasActive = dish.active;
-        dish.applyDamageWithUpgrades(hole.damage, 0, criticalChanceBonus);
-        if (wasActive && !dish.active) {
+        const wasActive = this.world.isActive(entityId);
+        this.damageService.applyUpgradeDamage(entityId, hole.damage, 0, criticalChanceBonus);
+        if (wasActive && !this.world.isActive(entityId)) {
           this.applyConsumeGrowth(hole, data);
         }
         break;

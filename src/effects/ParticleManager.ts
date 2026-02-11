@@ -103,20 +103,8 @@ export class ParticleManager {
 
     // 타입별 파티클 수 조절 (JSON에서 로드)
     const particles = Data.feedback.particles;
-    let baseCount: number;
-    switch (dishType) {
-      case 'golden':
-        baseCount = particles.golden.count;
-        break;
-      case 'crystal':
-        baseCount = particles.crystal.count;
-        break;
-      case 'bomb':
-        baseCount = particles.bomb.count;
-        break;
-      default:
-        baseCount = particles.basic.count;
-    }
+    const particleConfig = particles[dishType as keyof typeof particles];
+    const baseCount = particleConfig?.count ?? particles.basic.count;
 
     // 파티클 배율 적용
     const particleCount = Math.floor(baseCount * particleMultiplier);
@@ -127,13 +115,11 @@ export class ParticleManager {
     // 추가 링 효과
     this.createRingEffect(x, y, color);
 
-    // 크리스탈 접시는 추가 스파크
-    if (dishType === 'crystal') {
+    // 데이터 기반 추가 효과
+    if (particleConfig && 'sparkBurst' in particleConfig && particleConfig.sparkBurst) {
       this.createSparkBurst(x, y, COLORS.MAGENTA);
     }
-
-    // 폭탄 접시는 더 큰 폭발
-    if (dishType === 'bomb') {
+    if (particleConfig && 'shockwave' in particleConfig && particleConfig.shockwave) {
       this.createShockwave(x, y, COLORS.RED);
     }
   }

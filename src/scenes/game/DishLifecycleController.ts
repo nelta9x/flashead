@@ -1,26 +1,25 @@
 import Phaser from 'phaser';
 import type { Entity } from '../../entities/Entity';
 import type { DamageText } from '../../ui/DamageText';
-import type { ParticleManager } from '../../effects/ParticleManager';
 import type { PlayerAttackRenderer } from '../../effects/PlayerAttackRenderer';
 import type { ObjectPool } from '../../utils/ObjectPool';
 import type { ComboSystem } from '../../systems/ComboSystem';
+import type { EntityDamageService } from '../../systems/EntityDamageService';
 import type { FeedbackSystem } from '../../systems/FeedbackSystem';
 import type { HealthSystem } from '../../systems/HealthSystem';
 import type { SoundSystem } from '../../systems/SoundSystem';
 import type { UpgradeSystem } from '../../systems/UpgradeSystem';
+import type { World } from '../../world';
 import type {
-  BossInteractionGateway,
-  CursorSnapshot,
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
   DishMissedEventPayload,
 } from './GameSceneContracts';
-import { DishFieldEffectService } from './dish/DishFieldEffectService';
 import { DishResolutionService } from './dish/DishResolutionService';
 import { DishSpawnService } from './dish/DishSpawnService';
 
 interface DishLifecycleControllerDeps {
+  world: World;
   dishPool: ObjectPool<Entity>;
   dishes: Phaser.GameObjects.Group;
   healthSystem: HealthSystem;
@@ -29,18 +28,15 @@ interface DishLifecycleControllerDeps {
   feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   damageText: DamageText;
-  particleManager: ParticleManager;
+  damageService: EntityDamageService;
   getPlayerAttackRenderer: () => PlayerAttackRenderer;
-  bossGateway: BossInteractionGateway;
   isAnyLaserFiring: () => boolean;
-  getCursor: () => CursorSnapshot;
   isGameOver: () => boolean;
 }
 
 export class DishLifecycleController {
   private readonly spawnService: DishSpawnService;
   private readonly resolutionService: DishResolutionService;
-  private readonly fieldEffectService: DishFieldEffectService;
 
   constructor(deps: DishLifecycleControllerDeps) {
     this.spawnService = new DishSpawnService({
@@ -52,6 +48,7 @@ export class DishLifecycleController {
     });
 
     this.resolutionService = new DishResolutionService({
+      world: deps.world,
       dishPool: deps.dishPool,
       dishes: deps.dishes,
       healthSystem: deps.healthSystem,
@@ -60,15 +57,8 @@ export class DishLifecycleController {
       feedbackSystem: deps.feedbackSystem,
       soundSystem: deps.soundSystem,
       damageText: deps.damageText,
-      bossGateway: deps.bossGateway,
+      damageService: deps.damageService,
       isAnyLaserFiring: deps.isAnyLaserFiring,
-      getCursor: deps.getCursor,
-    });
-
-    this.fieldEffectService = new DishFieldEffectService({
-      dishPool: deps.dishPool,
-      particleManager: deps.particleManager,
-      upgradeSystem: deps.upgradeSystem,
     });
   }
 
@@ -86,13 +76,5 @@ export class DishLifecycleController {
 
   public onDishMissed(data: DishMissedEventPayload): void {
     this.resolutionService.onDishMissed(data);
-  }
-
-  public updateMagnetEffect(delta: number, cursor: CursorSnapshot): void {
-    this.fieldEffectService.updateMagnetEffect(delta, cursor);
-  }
-
-  public updateCursorAttack(cursor: CursorSnapshot): void {
-    this.fieldEffectService.updateCursorAttack(cursor);
   }
 }

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DishLifecycleController } from '../src/scenes/game/DishLifecycleController';
+import type { EntitySnapshot } from '../src/entities/EntitySnapshot';
 
 vi.mock('phaser', () => ({
   default: {
@@ -24,8 +25,8 @@ vi.mock('../src/data/constants', () => ({
   },
 }));
 
-const dishDataByType: Record<string, { playerDamage: number; resetCombo: boolean }> = {
-  bomb: { playerDamage: 2, resetCombo: true },
+const dishDataByType: Record<string, { playerDamage: number; resetCombo: boolean; bombWarning?: { duration: number; radius: number; blinkInterval: number } }> = {
+  bomb: { playerDamage: 2, resetCombo: true, bombWarning: { duration: 500, radius: 50, blinkInterval: 100 } },
   basic: { playerDamage: 1, resetCombo: false },
   amber: { playerDamage: 1, resetCombo: false },
 };
@@ -48,6 +49,22 @@ vi.mock('../src/data/DataManager', () => ({
   },
 }));
 
+function makeSnapshot(overrides: Partial<EntitySnapshot> = {}): EntitySnapshot {
+  return {
+    entityId: 'e1',
+    x: 100,
+    y: 200,
+    entityType: 'basic',
+    dangerous: false,
+    color: 0xffffff,
+    size: 30,
+    currentHp: 10,
+    maxHp: 10,
+    hpRatio: 1,
+    ...overrides,
+  };
+}
+
 describe('DishLifecycleController', () => {
   let isGameOver = false;
   const healthSystem = {
@@ -67,10 +84,6 @@ describe('DishLifecycleController', () => {
     add: vi.fn(),
     remove: vi.fn(),
   };
-  const bossGateway = {
-    findNearestAliveBoss: vi.fn(),
-    cancelChargingLasers: vi.fn(),
-  };
   const feedbackSystem = {
     onBombExploded: vi.fn(),
     onDishDestroyed: vi.fn(),
@@ -80,6 +93,61 @@ describe('DishLifecycleController', () => {
     onElectricShock: vi.fn(),
   };
   const showBombWarning = vi.fn();
+  const damageService = {
+    applyUpgradeDamage: vi.fn(),
+    setBeingPulled: vi.fn(),
+  };
+
+  // World store mocks — supports phaserNode, dishProps, dishTag, transform, and query()
+  const phaserNodeStore = new Map<string, { container: unknown }>();
+  const dishPropsStore = new Map<string, { dangerous: boolean }>();
+  const dishTagStore = new Map<string, Record<string, never>>();
+  const transformStore = new Map<string, { x: number; y: number }>();
+  const activeEntities = new Set<string>();
+
+  const world = {
+    phaserNode: {
+      get: (id: string) => phaserNodeStore.get(id),
+    },
+    dishProps: {
+      get: (id: string) => dishPropsStore.get(id),
+      has: (id: string) => dishPropsStore.has(id),
+      size: () => dishPropsStore.size,
+      entries: () => dishPropsStore.entries(),
+    },
+    dishTag: {
+      get: (id: string) => dishTagStore.get(id),
+      has: (id: string) => dishTagStore.has(id),
+      size: () => dishTagStore.size,
+      entries: () => dishTagStore.entries(),
+    },
+    transform: {
+      get: (id: string) => transformStore.get(id),
+      has: (id: string) => transformStore.has(id),
+      size: () => transformStore.size,
+      entries: () => transformStore.entries(),
+    },
+    isActive: (id: string) => activeEntities.has(id),
+    query: vi.fn(function () {
+      return (function* () {
+        for (const [entityId] of dishTagStore) {
+          if (!activeEntities.has(entityId)) continue;
+          const dp = dishPropsStore.get(entityId);
+          const t = transformStore.get(entityId);
+          if (!dp || !t) continue;
+          yield [entityId, dishTagStore.get(entityId), dp, t];
+        }
+      })();
+    }),
+  };
+
+  /** Add a dish entity to the World stores for query-based iteration */
+  function addDishToWorld(id: string, x: number, y: number, dangerous: boolean): void {
+    activeEntities.add(id);
+    dishTagStore.set(id, {} as Record<string, never>);
+    dishPropsStore.set(id, { dangerous });
+    transformStore.set(id, { x, y });
+  }
 
   function createController(overrides?: {
     upgradeSystem?: Partial<{
@@ -107,6 +175,7 @@ describe('DishLifecycleController', () => {
     };
 
     return new DishLifecycleController({
+      world: world as never,
       dishPool: dishPool as never,
       dishes: dishes as never,
       healthSystem: healthSystem as never,
@@ -119,16 +188,12 @@ describe('DishLifecycleController', () => {
       damageText: {
         showText: vi.fn(),
       } as never,
-      particleManager: {
-        createMagnetPullEffect: vi.fn(),
-      } as never,
+      damageService: damageService as never,
       getPlayerAttackRenderer: () =>
         ({
           showBombWarning,
         }) as never,
-      bossGateway: bossGateway as never,
       isAnyLaserFiring: () => false,
-      getCursor: () => ({ x: 100, y: 100 }),
       isGameOver: () => isGameOver,
     });
   }
@@ -136,18 +201,20 @@ describe('DishLifecycleController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isGameOver = false;
+    phaserNodeStore.clear();
+    dishPropsStore.clear();
+    dishTagStore.clear();
+    transformStore.clear();
+    activeEntities.clear();
   });
 
   it('handles dangerous dish destruction with penalty and release', () => {
     const controller = createController();
-    const bombDish = {
-      getDishType: () => 'bomb',
-      isDangerous: () => true,
-      getColor: () => 0xffffff,
-    };
+    const bombEntity = { getDishType: () => 'bomb' };
+    phaserNodeStore.set('bomb1', { container: bombEntity });
 
     controller.onDishDestroyed({
-      dish: bombDish as never,
+      snapshot: makeSnapshot({ entityId: 'bomb1', entityType: 'bomb', dangerous: true }),
       x: 100,
       y: 200,
     });
@@ -155,8 +222,8 @@ describe('DishLifecycleController', () => {
     expect(healthSystem.takeDamage).toHaveBeenCalledWith(2);
     expect(comboSystem.reset).toHaveBeenCalledTimes(1);
     expect(feedbackSystem.onBombExploded).toHaveBeenCalledWith(100, 200, false);
-    expect(dishes.remove).toHaveBeenCalledWith(bombDish);
-    expect(dishPool.release).toHaveBeenCalledWith(bombDish);
+    expect(dishes.remove).toHaveBeenCalledWith(bombEntity);
+    expect(dishPool.release).toHaveBeenCalledWith(bombEntity);
   });
 
   it('applies electric shock only to normal dishes within radius on cursor hit', () => {
@@ -168,42 +235,14 @@ describe('DishLifecycleController', () => {
       },
     });
 
-    const sourceDish = {
-      getDishType: () => 'basic',
-      isDangerous: () => false,
-      getColor: () => 0xffffff,
-    };
-    const nearNormal = {
-      active: true,
-      x: 110,
-      y: 120,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-    const nearDangerous = {
-      active: true,
-      x: 115,
-      y: 115,
-      isDangerous: () => true,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-    const farNormal = {
-      active: true,
-      x: 500,
-      y: 500,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-
-    dishPool.forEach.mockImplementation((callback: (dish: unknown) => void) => {
-      callback(sourceDish);
-      callback(nearNormal);
-      callback(nearDangerous);
-      callback(farNormal);
-    });
+    // Set up entities in the World stores for query-based iteration
+    addDishToWorld('src', 100, 100, false);
+    addDishToWorld('near', 110, 120, false);
+    addDishToWorld('danger', 115, 115, true);
+    addDishToWorld('far', 500, 500, false);
 
     controller.onDishDamaged({
-      dish: sourceDish as never,
+      snapshot: makeSnapshot({ entityId: 'src', entityType: 'basic' }),
       x: 100,
       y: 100,
       type: 'basic',
@@ -215,9 +254,9 @@ describe('DishLifecycleController', () => {
       byAbility: false,
     });
 
-    expect(nearNormal.applyDamageWithUpgrades).toHaveBeenCalledWith(5, 0, 0);
-    expect(nearDangerous.applyDamageWithUpgrades).not.toHaveBeenCalled();
-    expect(farNormal.applyDamageWithUpgrades).not.toHaveBeenCalled();
+    expect(damageService.applyUpgradeDamage).toHaveBeenCalledWith('near', 5, 0, 0);
+    expect(damageService.applyUpgradeDamage).not.toHaveBeenCalledWith('danger', expect.anything(), expect.anything(), expect.anything());
+    expect(damageService.applyUpgradeDamage).not.toHaveBeenCalledWith('far', expect.anything(), expect.anything(), expect.anything());
     expect(feedbackSystem.onElectricShock).toHaveBeenCalledWith(100, 100, [{ x: 110, y: 120 }]);
   });
 
@@ -229,26 +268,9 @@ describe('DishLifecycleController', () => {
         getElectricShockDamage: () => 5,
       },
     });
-    const sourceDish = {
-      getDishType: () => 'basic',
-      isDangerous: () => false,
-      getColor: () => 0xffffff,
-    };
-    const nearNormal = {
-      active: true,
-      x: 110,
-      y: 120,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-
-    dishPool.forEach.mockImplementation((callback: (dish: unknown) => void) => {
-      callback(sourceDish);
-      callback(nearNormal);
-    });
 
     controller.onDishDamaged({
-      dish: sourceDish as never,
+      snapshot: makeSnapshot({ entityId: 'src', entityType: 'basic' }),
       x: 100,
       y: 100,
       type: 'basic',
@@ -260,7 +282,7 @@ describe('DishLifecycleController', () => {
       byAbility: true,
     });
 
-    expect(nearNormal.applyDamageWithUpgrades).not.toHaveBeenCalled();
+    expect(damageService.applyUpgradeDamage).not.toHaveBeenCalled();
     expect(feedbackSystem.onElectricShock).not.toHaveBeenCalled();
   });
 
@@ -272,50 +294,22 @@ describe('DishLifecycleController', () => {
         getElectricShockDamage: () => 5,
       },
     });
-    const sourceDish = {
-      getDishType: () => 'basic',
-      isDangerous: () => false,
-      getColor: () => 0xffffff,
-    };
-    const nearNormal = {
-      active: true,
-      x: 110,
-      y: 120,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
 
-    dishPool.forEach.mockImplementation((callback: (dish: unknown) => void) => {
-      callback(sourceDish);
-      callback(nearNormal);
-    });
+    // Set up entities in the World stores for query-based iteration
+    addDishToWorld('src', 100, 100, false);
+    addDishToWorld('near', 110, 120, false);
 
+    const snap = makeSnapshot({ entityId: 'src', entityType: 'basic' });
     controller.onDishDamaged({
-      dish: sourceDish as never,
-      x: 100,
-      y: 100,
-      type: 'basic',
-      damage: 3,
-      currentHp: 7,
-      maxHp: 10,
-      hpRatio: 0.7,
-      isFirstHit: false,
-      byAbility: false,
+      snapshot: snap, x: 100, y: 100, type: 'basic',
+      damage: 3, currentHp: 7, maxHp: 10, hpRatio: 0.7, isFirstHit: false, byAbility: false,
     });
     controller.onDishDamaged({
-      dish: sourceDish as never,
-      x: 100,
-      y: 100,
-      type: 'basic',
-      damage: 3,
-      currentHp: 4,
-      maxHp: 10,
-      hpRatio: 0.4,
-      isFirstHit: false,
-      byAbility: false,
+      snapshot: snap, x: 100, y: 100, type: 'basic',
+      damage: 3, currentHp: 4, maxHp: 10, hpRatio: 0.4, isFirstHit: false, byAbility: false,
     });
 
-    expect(nearNormal.applyDamageWithUpgrades).toHaveBeenCalledTimes(2);
+    expect(damageService.applyUpgradeDamage).toHaveBeenCalledTimes(2);
     expect(feedbackSystem.onElectricShock).toHaveBeenCalledTimes(2);
   });
 
@@ -327,14 +321,11 @@ describe('DishLifecycleController', () => {
         getElectricShockDamage: () => 5,
       },
     });
-    const sourceDish = {
-      getDishType: () => 'basic',
-      isDangerous: () => false,
-      getColor: () => 0xffffff,
-    };
+
+    phaserNodeStore.set('e1', { container: {} });
 
     controller.onDishDestroyed({
-      dish: sourceDish as never,
+      snapshot: makeSnapshot({ entityId: 'e1', entityType: 'basic' }),
       x: 100,
       y: 100,
       byAbility: false,
@@ -343,31 +334,11 @@ describe('DishLifecycleController', () => {
     expect(feedbackSystem.onElectricShock).not.toHaveBeenCalled();
   });
 
-  it('resets pulled state when magnet level is zero', () => {
-    const controller = createController({
-      upgradeSystem: {
-        getMagnetLevel: () => 0,
-      },
-    });
-    const activeDish = {
-      active: true,
-      setBeingPulled: vi.fn(),
-    };
-
-    dishPool.forEach.mockImplementation((callback: (dish: unknown) => void) => {
-      callback(activeDish);
-    });
-
-    controller.updateMagnetEffect(16, { x: 300, y: 200 });
-    expect(activeDish.setBeingPulled).toHaveBeenCalledWith(false);
-  });
-
-  it('cancels nearest boss charging lasers on amber critical damage', () => {
+  it('calls onCriticalHit and returns on critical damage (no laser cancel)', () => {
     const controller = createController();
-    bossGateway.findNearestAliveBoss.mockReturnValue({ id: 'boss_left', x: 300, y: 100 });
 
     controller.onDishDamaged({
-      dish: { getColor: () => 0xffffff } as never,
+      snapshot: makeSnapshot({ entityId: 'e1', entityType: 'amber', color: 0xffffff }),
       x: 100,
       y: 100,
       type: 'amber',
@@ -379,7 +350,9 @@ describe('DishLifecycleController', () => {
       isCritical: true,
     });
 
-    expect(bossGateway.cancelChargingLasers).toHaveBeenCalledWith('boss_left');
+    expect(feedbackSystem.onCriticalHit).toHaveBeenCalledWith(100, 100, 10, 7);
+    // Should not call onDishDamaged (returns early)
+    expect(feedbackSystem.onDishDamaged).not.toHaveBeenCalled();
   });
 
   it('skips bomb spawn when warning callback resolves after game over', () => {

@@ -40,6 +40,10 @@ export class ComponentStore<T> {
     return Array.from(this.data.keys());
   }
 
+  *entries(): IterableIterator<[string, T]> {
+    yield* this.data.entries();
+  }
+
   size(): number {
     return this.data.size;
   }

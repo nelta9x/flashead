@@ -40,7 +40,7 @@ describe('EntityStatusSystem', () => {
     world.createEntity('e1');
     world.statusCache.set('e1', { isFrozen: false, slowFactor: 1.0, isShielded: false });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     const status = world.statusCache.getRequired('e1');
     expect(status.isFrozen).toBe(true);
@@ -55,7 +55,7 @@ describe('EntityStatusSystem', () => {
     world.createEntity('e1');
     world.statusCache.set('e1', { isFrozen: false, slowFactor: 0.3, isShielded: false });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     expect(world.statusCache.getRequired('e1').slowFactor).toBe(1.0);
   });
@@ -68,7 +68,7 @@ describe('EntityStatusSystem', () => {
     // Set statusCache but don't create entity (not active)
     world.statusCache.set('e1', { isFrozen: false, slowFactor: 1.0, isShielded: false });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     expect(sem.hasEffect).not.toHaveBeenCalled();
   });
@@ -83,7 +83,7 @@ describe('EntityStatusSystem', () => {
     world.createEntity('player');
     world.statusCache.set('player', { isFrozen: false, slowFactor: 1.0, isShielded: false });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     expect(world.statusCache.getRequired('player').isFrozen).toBe(true);
   });
@@ -92,6 +92,6 @@ describe('EntityStatusSystem', () => {
     const world = new World();
     const sem = createMockSEM();
     const system = new EntityStatusSystem(world, sem as never);
-    expect(() => system.tick([] as never, 16)).not.toThrow();
+    expect(() => system.tick(16)).not.toThrow();
   });
 });

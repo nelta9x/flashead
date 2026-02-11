@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
-import type { ObjectPool } from '../src/utils/ObjectPool';
-import type { Entity } from '../src/entities/Entity';
 
 // Mock Phaser
 vi.mock('phaser', () => {
@@ -35,16 +33,77 @@ vi.mock('../src/utils/EventBus', async () => {
 
 import { OrbSystem } from '../src/systems/OrbSystem';
 
-type MockDish = {
-  active: boolean;
-  x: number;
-  y: number;
-  getSize: () => number;
-  isDangerous: () => boolean;
-  isFullySpawned?: ReturnType<typeof vi.fn>;
-  applyDamageWithUpgrades: ReturnType<typeof vi.fn>;
-  forceDestroy?: ReturnType<typeof vi.fn>;
-};
+let entityIdCounter = 0;
+
+// Helper: minimal mock World that supports query() for tests
+function createMockWorld() {
+  const dishTagStore = new Map<string, Record<string, never>>();
+  const dishPropsStore = new Map<string, { dangerous: boolean; size: number; invulnerable?: boolean; color?: number; interactiveRadius?: number; upgradeOptions?: unknown; destroyedByAbility?: boolean }>();
+  const transformStore = new Map<string, { x: number; y: number; baseX?: number; baseY?: number; alpha?: number; scaleX?: number; scaleY?: number }>();
+  const lifetimeStore = new Map<string, { elapsedTime: number; spawnDuration: number; movementTime?: number; lifetime?: number | null; globalSlowPercent?: number }>();
+  const activeEntities = new Set<string>();
+
+  const world = {
+    dishTag: {
+      get: (id: string) => dishTagStore.get(id),
+      has: (id: string) => dishTagStore.has(id),
+      set: (id: string, val: Record<string, never>) => dishTagStore.set(id, val),
+      size: () => dishTagStore.size,
+      entries: () => dishTagStore.entries(),
+    },
+    dishProps: {
+      get: (id: string) => dishPropsStore.get(id),
+      has: (id: string) => dishPropsStore.has(id),
+      set: (id: string, val: { dangerous: boolean; size: number }) => dishPropsStore.set(id, val),
+      size: () => dishPropsStore.size,
+      entries: () => dishPropsStore.entries(),
+    },
+    transform: {
+      get: (id: string) => transformStore.get(id),
+      has: (id: string) => transformStore.has(id),
+      set: (id: string, val: { x: number; y: number }) => transformStore.set(id, val),
+      size: () => transformStore.size,
+      entries: () => transformStore.entries(),
+    },
+    lifetime: {
+      get: (id: string) => lifetimeStore.get(id),
+      has: (id: string) => lifetimeStore.has(id),
+      set: (id: string, val: { elapsedTime: number; spawnDuration: number }) => lifetimeStore.set(id, val),
+      size: () => lifetimeStore.size,
+      entries: () => lifetimeStore.entries(),
+    },
+    createEntity: (id: string) => activeEntities.add(id),
+    isActive: (id: string) => activeEntities.has(id),
+    query: vi.fn(function* (..._defs: unknown[]) {
+      // Iterate over dishTag as pivot, yield tuples matching query(C_DishTag, C_DishProps, C_Transform, C_Lifetime)
+      for (const [entityId] of dishTagStore) {
+        if (!activeEntities.has(entityId)) continue;
+        const dp = dishPropsStore.get(entityId);
+        const t = transformStore.get(entityId);
+        const lt = lifetimeStore.get(entityId);
+        if (!dp || !t || !lt) continue;
+        yield [entityId, dishTagStore.get(entityId), dp, t, lt];
+      }
+    }),
+    _stores: { dishTagStore, dishPropsStore, transformStore, lifetimeStore, activeEntities },
+  };
+
+  // Re-implement query as a function that returns a fresh generator each call
+  world.query = vi.fn(function () {
+    return (function* () {
+      for (const [entityId] of dishTagStore) {
+        if (!activeEntities.has(entityId)) continue;
+        const dp = dishPropsStore.get(entityId);
+        const t = transformStore.get(entityId);
+        const lt = lifetimeStore.get(entityId);
+        if (!dp || !t || !lt) continue;
+        yield [entityId, dishTagStore.get(entityId), dp, t, lt];
+      }
+    })();
+  });
+
+  return world;
+}
 
 describe('OrbSystem', () => {
   let system: OrbSystem;
@@ -55,11 +114,32 @@ describe('OrbSystem', () => {
     getCriticalChanceBonus: ReturnType<typeof vi.fn>;
     getSystemUpgrade: ReturnType<typeof vi.fn>;
   };
-  let mockDishPool: { forEach: (callback: (entity: Entity) => void) => void };
-  let mockDishes: MockDish[];
+
+  let mockWorld: ReturnType<typeof createMockWorld>;
+
+  // DamageService mock
+  let mockDamageService: {
+    forceDestroy: ReturnType<typeof vi.fn>;
+    applyUpgradeDamage: ReturnType<typeof vi.fn>;
+  };
+
+  const addDishToWorld = (x: number, y: number, opts: { dangerous?: boolean; size?: number; spawnDuration?: number; elapsedTime?: number } = {}): string => {
+    const id = `dish_${entityIdCounter++}`;
+    const stores = mockWorld._stores;
+    stores.activeEntities.add(id);
+    stores.dishTagStore.set(id, {} as Record<string, never>);
+    stores.dishPropsStore.set(id, { dangerous: opts.dangerous ?? false, size: opts.size ?? 10 });
+    stores.transformStore.set(id, { x, y });
+    stores.lifetimeStore.set(id, {
+      elapsedTime: opts.elapsedTime ?? 9999,
+      spawnDuration: opts.spawnDuration ?? 0,
+    });
+    return id;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    entityIdCounter = 0;
 
     mockUpgradeSystem = {
       getOrbitingOrbLevel: vi.fn(),
@@ -74,20 +154,23 @@ describe('OrbSystem', () => {
       }),
     };
 
-    mockDishes = [];
-    mockDishPool = {
-      forEach: vi.fn((callback: (dish: Entity) => void) => {
-        mockDishes.forEach((dish) => callback(dish as unknown as Entity));
-      }),
+    mockWorld = createMockWorld();
+    mockDamageService = {
+      forceDestroy: vi.fn(),
+      applyUpgradeDamage: vi.fn(),
     };
 
-    system = new OrbSystem(mockUpgradeSystem as unknown as UpgradeSystem);
+    system = new OrbSystem(
+      mockUpgradeSystem as unknown as UpgradeSystem,
+      mockWorld as never,
+      mockDamageService as never
+    );
   });
 
   it('should not spawn orbs if level is 0', () => {
     mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(0);
 
-    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(100, 0, 0, 0);
 
     expect(system.getOrbs()).toHaveLength(0);
   });
@@ -102,7 +185,7 @@ describe('OrbSystem', () => {
       size: 10,
     });
 
-    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(100, 0, 0, 0);
 
     const orbs = system.getOrbs();
     expect(orbs).toHaveLength(2);
@@ -124,19 +207,11 @@ describe('OrbSystem', () => {
     });
 
     // Player at 0,0. Orb at 100,0. Size 10.
-    const mockDish = {
-      active: true,
-      x: 100,
-      y: 0,
-      getSize: () => 10,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-    mockDishes.push(mockDish);
+    const dishId = addDishToWorld(100, 0);
 
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(100, 1000, 0, 0);
 
-    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledWith(10, 0, 0);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledWith(dishId, 10, 0, 0);
   });
 
   it('should respect hit cooldown', () => {
@@ -149,28 +224,23 @@ describe('OrbSystem', () => {
       size: 10,
     });
 
-    const mockDish = {
-      active: true,
-      x: 100,
-      y: 0,
-      getSize: () => 10,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-    mockDishes.push(mockDish);
+    const dishId = addDishToWorld(100, 0);
 
     // First hit
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
+    system.update(100, 1000, 0, 0);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
 
     // Second update (immediate) - Should fail cooldown
-    mockDish.applyDamageWithUpgrades.mockClear();
-    system.update(100, 1100, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // +100ms
-    expect(mockDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
+    mockDamageService.applyUpgradeDamage.mockClear();
+    system.update(100, 1100, 0, 0); // +100ms
+    expect(mockDamageService.applyUpgradeDamage).not.toHaveBeenCalled();
 
     // Third update (after cooldown 300ms)
-    system.update(100, 1400, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // +400ms from start
-    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
+    system.update(100, 1400, 0, 0); // +400ms from start
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
+
+    // Suppress unused variable warning
+    void dishId;
   });
 
   it('should use hitInterval from upgrade data (orbiting_orb) for cooldown', () => {
@@ -184,28 +254,22 @@ describe('OrbSystem', () => {
     });
     mockUpgradeSystem.getSystemUpgrade.mockReturnValue({ hitInterval: 900 });
 
-    const mockDish = {
-      active: true,
-      x: 100,
-      y: 0,
-      getSize: () => 10,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-    mockDishes.push(mockDish);
+    const dishId = addDishToWorld(100, 0);
 
     // First hit at t=1000
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
+    system.update(100, 1000, 0, 0);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
 
     // 800ms later: still in cooldown when hitInterval=900
-    mockDish.applyDamageWithUpgrades.mockClear();
-    system.update(100, 1800, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    expect(mockDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
+    mockDamageService.applyUpgradeDamage.mockClear();
+    system.update(100, 1800, 0, 0);
+    expect(mockDamageService.applyUpgradeDamage).not.toHaveBeenCalled();
 
     // 900ms later: cooldown expired
-    system.update(100, 1900, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
+    system.update(100, 1900, 0, 0);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
+
+    void dishId;
   });
 
   it('should forward critical chance bonus to dish damage calculation', () => {
@@ -219,19 +283,11 @@ describe('OrbSystem', () => {
     });
     mockUpgradeSystem.getCriticalChanceBonus.mockReturnValue(0.35);
 
-    const mockDish = {
-      active: true,
-      x: 100,
-      y: 0,
-      getSize: () => 10,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-    mockDishes.push(mockDish);
+    const dishId = addDishToWorld(100, 0);
 
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(100, 1000, 0, 0);
 
-    expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledWith(10, 0, 0.35);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledWith(dishId, 10, 0, 0.35);
   });
 
   it('should apply magnet synergy to size', () => {
@@ -245,7 +301,7 @@ describe('OrbSystem', () => {
     });
     mockUpgradeSystem.getMagnetLevel.mockReturnValue(5); // Level 5 Magnet
 
-    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(100, 0, 0, 0);
 
     const orb = system.getOrbs()[0];
     // Base 10. Magnet 5 * 0.2 = +100% -> 2.0x -> 20.
@@ -262,33 +318,24 @@ describe('OrbSystem', () => {
       size: 10,
     });
 
-    const mockBomb = {
-      active: true,
-      x: 100,
-      y: 0,
-      getSize: () => 10,
-      isDangerous: () => true,
-      isFullySpawned: vi.fn(),
-      applyDamageWithUpgrades: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    mockDishes.push(mockBomb);
+    // Dangerous bomb dish with spawn tracking via lifetime store
+    const bombId = addDishToWorld(100, 0, { dangerous: true, size: 10, spawnDuration: 500, elapsedTime: 100 });
 
-    // Case 1: Dangerous and NOT fully spawned
-    mockBomb.isFullySpawned.mockReturnValue(false);
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    expect(mockBomb.forceDestroy).not.toHaveBeenCalled();
+    // Case 1: Dangerous and NOT fully spawned (elapsedTime < spawnDuration)
+    system.update(100, 1000, 0, 0);
+    expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
 
     // Case 2: Dangerous and fully spawned but TOO FAR
-    mockBomb.isFullySpawned.mockReturnValue(true);
-    mockBomb.x = 200; // Orb is at x=100. Distance = 100. (10+10)*1.5 = 30.
-    system.update(100, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    expect(mockBomb.forceDestroy).not.toHaveBeenCalled();
+    // Update lifetime to be fully spawned
+    mockWorld._stores.lifetimeStore.set(bombId, { elapsedTime: 9999, spawnDuration: 500 });
+    mockWorld._stores.transformStore.set(bombId, { x: 200, y: 0 }); // Orb is at x=100. Distance = 100. (10+10)*1.5 = 30.
+    system.update(100, 2000, 0, 0);
+    expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
 
     // Case 3: Within 1.5x range
-    mockBomb.x = 125; // Distance = 25. <= 30.
-    system.update(100, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    expect(mockBomb.forceDestroy).toHaveBeenCalled();
+    mockWorld._stores.transformStore.set(bombId, { x: 125, y: 0 }); // Distance = 25. <= 30.
+    system.update(100, 3000, 0, 0);
+    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombId, true);
   });
 
   it('should trigger overclock only when bomb is destroyed by orb', () => {
@@ -307,18 +354,10 @@ describe('OrbSystem', () => {
       overclockMaxStacks: 3,
     });
 
-    const normalDish = {
-      active: true,
-      x: 0,
-      y: 100, // t=1000 at angle 90
-      getSize: () => 10,
-      isDangerous: () => false,
-      applyDamageWithUpgrades: vi.fn(),
-    };
-    mockDishes.push(normalDish);
+    addDishToWorld(0, 100);
 
-    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
-    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(1000, 1000, 0, 0);
+    system.update(1000, 2000, 0, 0);
 
     const orb = system.getOrbs()[0];
     expect(orb.x).toBeCloseTo(-100, 3);
@@ -341,29 +380,20 @@ describe('OrbSystem', () => {
       overclockMaxStacks: 3,
     });
 
-    const bomb = {
-      active: true,
-      x: 0,
-      y: 100, // t=1000 at angle 90
-      getSize: () => 10,
-      isDangerous: () => true,
-      isFullySpawned: vi.fn().mockReturnValue(true),
-      applyDamageWithUpgrades: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    bomb.forceDestroy.mockImplementation(() => {
-      bomb.active = false;
+    const bombId = addDishToWorld(0, 100, { dangerous: true, size: 10, spawnDuration: 0, elapsedTime: 9999 });
+    mockDamageService.forceDestroy.mockImplementation(() => {
+      // Simulate destruction by removing from active entities
+      mockWorld._stores.activeEntities.delete(bombId);
     });
-    mockDishes.push(bomb);
 
-    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // stack 1
-    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // boosted
+    system.update(1000, 1000, 0, 0); // stack 1
+    system.update(1000, 2000, 0, 0); // boosted
 
     const boostedOrb = system.getOrbs()[0];
     expect(boostedOrb.x).toBeCloseTo(0, 3);
     expect(boostedOrb.y).toBeCloseTo(-100, 3);
 
-    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // expired
+    system.update(1000, 5000, 0, 0); // expired
     const expiredOrb = system.getOrbs()[0];
     expect(expiredOrb.x).toBeCloseTo(100, 3);
     expect(expiredOrb.y).toBeCloseTo(0, 3);
@@ -385,36 +415,27 @@ describe('OrbSystem', () => {
       overclockMaxStacks: 3,
     });
 
-    const makeBomb = (x: number, y: number) => {
-      const bomb = {
-        active: true,
-        x,
-        y,
-        getSize: () => 10,
-        isDangerous: () => true,
-        isFullySpawned: vi.fn().mockReturnValue(true),
-        applyDamageWithUpgrades: vi.fn(),
-        forceDestroy: vi.fn(),
-      };
-      bomb.forceDestroy.mockImplementation(() => {
-        bomb.active = false;
+    const makeBombInWorld = (x: number, y: number) => {
+      const id = addDishToWorld(x, y, { dangerous: true, size: 10, spawnDuration: 0, elapsedTime: 9999 });
+      mockDamageService.forceDestroy.mockImplementationOnce(() => {
+        mockWorld._stores.activeEntities.delete(id);
       });
-      return bomb;
+      return id;
     };
 
-    mockDishes.push(makeBomb(50, 86.6025403784)); // angle 60, stack 1
-    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    makeBombInWorld(50, 86.6025403784); // angle 60, stack 1
+    system.update(1000, 1000, 0, 0);
 
-    mockDishes.push(makeBomb(-100, 0)); // angle 180, stack 2
-    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    makeBombInWorld(-100, 0); // angle 180, stack 2
+    system.update(1000, 2000, 0, 0);
 
-    mockDishes.push(makeBomb(100, 0)); // angle 0, stack 3
-    system.update(1000, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    makeBombInWorld(100, 0); // angle 0, stack 3
+    system.update(1000, 3000, 0, 0);
 
-    mockDishes.push(makeBomb(-50, -86.6025403784)); // angle 240, tries stack 4 but clamped to 3
-    system.update(1000, 4000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    makeBombInWorld(-50, -86.6025403784); // angle 240, tries stack 4 but clamped to 3
+    system.update(1000, 4000, 0, 0);
 
-    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(1000, 5000, 0, 0);
     const orb = system.getOrbs()[0];
 
     // stack 3 유지 시 최종 각도 120도
@@ -437,7 +458,6 @@ describe('OrbSystem', () => {
 
     system.update(
       100, 1000, 0, 0,
-      mockDishPool as unknown as ObjectPool<Entity>,
       getBossSnapshots,
       onBossDamage
     );
@@ -457,19 +477,18 @@ describe('OrbSystem', () => {
 
     const onBossDamage = vi.fn();
     const getBossSnapshots = () => [{ id: 'boss1', x: 100, y: 0, radius: 20 }];
-    const pool = mockDishPool as unknown as ObjectPool<Entity>;
 
     // First hit at t=1000
-    system.update(100, 1000, 0, 0, pool, getBossSnapshots, onBossDamage);
+    system.update(100, 1000, 0, 0, getBossSnapshots, onBossDamage);
     expect(onBossDamage).toHaveBeenCalledTimes(1);
 
     // Too soon: t=1100, cooldown 300ms not elapsed
     onBossDamage.mockClear();
-    system.update(100, 1100, 0, 0, pool, getBossSnapshots, onBossDamage);
+    system.update(100, 1100, 0, 0, getBossSnapshots, onBossDamage);
     expect(onBossDamage).not.toHaveBeenCalled();
 
     // After cooldown: t=1300 (1000 + 300)
-    system.update(100, 1300, 0, 0, pool, getBossSnapshots, onBossDamage);
+    system.update(100, 1300, 0, 0, getBossSnapshots, onBossDamage);
     expect(onBossDamage).toHaveBeenCalledTimes(1);
   });
 
@@ -489,7 +508,6 @@ describe('OrbSystem', () => {
 
     system.update(
       100, 1000, 0, 0,
-      mockDishPool as unknown as ObjectPool<Entity>,
       getBossSnapshots,
       onBossDamage
     );

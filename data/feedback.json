@@ -97,11 +97,18 @@
       "count": 30
     },
     "crystal": {
-      "count": 25
+      "count": 25,
+      "sparkBurst": true
     },
     "bomb": {
-      "count": 40
+      "count": 40,
+      "shockwave": true,
+      "skipEnergyEffect": true
     }
+  },
+  "shakeKeys": {
+    "bomb": "bombDestroyed",
+    "golden": "goldenDestroyed"
   },
   "energyEffect": {
     "baseSize": 6,

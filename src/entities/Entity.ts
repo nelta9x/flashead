@@ -1,20 +1,12 @@
 import Phaser from 'phaser';
-import { Data } from '../data/DataManager';
-import { CURSOR_HITBOX } from '../data/constants';
 import type { Poolable } from '../utils/ObjectPool';
-import { EventBus, GameEvents } from '../utils/EventBus';
-import { DishRenderer } from '../effects/DishRenderer';
-import { DishDamageResolver } from './dish/DishDamageResolver';
-import { DishEventPayloadFactory } from './dish/DishEventPayloadFactory';
-import { BossEntityBehavior } from './BossEntityBehavior';
+import { initializeEntitySpawn } from './EntitySpawnInitializer';
 import type { StatusEffectManager } from '../systems/StatusEffectManager';
+import type { EntityDamageService } from '../systems/EntityDamageService';
 import type { World } from '../world';
 import type { DishUpgradeOptions } from './EntityTypes';
-import type { FeedbackSystem } from '../systems/FeedbackSystem';
 import type {
-  EntityRef,
   EntityTypePlugin,
-  MovementStrategy,
 } from '../plugins/types';
 
 export interface EntitySpawnConfig {
@@ -27,11 +19,13 @@ export interface EntitySpawnConfig {
   upgradeOptions?: DishUpgradeOptions;
 }
 
-export class Entity extends Phaser.GameObjects.Container implements Poolable, EntityRef {
+export class Entity extends Phaser.GameObjects.Container implements Poolable {
   /** StatusEffectManager 연결 (GameScene.create에서 설정) */
   private static statusEffectManager: StatusEffectManager | null = null;
   /** ECS World 연결 (GameScene.create에서 설정) */
   private static world: World | null = null;
+  /** EntityDamageService 연결 (GameScene.create에서 설정) */
+  private static damageService: EntityDamageService | null = null;
 
   static setStatusEffectManager(manager: StatusEffectManager | null): void {
     Entity.statusEffectManager = manager;
@@ -41,66 +35,29 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     Entity.world = world;
   }
 
+  static setDamageService(service: EntityDamageService | null): void {
+    Entity.damageService = service;
+  }
+
+  static getDamageService(): EntityDamageService | null {
+    return Entity.damageService;
+  }
+
   active: boolean = false;
 
-  // === Core identity ===
+  // === Core identity (World 조회 키) ===
   private _entityId: string = '';
-  private _entityType: string = 'basic';
-
-  // === HP ===
-  private _currentHp: number = 0;
-  private _maxHp: number = 0;
 
   // === Plugin delegation ===
   private typePlugin: EntityTypePlugin | null = null;
-  private movementStrategy: MovementStrategy | null = null;
 
-  // === Graphics ===
+  // === Phaser objects ===
   private graphics: Phaser.GameObjects.Graphics;
-
-  // === Timing ===
-  private _elapsedTime: number = 0;
-  private lifetime: number | null = null;
-  private _isGatekeeper: boolean = false;
-  private movementTime: number = 0;
-
-  // === Cursor interaction ===
-  private _isHovered: boolean = false;
   private damageTimer: Phaser.Time.TimerEvent | null = null;
-  private isBeingDamaged: boolean = false;
-  private damageInterval: number = 150;
-
-  // === Visual state ===
-  private hitFlashPhase: number = 0;
-  private wobblePhase: number = 0;
-  private blinkPhase: number = 0;
-  private spawnDuration: number = 150;
   private spawnTween: Phaser.Tweens.Tween | null = null;
 
-  // === Dish-specific state ===
-  private dangerous: boolean = false;
-  private invulnerable: boolean = false;
-  private color: number = 0x00ffff;
-  private _size: number = 30;
-  private upgradeOptions: DishUpgradeOptions = {};
-  private interactiveRadius: number = 40;
-  private destroyedByAbility: boolean = false;
-
-  // === Magnet effect ===
-  private _isBeingPulled: boolean = false;
-  private pullPhase: number = 0;
-
-  // === Slow/freeze (frame cache, derived from StatusEffectManager) ===
-  private slowFactor: number = 1.0;
-  private _isFrozen: boolean = false;
-
-  // === Movement ===
-  private baseX: number = 0;
-  private baseY: number = 0;
-
-  // === Boss behavior (composition) ===
+  // === Dead state ===
   private _isDead: boolean = false;
-  private bossBehavior: BossEntityBehavior | null = null;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
@@ -121,25 +78,21 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
   // === Poolable ===
 
   reset(): void {
-    this.wobblePhase = 0;
-    this.blinkPhase = 0;
-    this._elapsedTime = 0;
-    this._isHovered = false;
-    this.hitFlashPhase = 0;
-    this.isBeingDamaged = false;
-    this._isBeingPulled = false;
-    this.pullPhase = 0;
     this._isDead = false;
-    this._isFrozen = false;
-    this.slowFactor = 1.0;
-    this.movementTime = 0;
-    this.destroyedByAbility = false;
     this.clearDamageTimer();
     if (this.spawnTween) {
       this.spawnTween.stop();
       this.spawnTween = null;
     }
-    this.bossBehavior?.stopAllTweens();
+    // Stop boss tweens if any
+    if (Entity.world) {
+      const bs = Entity.world.bossState.get(this._entityId);
+      if (bs) {
+        for (const tw of bs.reactionTweens) { tw.stop(); tw.remove(); }
+        bs.reactionTweens = [];
+        if (bs.deathTween) { bs.deathTween.stop(); bs.deathTween = null; }
+      }
+    }
     this.setVisible(true);
     this.setActive(true);
     this.setAlpha(1);
@@ -151,574 +104,38 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
 
   spawn(x: number, y: number, config: EntitySpawnConfig, plugin: EntityTypePlugin): void {
     this._entityId = config.entityId;
-    this._entityType = config.entityType;
     this.typePlugin = plugin;
-    this.lifetime = config.lifetime;
-    this._isGatekeeper = config.isGatekeeper;
     this.active = true;
 
-    // HP setup
-    this._maxHp = config.hp;
-    this._currentHp = config.hp;
-
-    // Upgrade options
-    this.upgradeOptions = config.upgradeOptions ?? {};
-
-    // Load type data
-    const typeData = this.getEntityTypeData();
-    if (typeData) {
-      this._size = typeData.size ?? 30;
-      this.color = typeData.color ? parseInt(typeData.color.replace('#', ''), 16) : 0x00ffff;
-      this.dangerous = typeData.dangerous ?? false;
-      this.invulnerable = typeData.invulnerable ?? false;
-
-      const attackSpeedMultiplier = this.upgradeOptions.attackSpeedMultiplier ?? 1;
-      this.damageInterval = Data.dishes.damage.damageInterval * attackSpeedMultiplier;
-
-      const cursorSizeBonus = this.upgradeOptions.cursorSizeBonus ?? 0;
-      const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
-      this.interactiveRadius = this._size + cursorRadius;
-    }
-
-    // Position
-    this.setPosition(x, y);
-    this.baseX = x;
-    this.baseY = y;
-
-    // Physics body
-    const body = this.body as Phaser.Physics.Arcade.Body;
-    body.enable = true;
-    body.setCircle(this._size);
-    body.setOffset(-this._size, -this._size);
-    body.setVelocity(0, 0);
-
-    // Interactive
-    this.setInteractive(
-      new Phaser.Geom.Circle(0, 0, this.interactiveRadius),
-      Phaser.Geom.Circle.Contains
-    );
-
-    // Movement strategy
-    this.movementStrategy = plugin.createMovementStrategy?.(this._entityId) ?? null;
-    this.movementStrategy?.init(x, y);
-
-    // Boss-specific initialization
-    if (config.isGatekeeper) {
-      this.ensureBossBehavior();
-      this.bossBehavior!.init(this._entityId, this._maxHp);
-      this._size = Data.boss.visual.armor.radius;
-      this.bossBehavior!.setupEventListeners(this._entityId);
-    }
-
-    // Spawn animation
-    if (config.isGatekeeper) {
-      const bossSpawn = Data.boss.spawn;
-      this.spawnDuration = bossSpawn.duration;
-      this.setAlpha(0);
-      this.setScale(bossSpawn.initialScale);
-      this.setVisible(true);
-      this.spawnTween = this.scene.tweens.add({
-        targets: this,
-        alpha: 1,
-        scale: { from: bossSpawn.initialScale, to: 1 },
-        duration: bossSpawn.duration,
-        ease: 'Back.easeOut',
-        onComplete: () => {
-          if (!this.scene) return;
-          this.spawnTween = null;
-        },
-      });
-    } else {
-      const spawnAnim = config.spawnAnimation ?? { duration: 150, ease: 'Back.easeOut' };
-      this.spawnDuration = spawnAnim.duration;
-      this.setScale(0);
-      this.setAlpha(0);
-      this.spawnTween = this.scene.tweens.add({
-        targets: this,
-        scaleX: 1,
-        scaleY: 1,
-        alpha: 1,
-        duration: spawnAnim.duration,
-        ease: spawnAnim.ease,
-        onComplete: () => {
-          if (!this.scene) return;
-          this.spawnTween = null;
-        },
-      });
-    }
-
-    this.drawEntity();
-    plugin.onSpawn?.(this);
-    EventBus.getInstance().emit(GameEvents.DISH_SPAWNED, { x: this.x, y: this.y });
-
-    this.syncToWorld();
-  }
-
-  /** Dual-write: Entity 필드를 World store에 동기 기록 (아키타입 기반) */
-  private syncToWorld(): void {
-    const w = Entity.world;
-    if (!w) return;
-
-    const id = this._entityId;
-    const archetypeId = this.typePlugin?.config.archetypeId
-      ?? (this._isGatekeeper ? 'boss' : 'dish');
-
-    const archetype = w.archetypeRegistry.get(archetypeId);
-    if (!archetype) {
-      // 아키타입이 없으면 fallback으로 직접 기록
-      this.syncToWorldDirect(w, id);
-      return;
-    }
-
-    const values: Record<string, unknown> = {
-      identity: {
-        entityId: id, entityType: this._entityType, isGatekeeper: this._isGatekeeper,
-      },
-      transform: {
-        x: this.x, y: this.y,
-        baseX: this.baseX, baseY: this.baseY,
-        alpha: this.alpha, scaleX: this.scaleX, scaleY: this.scaleY,
-      },
-      health: { currentHp: this._currentHp, maxHp: this._maxHp },
-      statusCache: {
-        isFrozen: this._isFrozen, slowFactor: this.slowFactor, isShielded: false,
-      },
-      lifetime: {
-        elapsedTime: this._elapsedTime, movementTime: this.movementTime,
-        lifetime: this.lifetime, spawnDuration: this.spawnDuration,
-        globalSlowPercent: this.upgradeOptions.globalSlowPercent ?? 0,
-      },
-      dishProps: {
-        dangerous: this.dangerous, invulnerable: this.invulnerable,
-        color: this.color, size: this._size,
-        interactiveRadius: this.interactiveRadius,
-        upgradeOptions: this.upgradeOptions,
-        destroyedByAbility: this.destroyedByAbility,
-      },
-      cursorInteraction: {
-        isHovered: this._isHovered, isBeingDamaged: this.isBeingDamaged,
-        damageInterval: this.damageInterval,
-        damageTimerHandle: this.damageTimer,
-        cursorInteractionType: this.typePlugin?.config.cursorInteraction ?? 'dps',
-      },
-      visualState: {
-        hitFlashPhase: this.hitFlashPhase, wobblePhase: this.wobblePhase,
-        blinkPhase: this.blinkPhase, isBeingPulled: this._isBeingPulled,
-        pullPhase: this.pullPhase,
-      },
-      movement: { strategy: this.movementStrategy },
-      phaserNode: {
-        container: this, graphics: this.graphics,
-        body: this.body as Phaser.Physics.Arcade.Body | null,
-        spawnTween: this.spawnTween,
-      },
-    };
-
-    if (this.bossBehavior) {
-      values['bossBehavior'] = { behavior: this.bossBehavior };
-    }
-
-    w.spawnFromArchetype(archetype, id, values);
-  }
-
-  /** 아키타입 없을 때 직접 기록 (fallback) */
-  private syncToWorldDirect(w: World, id: string): void {
-    w.createEntity(id);
-    w.identity.set(id, {
-      entityId: id, entityType: this._entityType, isGatekeeper: this._isGatekeeper,
-    });
-    w.transform.set(id, {
-      x: this.x, y: this.y,
-      baseX: this.baseX, baseY: this.baseY,
-      alpha: this.alpha, scaleX: this.scaleX, scaleY: this.scaleY,
-    });
-    w.health.set(id, { currentHp: this._currentHp, maxHp: this._maxHp });
-    w.statusCache.set(id, {
-      isFrozen: this._isFrozen, slowFactor: this.slowFactor, isShielded: false,
-    });
-    w.lifetime.set(id, {
-      elapsedTime: this._elapsedTime, movementTime: this.movementTime,
-      lifetime: this.lifetime, spawnDuration: this.spawnDuration,
-      globalSlowPercent: this.upgradeOptions.globalSlowPercent ?? 0,
-    });
-    w.dishProps.set(id, {
-      dangerous: this.dangerous, invulnerable: this.invulnerable,
-      color: this.color, size: this._size,
-      interactiveRadius: this.interactiveRadius,
-      upgradeOptions: this.upgradeOptions,
-      destroyedByAbility: this.destroyedByAbility,
-    });
-    w.cursorInteraction.set(id, {
-      isHovered: this._isHovered, isBeingDamaged: this.isBeingDamaged,
-      damageInterval: this.damageInterval,
-      damageTimerHandle: this.damageTimer,
-      cursorInteractionType: this.typePlugin?.config.cursorInteraction ?? 'dps',
-    });
-    w.visualState.set(id, {
-      hitFlashPhase: this.hitFlashPhase, wobblePhase: this.wobblePhase,
-      blinkPhase: this.blinkPhase, isBeingPulled: this._isBeingPulled,
-      pullPhase: this.pullPhase,
-    });
-    w.movement.set(id, { strategy: this.movementStrategy });
-    w.phaserNode.set(id, {
-      container: this, graphics: this.graphics,
-      body: this.body as Phaser.Physics.Arcade.Body | null,
-      spawnTween: this.spawnTween,
-    });
-    if (this.bossBehavior) {
-      w.bossBehavior.set(id, { behavior: this.bossBehavior });
+    if (Entity.world) {
+      initializeEntitySpawn(this, Entity.world, config, plugin, x, y);
     }
   }
 
-  /** plugin.onUpdate 호출 (전이기: RenderSystem에서 사용) */
-  tickPluginUpdate(delta: number, movementTime: number): void {
-    this.typePlugin?.onUpdate?.(this, delta, movementTime);
-  }
+  // === Identity ===
+
+  getEntityId(): string { return this._entityId; }
 
   /** Dead state accessor for system guards */
   getIsDead(): boolean { return this._isDead; }
 
-  /** Entity → World 스토어 동기 (데미지/상태 변경 시 호출) */
-  private syncDamageToWorld(): void {
-    const w = Entity.world;
-    if (!w) return;
-    const id = this._entityId;
-    const health = w.health.get(id);
-    if (health) {
-      health.currentHp = this._currentHp;
-      health.maxHp = this._maxHp;
-    }
-    const vs = w.visualState.get(id);
-    if (vs) {
-      vs.hitFlashPhase = this.hitFlashPhase;
-    }
-    const ci = w.cursorInteraction.get(id);
-    if (ci) {
-      ci.isHovered = this._isHovered;
-      ci.isBeingDamaged = this.isBeingDamaged;
-    }
-    const dp = w.dishProps.get(id);
-    if (dp) {
-      dp.destroyedByAbility = this.destroyedByAbility;
-    }
-  }
-
-  // === Damage ===
-
-  setInCursorRange(inRange: boolean): void {
-    const interaction = this.typePlugin?.config.cursorInteraction ?? 'dps';
-
-    if (inRange && !this._isHovered) {
-      this._isHovered = true;
-
-      if (interaction === 'explode') {
-        this.explode();
-        return;
-      }
-
-      if (interaction === 'dps') {
-        this.startDamaging();
-      }
-    } else if (!inRange && this._isHovered) {
-      this._isHovered = false;
-      if (interaction === 'dps') {
-        this.stopDamaging();
-      }
-    }
-  }
-
-  private startDamaging(): void {
-    if (this.isBeingDamaged || !this.active || this.invulnerable) return;
-
-    this.isBeingDamaged = true;
-    this.takeDamageFromCursor(true);
-
-    this.damageTimer = this.scene.time.addEvent({
-      delay: this.damageInterval,
-      callback: () => this.takeDamageFromCursor(false),
-      loop: true,
-    });
-  }
-
-  private stopDamaging(): void {
-    this.isBeingDamaged = false;
-    this.clearDamageTimer();
-  }
-
-  private takeDamageFromCursor(isFirstHit: boolean): void {
-    if (!this.active || this.invulnerable) return;
-
-    const damageConfig = Data.dishes.damage;
-    const { damage, isCritical } = DishDamageResolver.resolveCursorDamage(damageConfig, this.upgradeOptions);
-
-    this._currentHp -= damage;
-    this.hitFlashPhase = 1;
-    this.syncDamageToWorld();
-
-    EventBus.getInstance().emit(
-      GameEvents.DISH_DAMAGED,
-      DishEventPayloadFactory.createDishDamagedPayload({
-        dish: this, type: this._entityType, damage,
-        currentHp: this._currentHp, maxHp: this._maxHp,
-        isFirstHit, isCritical, byAbility: false,
-      })
-    );
-
-    this.typePlugin?.onDamaged?.(this, damage, 'cursor');
-    if (this._currentHp <= 0) this.destroyEntity();
-  }
-
-  applyDamage(damage: number): void {
-    if (!this.active || this.invulnerable) return;
-
-    this.destroyedByAbility = true;
-    this._currentHp -= damage;
-    this.hitFlashPhase = 1;
-    this.syncDamageToWorld();
-
-    EventBus.getInstance().emit(
-      GameEvents.DISH_DAMAGED,
-      DishEventPayloadFactory.createDishDamagedPayload({
-        dish: this, type: this._entityType, damage,
-        currentHp: this._currentHp, maxHp: this._maxHp,
-        isFirstHit: false, byAbility: true,
-      })
-    );
-
-    this.typePlugin?.onDamaged?.(this, damage, 'ability');
-    if (this._currentHp <= 0) this.destroyEntity();
-  }
-
-  applyDamageWithUpgrades(baseDamage: number, damageBonus: number, criticalChanceBonus: number): void {
-    if (!this.active || this.invulnerable) return;
-
-    const damageConfig = Data.dishes.damage;
-    const { damage: totalDamage, isCritical } = DishDamageResolver.resolveUpgradeDamage(
-      damageConfig, baseDamage, damageBonus, criticalChanceBonus
-    );
-
-    this._currentHp -= totalDamage;
-    this.hitFlashPhase = 1;
-    this.destroyedByAbility = true;
-    this.syncDamageToWorld();
-
-    EventBus.getInstance().emit(
-      GameEvents.DISH_DAMAGED,
-      DishEventPayloadFactory.createDishDamagedPayload({
-        dish: this, type: this._entityType, damage: totalDamage,
-        currentHp: this._currentHp, maxHp: this._maxHp,
-        isFirstHit: false, isCritical, byAbility: true,
-      })
-    );
-
-    if (this._currentHp <= 0) this.destroyEntity();
-  }
-
-  // === Boss-style contact damage (external) ===
-
-  applyContactDamage(damage: number, sourceX: number, sourceY: number, _isCritical: boolean): void {
-    if (!this.active || this._isDead) return;
-
-    this._currentHp = Math.max(0, this._currentHp - damage);
-    this.bossBehavior?.refreshArmorSegments(this._currentHp, this._maxHp);
-    this.bossBehavior?.onDamage(sourceX, sourceY);
-    this.syncDamageToWorld();
-    this.typePlugin?.onDamaged?.(this, damage, 'cursor');
-
-    if (this._currentHp <= 0) {
-      this._isDead = true;
-      this.bossBehavior?.playDeathAnimation();
-      this.typePlugin?.onDestroyed?.(this);
-      EventBus.getInstance().emit(GameEvents.MONSTER_DIED, { bossId: this._entityId });
-    }
-  }
-
-  /** MonsterSystem 호환: 외부에서 HP 변경 시 호출 */
-  handleExternalHpChange(currentHp: number, maxHp: number, sourceX?: number, sourceY?: number): void {
-    if (this._isDead) return;
-
-    this._currentHp = Math.max(0, Math.floor(currentHp));
-    this._maxHp = Math.max(1, Math.floor(maxHp));
-    this.bossBehavior?.refreshArmorSegments(this._currentHp, this._maxHp);
-    this.bossBehavior?.onDamage(sourceX, sourceY);
-    this.syncDamageToWorld();
-
-    if (this._currentHp <= 0) {
-      this._isDead = true;
-      this.bossBehavior?.playDeathAnimation();
-    }
-  }
-
-  // === Slow/freeze ===
-
-  applySlow(duration: number, factor: number = 0.3): void {
-    if (!this.active) return;
-    const sem = Entity.statusEffectManager;
-    if (sem) {
-      const effectId = `${this._entityId}:slow`;
-      sem.removeEffect(this._entityId, effectId);
-      sem.applyEffect(this._entityId, {
-        id: effectId,
-        type: 'slow',
-        duration,
-        remaining: duration,
-        data: { factor },
-      });
-    }
-  }
-
-  freeze(): void {
-    const sem = Entity.statusEffectManager;
-    if (sem) {
-      const effectId = `${this._entityId}:freeze`;
-      sem.applyEffect(this._entityId, {
-        id: effectId,
-        type: 'freeze',
-        duration: Infinity,
-        remaining: Infinity,
-        data: {},
-      });
-    } else {
-      this._isFrozen = true;
-    }
-  }
-
-  unfreeze(): void {
-    const sem = Entity.statusEffectManager;
-    if (sem) {
-      sem.removeEffect(this._entityId, `${this._entityId}:freeze`);
-    } else {
-      this._isFrozen = false;
-    }
-  }
-
-  // === Magnet ===
-
-  setBeingPulled(pulled: boolean): void {
-    this._isBeingPulled = pulled;
-    const vs = Entity.world?.visualState.get(this._entityId);
-    if (vs) vs.isBeingPulled = pulled;
-  }
-
-  // === Force destroy ===
-
-  forceDestroy(byAbility: boolean = true): void {
-    if (!this.active) return;
-    this.destroyedByAbility = byAbility;
-    this.destroyEntity();
-  }
-
-  // === FeedbackSystem (boss) ===
-
-  setFeedbackSystem(feedbackSystem: FeedbackSystem): void {
-    this.ensureBossBehavior();
-    this.bossBehavior!.setFeedbackSystem(feedbackSystem);
-  }
-
-  // === Boss-compatible spawn ===
-
-  spawnAt(x: number, y: number): void {
-    if (!this.typePlugin) return;
-    if (this.spawnTween) { this.spawnTween.stop(); this.spawnTween = null; }
-    this.bossBehavior?.stopAllTweens();
-    this._isDead = false;
-    this._isFrozen = false;
-    this.rotation = 0;
-    this.movementTime = 0;
-    this._elapsedTime = 0;
-
-    if (this._maxHp > 0) this._currentHp = this._maxHp;
-
-    this.setPosition(x, y);
-    this.baseX = x;
-    this.baseY = y;
-    this.active = true;
-
-    this.movementStrategy?.destroy();
-    this.movementStrategy = this.typePlugin.createMovementStrategy?.(this._entityId) ?? null;
-    this.movementStrategy?.init(x, y);
-
-    this.ensureBossBehavior();
-    this.bossBehavior!.init(this._entityId, this._maxHp);
-    this._size = Data.boss.visual.armor.radius;
-    this.bossBehavior!.setupEventListeners(this._entityId);
-
-    const bossSpawn = Data.boss.spawn;
-    this.setVisible(true);
-    this.setAlpha(0);
-    this.setScale(bossSpawn.initialScale);
-    this.spawnTween = this.scene.tweens.add({
-      targets: this,
-      alpha: 1,
-      scale: { from: bossSpawn.initialScale, to: 1 },
-      duration: bossSpawn.duration,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        if (!this.scene) return;
-        this.spawnTween = null;
-      },
-    });
-  }
-
-  // === Private lifecycle ===
-
-  private explode(): void {
-    if (!this.active) return;
-    this.active = false;
-    this.clearDamageTimer();
-    this.disableInteractive();
-    this.removeAllListeners();
-
-    EventBus.getInstance().emit(
-      GameEvents.DISH_DESTROYED,
-      DishEventPayloadFactory.createDishDestroyedPayload({ dish: this, type: this._entityType })
-    );
-
-    this.typePlugin?.onDestroyed?.(this);
-    this.deactivate();
-  }
-
-  private destroyEntity(): void {
-    this.active = false;
-    this.clearDamageTimer();
-    this.disableInteractive();
-    this.removeAllListeners();
-
-    EventBus.getInstance().emit(
-      GameEvents.DISH_DESTROYED,
-      DishEventPayloadFactory.createDishDestroyedPayload({
-        dish: this, type: this._entityType, byAbility: this.destroyedByAbility,
-      })
-    );
-
-    this.typePlugin?.onDestroyed?.(this);
-    this.deactivate();
-  }
-
-  /** Timeout 처리 (EntityTimingSystem에서 호출). */
-  handleTimeout(): void {
-    if (!this.active) return;
-    this.clearDamageTimer();
-
-    const eventData = DishEventPayloadFactory.createDishMissedPayload({
-      dish: this, type: this._entityType, isDangerous: this.dangerous,
-    });
-
-    this.deactivate();
-    this.typePlugin?.onTimeout?.(this);
-    EventBus.getInstance().emit(GameEvents.DISH_MISSED, eventData);
-  }
+  // === Lifecycle ===
 
   deactivate(): void {
     this.active = false;
-    Entity.world?.destroyEntity(this._entityId);
+    if (Entity.world) {
+      // Stop boss tweens before destroying entity
+      const bs = Entity.world.bossState.get(this._entityId);
+      if (bs) {
+        for (const tw of bs.reactionTweens) { tw.stop(); tw.remove(); }
+        bs.reactionTweens = [];
+        if (bs.deathTween) { bs.deathTween.stop(); bs.deathTween = null; }
+      }
+      Entity.world.destroyEntity(this._entityId);
+    }
     Entity.statusEffectManager?.clearEntity(this._entityId);
     this.clearDamageTimer();
     if (this.spawnTween) { this.spawnTween.stop(); this.spawnTween = null; }
-    this.bossBehavior?.stopAllTweens();
-    this.bossBehavior?.teardownEventListeners();
-    this.movementStrategy?.destroy();
-    this.movementStrategy = null;
     this.setVisible(false);
     this.setActive(false);
     this.disableInteractive();
@@ -731,100 +148,35 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
 
   public override destroy(fromScene?: boolean): void {
     if (this.spawnTween) { this.spawnTween.stop(); this.spawnTween = null; }
-    this.bossBehavior?.destroy();
     this.clearDamageTimer();
-    this.movementStrategy?.destroy();
-    this.movementStrategy = null;
     super.destroy(fromScene);
   }
 
-  // === Drawing ===
+  // === Timer management (public for EntityDamageService) ===
 
-  private drawEntity(): void {
-    if (this._isGatekeeper && this.bossBehavior) {
-      this.bossBehavior.render(this.getHpRatio(), this.movementTime);
-      return;
-    }
-
-    if (this.dangerous) {
-      DishRenderer.renderDangerDish(this.graphics, { size: this._size, blinkPhase: this.blinkPhase });
-      return;
-    }
-
-    DishRenderer.renderDish(this.graphics, {
-      size: this._size, baseColor: this.color,
-      currentHp: this._currentHp, maxHp: this._maxHp,
-      isHovered: this._isHovered, isBeingPulled: this._isBeingPulled,
-      pullPhase: this.pullPhase, hitFlashPhase: this.hitFlashPhase,
-      isFrozen: this._isFrozen, wobblePhase: this.wobblePhase, blinkPhase: this.blinkPhase,
-    });
-  }
-
-  // === Timer management ===
-
-  private clearDamageTimer(): void {
+  clearDamageTimer(): void {
     if (this.damageTimer) {
       this.damageTimer.destroy();
       this.damageTimer = null;
     }
   }
 
-  // === Boss behavior helper ===
-
-  private ensureBossBehavior(): void {
-    if (this.bossBehavior) return;
-    this.bossBehavior = new BossEntityBehavior(
-      this.scene,
-      this,
-      (current, max, sourceX, sourceY) => this.handleExternalHpChange(current, max, sourceX, sourceY),
-      () => {
-        this._isDead = true;
-        this.bossBehavior?.playDeathAnimation();
-      }
-    );
+  setDamageTimer(timer: Phaser.Time.TimerEvent): void {
+    this.clearDamageTimer();
+    this.damageTimer = timer;
   }
 
-  // === EntityRef implementation ===
+  // === Public accessors for EntityDamageService / EntitySpawnInitializer ===
 
-  getEntityId(): string { return this._entityId; }
-  getEntityType(): string { return this._entityType; }
-  getCurrentHp(): number { return this._currentHp; }
-  getMaxHp(): number { return this._maxHp; }
-  getHpRatio(): number { return this._maxHp > 0 ? this._currentHp / this._maxHp : 1; }
-  getSize(): number { return this._size; }
+  getTypePlugin(): EntityTypePlugin | null { return this.typePlugin; }
+  getGraphics(): Phaser.GameObjects.Graphics { return this.graphics; }
 
-  // === Dish-compatibility getters ===
+  markDead(): void { this._isDead = true; }
 
-  getColor(): number { return this.color; }
-  getDishType(): string { return this._entityType; }
-  isDangerous(): boolean { return this.dangerous; }
-  isFullySpawned(): boolean { return this._elapsedTime >= this.spawnDuration; }
-  isSlowed(): boolean { return this._isFrozen; }
-
-  getTimeRatio(): number {
-    if (this.lifetime === null) return 1;
-    return Math.max(0, 1 - this._elapsedTime / this.lifetime);
-  }
-
-  getLifetime(): number { return this.lifetime ?? Infinity; }
-  getDamageInterval(): number { return this.damageInterval; }
-  getInteractiveRadius(): number { return this.interactiveRadius; }
-  getUpgradeOptions(): DishUpgradeOptions { return this.upgradeOptions; }
-  isGatekeeper(): boolean { return this._isGatekeeper; }
-
-  // === Boss-compatibility ===
-
-  getBossId(): string { return this._entityId; }
-
-  // === Helper ===
-
-  private getEntityTypeData(): {
-    size?: number; color?: string; dangerous?: boolean; invulnerable?: boolean;
-  } | null {
-    const dishData = Data.getDishData(this._entityType);
-    if (dishData) {
-      return { size: dishData.size, color: dishData.color, dangerous: dishData.dangerous, invulnerable: dishData.invulnerable };
+  setSpawnTween(tween: Phaser.Tweens.Tween | null): void {
+    if (this.spawnTween && tween !== this.spawnTween) {
+      this.spawnTween.stop();
     }
-    return null;
+    this.spawnTween = tween;
   }
 }

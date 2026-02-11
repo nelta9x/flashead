@@ -3,16 +3,15 @@ import type { WaveBossConfig } from '../../../data/types/waves';
 import { Entity } from '../../../entities/Entity';
 import { PluginRegistry } from '../../../plugins/PluginRegistry';
 import type { LaserRenderer } from '../../../effects/LaserRenderer';
-import type { FeedbackSystem } from '../../../systems/FeedbackSystem';
 import type { MonsterSystem } from '../../../systems/MonsterSystem';
 import type { WaveSystem } from '../../../systems/WaveSystem';
+import type { EntityDamageService } from '../../../systems/EntityDamageService';
 import type { ActiveLaser } from './BossCombatTypes';
 
 interface BossRosterSyncDeps {
   scene: Phaser.Scene;
   waveSystem: WaveSystem;
   monsterSystem: MonsterSystem;
-  feedbackSystem: FeedbackSystem;
   laserRenderer: LaserRenderer;
   bosses: Map<string, Entity>;
   laserNextTimeByBossId: Map<string, number>;
@@ -21,13 +20,13 @@ interface BossRosterSyncDeps {
   setActiveLasers: (lasers: ActiveLaser[]) => void;
   setNextLaserTime: (bossId: string, gameTime: number) => void;
   getCurrentGameTime: () => number;
+  damageService: EntityDamageService;
 }
 
 export class BossRosterSync {
   private readonly scene: Phaser.Scene;
   private readonly waveSystem: WaveSystem;
   private readonly monsterSystem: MonsterSystem;
-  private readonly feedbackSystem: FeedbackSystem;
   private readonly laserRenderer: LaserRenderer;
   private readonly bosses: Map<string, Entity>;
   private readonly laserNextTimeByBossId: Map<string, number>;
@@ -36,12 +35,12 @@ export class BossRosterSync {
   private readonly setActiveLasers: (lasers: ActiveLaser[]) => void;
   private readonly setNextLaserTime: (bossId: string, gameTime: number) => void;
   private readonly getCurrentGameTime: () => number;
+  private readonly damageService: EntityDamageService;
 
   constructor(deps: BossRosterSyncDeps) {
     this.scene = deps.scene;
     this.waveSystem = deps.waveSystem;
     this.monsterSystem = deps.monsterSystem;
-    this.feedbackSystem = deps.feedbackSystem;
     this.laserRenderer = deps.laserRenderer;
     this.bosses = deps.bosses;
     this.laserNextTimeByBossId = deps.laserNextTimeByBossId;
@@ -50,6 +49,7 @@ export class BossRosterSync {
     this.setActiveLasers = deps.setActiveLasers;
     this.setNextLaserTime = deps.setNextLaserTime;
     this.getCurrentGameTime = deps.getCurrentGameTime;
+    this.damageService = deps.damageService;
   }
 
   public syncBossesForCurrentWave(): void {
@@ -92,7 +92,6 @@ export class BossRosterSync {
 
       if (!boss) {
         boss = new Entity(this.scene);
-        boss.setFeedbackSystem(this.feedbackSystem);
         this.bosses.set(bossConfig.id, boss);
       }
 
@@ -118,8 +117,8 @@ export class BossRosterSync {
   public clearForWaveTransition(): void {
     this.setActiveLasers([]);
     this.laserNextTimeByBossId.clear();
-    this.bosses.forEach((boss) => {
-      boss.unfreeze();
+    this.bosses.forEach((boss, bossId) => {
+      this.damageService.unfreeze(bossId);
       boss.deactivate();
       boss.destroy();
     });

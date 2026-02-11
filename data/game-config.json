@@ -4,6 +4,13 @@
     "core:entity_timing",
     "core:player",
     "core:entity_movement",
+    "core:boss_reaction",
+    "core:magnet",
+    "core:cursor_attack",
+    "core:black_hole",
+    "core:orb",
+    "core:falling_bomb",
+    "core:health_pack",
     "core:entity_visual",
     "core:entity_render"
   ],

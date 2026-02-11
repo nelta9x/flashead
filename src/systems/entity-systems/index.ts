@@ -5,3 +5,6 @@ export { EntityMovementSystem } from './EntityMovementSystem';
 export { EntityVisualSystem } from './EntityVisualSystem';
 export { EntityRenderSystem } from './EntityRenderSystem';
 export { PlayerTickSystem } from './PlayerTickSystem';
+export { MagnetSystem } from './MagnetSystem';
+export { CursorAttackSystem } from './CursorAttackSystem';
+export { BossReactionSystem } from './BossReactionSystem';

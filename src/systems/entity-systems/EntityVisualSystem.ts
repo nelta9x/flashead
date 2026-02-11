@@ -1,4 +1,3 @@
-import type { Entity } from '../../entities/Entity';
 import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
 import { Data } from '../../data/DataManager';
@@ -9,7 +8,7 @@ export class EntityVisualSystem implements EntitySystem {
 
   constructor(private readonly world: World) {}
 
-  tick(_entities: Entity[], delta: number): void {
+  tick(delta: number): void {
     this.world.visualState.forEach((entityId, vs) => {
       if (entityId === 'player') return;
       if (!this.world.isActive(entityId)) return;

@@ -1,26 +1,28 @@
 import Phaser from 'phaser';
 import { Data } from '../../data/DataManager';
 import { COLORS, CURSOR_HITBOX } from '../../data/constants';
-import type { Entity } from '../../entities/Entity';
 import type { ParticleManager } from '../../effects/ParticleManager';
 import type { PlayerAttackRenderer } from '../../effects/PlayerAttackRenderer';
-import type { ObjectPool } from '../../utils/ObjectPool';
 import type { FeedbackSystem } from '../../systems/FeedbackSystem';
 import type { MonsterSystem } from '../../systems/MonsterSystem';
 import type { SoundSystem } from '../../systems/SoundSystem';
 import type { UpgradeSystem } from '../../systems/UpgradeSystem';
 import type { WaveSystem } from '../../systems/WaveSystem';
+import type { EntityDamageService } from '../../systems/EntityDamageService';
+import { C_DishTag, C_DishProps, C_Transform, C_Lifetime } from '../../world';
+import type { World } from '../../world';
 import type { BossInteractionGateway, CursorSnapshot } from './GameSceneContracts';
 
 interface PlayerAttackControllerDeps {
   scene: Phaser.Scene;
+  world: World;
+  damageService: EntityDamageService;
   upgradeSystem: UpgradeSystem;
   waveSystem: WaveSystem;
   monsterSystem: MonsterSystem;
   feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   particleManager: ParticleManager;
-  dishPool: ObjectPool<Entity>;
   getCursor: () => CursorSnapshot;
   getPlayerAttackRenderer: () => PlayerAttackRenderer;
   bossGateway: BossInteractionGateway;
@@ -29,13 +31,14 @@ interface PlayerAttackControllerDeps {
 
 export class PlayerAttackController {
   private readonly scene: Phaser.Scene;
+  private readonly world: World;
+  private readonly damageService: EntityDamageService;
   private readonly upgradeSystem: UpgradeSystem;
   private readonly waveSystem: WaveSystem;
   private readonly monsterSystem: MonsterSystem;
   private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly particleManager: ParticleManager;
-  private readonly dishPool: ObjectPool<Entity>;
   private readonly getCursor: () => CursorSnapshot;
   private readonly getPlayerAttackRenderer: () => PlayerAttackRenderer;
   private readonly bossGateway: BossInteractionGateway;
@@ -43,13 +46,14 @@ export class PlayerAttackController {
 
   constructor(deps: PlayerAttackControllerDeps) {
     this.scene = deps.scene;
+    this.world = deps.world;
+    this.damageService = deps.damageService;
     this.upgradeSystem = deps.upgradeSystem;
     this.waveSystem = deps.waveSystem;
     this.monsterSystem = deps.monsterSystem;
     this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.particleManager = deps.particleManager;
-    this.dishPool = deps.dishPool;
     this.getCursor = deps.getCursor;
     this.getPlayerAttackRenderer = deps.getPlayerAttackRenderer;
     this.bossGateway = deps.bossGateway;
@@ -295,26 +299,25 @@ export class PlayerAttackController {
     toY: number,
     pathRadius: number
   ): void {
-    const hitCandidates: Entity[] = [];
+    const hitCandidates: string[] = [];
 
-    this.dishPool.forEach((dish) => {
-      if (!dish.active) return;
+    for (const [entityId, , dp, t, lt] of this.world.query(C_DishTag, C_DishProps, C_Transform, C_Lifetime)) {
+      const dangerous = dp.dangerous;
 
-      if (dish.isDangerous() && !dish.isFullySpawned()) {
-        return;
+      if (dangerous && lt.elapsedTime < lt.spawnDuration) continue;
+
+      const collisionRadius = pathRadius + dp.size;
+      if (!this.isPointInsideSegmentRadius(t.x, t.y, fromX, fromY, toX, toY, collisionRadius)) {
+        continue;
       }
 
-      const collisionRadius = pathRadius + dish.getSize();
-      if (!this.isPointInsideSegmentRadius(dish.x, dish.y, fromX, fromY, toX, toY, collisionRadius)) {
-        return;
-      }
+      hitCandidates.push(entityId);
+    }
 
-      hitCandidates.push(dish);
-    });
-
-    for (const dish of hitCandidates) {
-      if (!dish.active) continue;
-      dish.forceDestroy(dish.isDangerous());
+    for (const entityId of hitCandidates) {
+      if (!this.world.isActive(entityId)) continue;
+      const dp = this.world.dishProps.get(entityId);
+      this.damageService.forceDestroy(entityId, dp?.dangerous ?? false);
     }
   }
 

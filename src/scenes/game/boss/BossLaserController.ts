@@ -10,6 +10,7 @@ import type { MonsterSystem } from '../../../systems/MonsterSystem';
 import type { SoundSystem } from '../../../systems/SoundSystem';
 import type { UpgradeSystem } from '../../../systems/UpgradeSystem';
 import type { WaveSystem } from '../../../systems/WaveSystem';
+import type { EntityDamageService } from '../../../systems/EntityDamageService';
 import type { CursorSnapshot } from '../GameSceneContracts';
 import type { ActiveLaser } from './BossCombatTypes';
 
@@ -23,6 +24,7 @@ interface BossLaserControllerDeps {
   laserRenderer: LaserRenderer;
   healthSystem: HealthSystem;
   upgradeSystem: UpgradeSystem;
+  damageService: EntityDamageService;
   isGameOver: () => boolean;
   bosses: Map<string, Entity>;
   laserNextTimeByBossId: Map<string, number>;
@@ -47,6 +49,7 @@ export class BossLaserController {
   private readonly laserNextTimeByBossId: Map<string, number>;
   private readonly getActiveLasers: () => ActiveLaser[];
   private readonly setActiveLasers: (lasers: ActiveLaser[]) => void;
+  private readonly damageService: EntityDamageService;
   private readonly getLastLaserHitTime: () => number;
   private readonly setLastLaserHitTime: (time: number) => void;
 
@@ -60,6 +63,7 @@ export class BossLaserController {
     this.laserRenderer = deps.laserRenderer;
     this.healthSystem = deps.healthSystem;
     this.upgradeSystem = deps.upgradeSystem;
+    this.damageService = deps.damageService;
     this.isGameOver = deps.isGameOver;
     this.bosses = deps.bosses;
     this.laserNextTimeByBossId = deps.laserNextTimeByBossId;
@@ -97,7 +101,7 @@ export class BossLaserController {
     }
 
     const boss = this.bosses.get(bossId);
-    boss?.unfreeze();
+    if (boss) this.damageService.unfreeze(bossId);
 
     const textX = boss?.x ?? lastCursor.x;
     const textY = boss ? boss.y - 60 : lastCursor.y - 60;
@@ -208,7 +212,7 @@ export class BossLaserController {
     const dirY = dy / len;
     const endPoint = this.findScreenEdgePoint(startX, startY, dirX, dirY);
 
-    boss.freeze();
+    this.damageService.freeze(bossId);
     const laserWave = this.waveSystem.getCurrentWave();
 
     const laser: ActiveLaser = {
@@ -255,7 +259,7 @@ export class BossLaserController {
         }
 
         const ownerBoss = this.bosses.get(bossId);
-        ownerBoss?.unfreeze();
+        if (ownerBoss) this.damageService.unfreeze(bossId);
       });
     });
   }
@@ -268,7 +272,7 @@ export class BossLaserController {
     }
 
     const staleBoss = this.bosses.get(bossId);
-    staleBoss?.unfreeze();
+    if (staleBoss) this.damageService.unfreeze(bossId);
 
     if (activeLasers.length === 0) {
       this.laserRenderer.clear();

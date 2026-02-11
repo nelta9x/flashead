@@ -19,14 +19,14 @@ describe('EntityRenderSystem', () => {
   });
 
   it('has correct id', () => {
-    const system = new EntityRenderSystem(world, () => undefined);
+    const system = new EntityRenderSystem(world);
     expect(system.id).toBe('core:entity_render');
   });
 
   it('syncs transform to Phaser container', () => {
-    const mockContainer = { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1 };
+    const mockContainer = { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1, getTypePlugin: () => null };
     const mockGraphics = { clear: vi.fn() };
-    const system = new EntityRenderSystem(world, () => undefined);
+    const system = new EntityRenderSystem(world);
 
     world.createEntity('e1');
     world.transform.set('e1', { x: 100, y: 200, baseX: 100, baseY: 200, alpha: 0.5, scaleX: 2, scaleY: 2 });
@@ -35,6 +35,7 @@ describe('EntityRenderSystem', () => {
       graphics: mockGraphics as never,
       body: null,
       spawnTween: null,
+      bossRenderer: null,
     });
     world.identity.set('e1', { entityId: 'e1', entityType: 'basic', isGatekeeper: false });
     world.dishProps.set('e1', {
@@ -51,7 +52,7 @@ describe('EntityRenderSystem', () => {
       damageTimerHandle: null, cursorInteractionType: 'dps',
     });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     expect(mockContainer.x).toBe(100);
     expect(mockContainer.y).toBe(200);
@@ -60,16 +61,19 @@ describe('EntityRenderSystem', () => {
     expect(mockContainer.scaleY).toBe(2);
   });
 
-  it('calls tickPluginUpdate on entity via lookup', () => {
-    const mockEntity = { tickPluginUpdate: vi.fn() };
-    const system = new EntityRenderSystem(world, () => mockEntity as never);
+  it('calls plugin.onUpdate via container.getTypePlugin()', () => {
+    const mockOnUpdate = vi.fn();
+    const mockPlugin = { onUpdate: mockOnUpdate };
+    const mockContainer = { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1, getTypePlugin: () => mockPlugin };
+    const system = new EntityRenderSystem(world);
 
     world.createEntity('e1');
     world.phaserNode.set('e1', {
-      container: { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1 } as never,
+      container: mockContainer as never,
       graphics: {} as never,
       body: null,
       spawnTween: null,
+      bossRenderer: null,
     });
     world.transform.set('e1', { x: 0, y: 0, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 });
     world.identity.set('e1', { entityId: 'e1', entityType: 'basic', isGatekeeper: false });
@@ -77,14 +81,14 @@ describe('EntityRenderSystem', () => {
       elapsedTime: 0, movementTime: 500, lifetime: 5000, spawnDuration: 150, globalSlowPercent: 0,
     });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
-    expect(mockEntity.tickPluginUpdate).toHaveBeenCalledWith(16, 500);
+    expect(mockOnUpdate).toHaveBeenCalledWith('e1', world, 16, 500);
   });
 
   it('skips player entity', () => {
     const mockContainer = { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1 };
-    const system = new EntityRenderSystem(world, () => undefined);
+    const system = new EntityRenderSystem(world);
 
     world.createEntity('player');
     world.transform.set('player', { x: 100, y: 200, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 });
@@ -93,16 +97,17 @@ describe('EntityRenderSystem', () => {
       graphics: {} as never,
       body: null,
       spawnTween: null,
+      bossRenderer: null,
     });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     expect(mockContainer.x).toBe(0); // not synced
   });
 
   it('skips inactive entities', () => {
     const mockContainer = { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1 };
-    const system = new EntityRenderSystem(world, () => undefined);
+    const system = new EntityRenderSystem(world);
 
     world.transform.set('e1', { x: 100, y: 200, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 });
     world.phaserNode.set('e1', {
@@ -110,9 +115,10 @@ describe('EntityRenderSystem', () => {
       graphics: {} as never,
       body: null,
       spawnTween: null,
+      bossRenderer: null,
     });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     expect(mockContainer.x).toBe(0);
   });

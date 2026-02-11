@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Entity } from '../src/entities/Entity';
 import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
 import type { BlackHoleLevelData } from '../src/data/types';
-import type { ObjectPool } from '../src/utils/ObjectPool';
 
 const { mockFloatBetween } = vi.hoisted(() => ({
   mockFloatBetween: vi.fn((min: number, max: number) => (min + max) / 2),
@@ -54,33 +52,91 @@ vi.mock('../src/utils/EventBus', () => ({
 
 import { BlackHoleSystem } from '../src/systems/BlackHoleSystem';
 
-interface MockDish {
-  active: boolean;
-  x: number;
-  y: number;
-  isDangerous: () => boolean;
-  applyDamageWithUpgrades: (
-    baseDamage: number,
-    damageBonus: number,
-    criticalChanceBonus: number
-  ) => void;
-  setBeingPulled: (pulled: boolean) => void;
-  forceDestroy: (byAbility?: boolean) => void;
+let entityIdCounter = 0;
+
+// Helper: minimal mock World that supports query() for BlackHoleSystem tests
+function createMockWorld() {
+  const dishTagStore = new Map<string, Record<string, never>>();
+  const dishPropsStore = new Map<string, { dangerous: boolean }>();
+  const transformStore = new Map<string, { x: number; y: number }>();
+  const phaserNodeStore = new Map<string, { container: { x: number; y: number } }>();
+  const activeEntities = new Set<string>();
+
+  const world = {
+    dishTag: {
+      get: (id: string) => dishTagStore.get(id),
+      has: (id: string) => dishTagStore.has(id),
+      set: (id: string, val: Record<string, never>) => dishTagStore.set(id, val),
+      size: () => dishTagStore.size,
+      entries: () => dishTagStore.entries(),
+    },
+    dishProps: {
+      get: (id: string) => dishPropsStore.get(id),
+      has: (id: string) => dishPropsStore.has(id),
+      set: (id: string, val: { dangerous: boolean }) => dishPropsStore.set(id, val),
+      size: () => dishPropsStore.size,
+      entries: () => dishPropsStore.entries(),
+    },
+    transform: {
+      get: (id: string) => transformStore.get(id),
+      has: (id: string) => transformStore.has(id),
+      set: (id: string, val: { x: number; y: number }) => transformStore.set(id, val),
+      size: () => transformStore.size,
+      entries: () => transformStore.entries(),
+    },
+    phaserNode: {
+      get: (id: string) => phaserNodeStore.get(id),
+      has: (id: string) => phaserNodeStore.has(id),
+      set: (id: string, val: { container: { x: number; y: number } }) => phaserNodeStore.set(id, val),
+    },
+    createEntity: (id: string) => activeEntities.add(id),
+    isActive: (id: string) => activeEntities.has(id),
+    // query returns tuples: [entityId, dishTag, dishProps, transform]
+    query: vi.fn(function () {
+      return (function* () {
+        for (const [entityId] of dishTagStore) {
+          if (!activeEntities.has(entityId)) continue;
+          const dp = dishPropsStore.get(entityId);
+          const t = transformStore.get(entityId);
+          if (!dp || !t) continue;
+          yield [entityId, dishTagStore.get(entityId), dp, t];
+        }
+      })();
+    }),
+    _stores: { dishTagStore, dishPropsStore, transformStore, phaserNodeStore, activeEntities },
+  };
+
+  return world;
 }
 
 describe('BlackHoleSystem', () => {
   let blackHoleLevel = 0;
   let blackHoleData: BlackHoleLevelData | null = null;
   let criticalChanceBonus = 0;
-  let dishes: MockDish[];
   let bosses: Array<{ id: string; x: number; y: number; radius: number }>;
   let damageBoss: ReturnType<typeof vi.fn>;
   let system: BlackHoleSystem;
 
-  const createDishPool = (): ObjectPool<Entity> =>
-    ({
-      getActiveObjects: () => dishes as unknown as Entity[],
-    }) as unknown as ObjectPool<Entity>;
+  let mockWorld: ReturnType<typeof createMockWorld>;
+
+  // DamageService mock
+  let mockDamageService: {
+    forceDestroy: ReturnType<typeof vi.fn>;
+    setBeingPulled: ReturnType<typeof vi.fn>;
+    applyUpgradeDamage: ReturnType<typeof vi.fn>;
+  };
+
+  const addDishToWorld = (x: number, y: number, dangerous: boolean): string => {
+    const id = `dish_${entityIdCounter++}`;
+    const stores = mockWorld._stores;
+    stores.activeEntities.add(id);
+    stores.dishTagStore.set(id, {} as Record<string, never>);
+    stores.dishPropsStore.set(id, { dangerous });
+    stores.transformStore.set(id, { x, y });
+    // Add a phaserNode container so the system can update x/y on it
+    stores.phaserNodeStore.set(id, { container: { x, y } });
+    return id;
+  };
 
   const setupSystem = (): void => {
     const upgradeSystem = {
@@ -92,7 +148,8 @@ describe('BlackHoleSystem', () => {
     damageBoss = vi.fn();
     system = new BlackHoleSystem(
       upgradeSystem,
-      () => createDishPool(),
+      mockWorld as never,
+      mockDamageService as never,
       () => bosses,
       damageBoss
     );
@@ -102,12 +159,20 @@ describe('BlackHoleSystem', () => {
     blackHoleLevel = 0;
     blackHoleData = null;
     criticalChanceBonus = 0;
-    dishes = [];
     bosses = [];
     damageBoss = vi.fn();
+    entityIdCounter = 0;
     mockFloatBetween.mockReset();
     mockFloatBetween.mockImplementation((min: number, max: number) => (min + max) / 2);
     mockEmit.mockReset();
+
+    mockWorld = createMockWorld();
+    mockDamageService = {
+      forceDestroy: vi.fn(),
+      setBeingPulled: vi.fn(),
+      applyUpgradeDamage: vi.fn(),
+    };
+
     setupSystem();
   });
 
@@ -293,33 +358,18 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const normalDish: MockDish = {
-      active: true,
-      x: 420,
-      y: 360,
-      isDangerous: vi.fn(() => false),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    const bombDish: MockDish = {
-      active: true,
-      x: 460,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    dishes.push(normalDish, bombDish);
+    const normalDishId = addDishToWorld(420, 360, false);
+    const bombDishId = addDishToWorld(460, 360, true);
 
     system.update(100, 100);
 
-    expect(normalDish.x).toBeGreaterThan(420);
-    expect(bombDish.x).toBeGreaterThan(460);
-    expect(normalDish.setBeingPulled).toHaveBeenCalledWith(true);
-    expect(bombDish.setBeingPulled).toHaveBeenCalledWith(true);
-    expect(bombDish.forceDestroy).not.toHaveBeenCalled();
+    const normalTransform = mockWorld._stores.transformStore.get(normalDishId)!;
+    const bombTransform = mockWorld._stores.transformStore.get(bombDishId)!;
+    expect(normalTransform.x).toBeGreaterThan(420);
+    expect(bombTransform.x).toBeGreaterThan(460);
+    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(normalDishId, true);
+    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(bombDishId, true);
+    expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
   });
 
   it('force destroys bomb when it reaches black hole consume radius', () => {
@@ -340,21 +390,16 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDish: MockDish = {
-      active: true,
-      x: 650,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    dishes.push(bombDish);
+    const bombDishId = addDishToWorld(650, 360, true);
+    // forceDestroy should deactivate the dish so consume logic fires
+    mockDamageService.forceDestroy.mockImplementation(() => {
+      mockWorld._stores.activeEntities.delete(bombDishId);
+    });
 
     system.update(16, 16);
 
-    expect(bombDish.forceDestroy).toHaveBeenCalledWith(true);
-    expect(bombDish.setBeingPulled).not.toHaveBeenCalled();
+    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombDishId, true);
+    expect(mockDamageService.setBeingPulled).not.toHaveBeenCalled();
   });
 
   it('does not force destroy normal dishes even inside black hole center radius', () => {
@@ -375,21 +420,12 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const normalDish: MockDish = {
-      active: true,
-      x: 650,
-      y: 360,
-      isDangerous: vi.fn(() => false),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    dishes.push(normalDish);
+    const normalDishId = addDishToWorld(650, 360, false);
 
     system.update(16, 16);
 
-    expect(normalDish.forceDestroy).not.toHaveBeenCalled();
-    expect(normalDish.setBeingPulled).toHaveBeenCalledWith(true);
+    expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
+    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(normalDishId, true);
   });
 
   it('keeps pulling bombs outside center consume radius without destroying immediately', () => {
@@ -410,22 +446,14 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDish: MockDish = {
-      active: true,
-      x: 540,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    dishes.push(bombDish);
+    const bombDishId = addDishToWorld(540, 360, true);
 
     system.update(16, 16);
 
-    expect(bombDish.forceDestroy).not.toHaveBeenCalled();
-    expect(bombDish.setBeingPulled).toHaveBeenCalledWith(true);
-    expect(bombDish.x).toBeGreaterThan(540);
+    expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
+    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(bombDishId, true);
+    const bombTransform = mockWorld._stores.transformStore.get(bombDishId)!;
+    expect(bombTransform.x).toBeGreaterThan(540);
   });
 
   it('force destroys bomb when pull moves it into center consume radius in same frame', () => {
@@ -446,21 +474,15 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDish: MockDish = {
-      active: true,
-      x: 560,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    dishes.push(bombDish);
+    const bombDishId = addDishToWorld(560, 360, true);
+    mockDamageService.forceDestroy.mockImplementation(() => {
+      mockWorld._stores.activeEntities.delete(bombDishId);
+    });
 
     system.update(100, 100);
 
-    expect(bombDish.setBeingPulled).toHaveBeenCalledWith(true);
-    expect(bombDish.forceDestroy).toHaveBeenCalledWith(true);
+    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(bombDishId, true);
+    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombDishId, true);
   });
 
   it('grows black hole radius by ratio + flat when bomb is consumed', () => {
@@ -481,25 +503,17 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDish: MockDish = {
-      active: true,
-      x: 640,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(() => {
-        bombDish.active = false;
-      }),
-    };
-    dishes.push(bombDish);
+    const bombDishId = addDishToWorld(640, 360, true);
+    mockDamageService.forceDestroy.mockImplementation(() => {
+      mockWorld._stores.activeEntities.delete(bombDishId);
+    });
 
     system.update(16, 16);
 
     const holes = system.getBlackHoles();
     expect(holes).toHaveLength(1);
     expect(holes[0].radius).toBeCloseTo(115);
-    expect(bombDish.forceDestroy).toHaveBeenCalledWith(true);
+    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombDishId, true);
     expect(mockEmit).toHaveBeenCalledWith('blackHole:consumed', { x: 640, y: 360 });
   });
 
@@ -522,18 +536,10 @@ describe('BlackHoleSystem', () => {
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
     bosses = [{ id: 'boss_1', x: 680, y: 360, radius: 40 }];
 
-    const bombDish: MockDish = {
-      active: true,
-      x: 640,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(() => {
-        bombDish.active = false;
-      }),
-    };
-    dishes.push(bombDish);
+    const bombDishId = addDishToWorld(640, 360, true);
+    mockDamageService.forceDestroy.mockImplementation(() => {
+      mockWorld._stores.activeEntities.delete(bombDishId);
+    });
 
     system.update(16, 16);
 
@@ -560,22 +566,14 @@ describe('BlackHoleSystem', () => {
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
     bosses = [{ id: 'boss_1', x: 700, y: 360, radius: 40 }];
 
-    const normalDish: MockDish = {
-      active: true,
-      x: 640,
-      y: 360,
-      isDangerous: vi.fn(() => false),
-      applyDamageWithUpgrades: vi.fn(() => {
-        normalDish.active = false;
-      }),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    dishes.push(normalDish);
+    const normalDishId = addDishToWorld(640, 360, false);
+    mockDamageService.applyUpgradeDamage.mockImplementation(() => {
+      mockWorld._stores.activeEntities.delete(normalDishId);
+    });
 
     system.update(100, 100);
 
-    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledWith(2, 0, 0);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledWith(normalDishId, 2, 0, 0);
     expect(system.getBlackHoles()[0].radius).toBe(105);
     expect(damageBoss).toHaveBeenCalledWith('boss_1', 5, 640, 360, false);
     expect(mockEmit).not.toHaveBeenCalled();
@@ -604,23 +602,16 @@ describe('BlackHoleSystem', () => {
       .mockReturnValueOnce(200);
     bosses = [];
 
-    const bombDish: MockDish = {
-      active: true,
-      x: 640,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(() => {
-        bombDish.active = false;
-      }),
-    };
-    dishes.push(bombDish);
+    const bombDishId = addDishToWorld(640, 360, true);
+    mockDamageService.forceDestroy.mockImplementation(() => {
+      mockWorld._stores.activeEntities.delete(bombDishId);
+    });
 
     system.update(16, 16);
     expect(system.getBlackHoles()[0].radius).toBe(105);
 
-    dishes = [];
+    // Clear dishes for next update (no dishes remain)
+    // bombDish is already removed from active
     system.update(2000, 2016);
 
     const holes = system.getBlackHoles();
@@ -650,23 +641,15 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDish: MockDish = {
-      active: true,
-      x: 640,
-      y: 360,
-      isDangerous: vi.fn(() => true),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(() => {
-        bombDish.active = false;
-      }),
-    };
-    dishes.push(bombDish);
+    const bombDishId = addDishToWorld(640, 360, true);
+    mockDamageService.forceDestroy.mockImplementation(() => {
+      mockWorld._stores.activeEntities.delete(bombDishId);
+    });
 
     system.update(16, 16);
     expect(system.getBlackHoles()).toHaveLength(1);
 
-    dishes = [];
+    // No dishes left for this update
     system.update(800, 816);
     expect(system.getBlackHoles()).toHaveLength(1);
 
@@ -692,27 +675,18 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(600).mockReturnValueOnce(360);
 
-    const normalDish: MockDish = {
-      active: true,
-      x: 600,
-      y: 360,
-      isDangerous: vi.fn(() => false),
-      applyDamageWithUpgrades: vi.fn(),
-      setBeingPulled: vi.fn(),
-      forceDestroy: vi.fn(),
-    };
-    dishes.push(normalDish);
+    const normalDishId = addDishToWorld(600, 360, false);
 
     system.update(16, 16);
     system.update(400, 416);
-    expect(normalDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
+    expect(mockDamageService.applyUpgradeDamage).not.toHaveBeenCalled();
 
     system.update(120, 536);
-    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
-    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledWith(2, 0, 0);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledWith(normalDishId, 2, 0, 0);
 
     system.update(300, 836);
-    expect(normalDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
   });
 
   it('damages boss when black hole overlaps boss radius', () => {

@@ -10,9 +10,15 @@ import {
   C_VisualState,
   C_Movement,
   C_PhaserNode,
-  C_BossBehavior,
+  C_BossState,
   C_PlayerInput,
   C_PlayerRender,
+  C_DishTag,
+  C_BossTag,
+  C_FallingBombTag,
+  C_FallingBomb,
+  C_HealthPackTag,
+  C_HealthPack,
 } from './components';
 
 /** 아키타입 = ComponentDef 토큰 배열. 런타임 확장 가능. */
@@ -74,6 +80,7 @@ export const BUILTIN_ARCHETYPES: readonly ArchetypeDefinition[] = [
   {
     id: 'dish',
     components: [
+      C_DishTag,
       C_Identity, C_Transform, C_Health, C_StatusCache,
       C_Lifetime, C_DishProps, C_CursorInteraction, C_VisualState, C_Movement, C_PhaserNode,
     ],
@@ -81,9 +88,18 @@ export const BUILTIN_ARCHETYPES: readonly ArchetypeDefinition[] = [
   {
     id: 'boss',
     components: [
+      C_BossTag,
       C_Identity, C_Transform, C_Health, C_StatusCache,
-      C_Lifetime, C_DishProps, C_CursorInteraction, C_VisualState, C_Movement, C_PhaserNode, C_BossBehavior,
+      C_Lifetime, C_DishProps, C_CursorInteraction, C_VisualState, C_Movement, C_PhaserNode, C_BossState,
     ],
+  },
+  {
+    id: 'fallingBomb',
+    components: [C_FallingBombTag, C_FallingBomb, C_Transform, C_PhaserNode],
+  },
+  {
+    id: 'healthPack',
+    components: [C_HealthPackTag, C_HealthPack, C_Transform, C_PhaserNode],
   },
 ];
 

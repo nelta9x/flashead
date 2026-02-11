@@ -27,7 +27,7 @@ describe('EntityVisualSystem', () => {
       hitFlashPhase: 0, wobblePhase: 0, blinkPhase: 0, isBeingPulled: true, pullPhase: 0,
     });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     expect(world.visualState.getRequired('e1').pullPhase).toBe(0.5);
   });
@@ -38,7 +38,7 @@ describe('EntityVisualSystem', () => {
       hitFlashPhase: 1, wobblePhase: 0, blinkPhase: 0, isBeingPulled: false, pullPhase: 0,
     });
 
-    system.tick([] as never, 100);
+    system.tick(100);
 
     expect(world.visualState.getRequired('e1').hitFlashPhase).toBe(0);
   });
@@ -53,7 +53,7 @@ describe('EntityVisualSystem', () => {
     });
     world.transform.set('e1', { x: 0, y: 0, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     // timeRatio = 1 - 4000/5000 = 0.2 < 0.3 → blink active
     expect(world.visualState.getRequired('e1').blinkPhase).toBeGreaterThan(0);
@@ -66,7 +66,7 @@ describe('EntityVisualSystem', () => {
       hitFlashPhase: 1, wobblePhase: 0, blinkPhase: 0, isBeingPulled: true, pullPhase: 0,
     });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     const vs = world.visualState.getRequired('player');
     expect(vs.pullPhase).toBe(0); // not updated
@@ -78,7 +78,7 @@ describe('EntityVisualSystem', () => {
       hitFlashPhase: 1, wobblePhase: 0, blinkPhase: 0, isBeingPulled: true, pullPhase: 0,
     });
 
-    system.tick([] as never, 16);
+    system.tick(16);
 
     const vs = world.visualState.getRequired('e1');
     expect(vs.pullPhase).toBe(0);

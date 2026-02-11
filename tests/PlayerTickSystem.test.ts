@@ -4,7 +4,6 @@ import type { CursorRenderer } from '../src/effects/CursorRenderer';
 import type { CursorTrail } from '../src/effects/CursorTrail';
 import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
 import type { HealthSystem } from '../src/systems/HealthSystem';
-import type { Entity } from '../src/entities/Entity';
 
 function createMockCursorRenderer(): CursorRenderer {
   return {
@@ -90,7 +89,7 @@ describe('PlayerTickSystem', () => {
   describe('tick', () => {
     it('비활성 player 엔티티에서는 아무것도 하지 않아야 함', () => {
       const system = createSystem();
-      system.tick([] as Entity[], 16);
+      system.tick(16);
 
       expect(cursorRenderer.renderAttackIndicator).not.toHaveBeenCalled();
       expect(cursorTrail.update).not.toHaveBeenCalled();
@@ -104,7 +103,7 @@ describe('PlayerTickSystem', () => {
       const initialX = transformBefore.x;
       const initialY = transformBefore.y;
 
-      system.tick([] as Entity[], 16);
+      system.tick(16);
 
       const transformAfter = world.transform.getRequired('player');
       // Position should move toward target (300, 400)
@@ -115,7 +114,7 @@ describe('PlayerTickSystem', () => {
     it('cursorTrail.update가 호출되어야 함', () => {
       setupPlayerEntity(world);
       const system = createSystem();
-      system.tick([] as Entity[], 16);
+      system.tick(16);
 
       expect(cursorTrail.update).toHaveBeenCalledOnce();
     });
@@ -123,7 +122,7 @@ describe('PlayerTickSystem', () => {
     it('cursorRenderer.renderAttackIndicator가 호출되어야 함', () => {
       setupPlayerEntity(world);
       const system = createSystem();
-      system.tick([] as Entity[], 16);
+      system.tick(16);
 
       expect(cursorRenderer.renderAttackIndicator).toHaveBeenCalledOnce();
     });
@@ -131,7 +130,7 @@ describe('PlayerTickSystem', () => {
     it('renderAttackIndicator에 올바른 인자를 전달해야 함', () => {
       setupPlayerEntity(world);
       const system = createSystem();
-      system.tick([] as Entity[], 16);
+      system.tick(16);
 
       const call = (cursorRenderer.renderAttackIndicator as ReturnType<typeof vi.fn>).mock.calls[0];
       // x, y are smoothed positions (not exact 100, 200 or 300, 400)
@@ -180,7 +179,7 @@ describe('PlayerTickSystem', () => {
       input.targetY = 200.1;
 
       const system = createSystem();
-      system.tick([] as Entity[], 16);
+      system.tick(16);
 
       const transform = world.transform.getRequired('player');
       expect(transform.x).toBe(100.1);
@@ -190,7 +189,7 @@ describe('PlayerTickSystem', () => {
     it('target과 현재가 멀면 부분 보간해야 함', () => {
       setupPlayerEntity(world);
       const system = createSystem();
-      system.tick([] as Entity[], 16);
+      system.tick(16);
 
       const transform = world.transform.getRequired('player');
       // Should move toward target but not reach it (unless snap threshold)

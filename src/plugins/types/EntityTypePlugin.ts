@@ -1,22 +1,6 @@
 import type Phaser from 'phaser';
-import type { MovementStrategy } from './MovementStrategy';
 import type { AttackPattern } from './AttackPattern';
-
-/**
- * Entity가 구현할 최소 읽기 인터페이스
- * Phase 4에서 Entity 클래스가 이를 구현한다.
- */
-export interface EntityRef {
-  readonly x: number;
-  readonly y: number;
-  readonly active: boolean;
-  getEntityId(): string;
-  getEntityType(): string;
-  getCurrentHp(): number;
-  getMaxHp(): number;
-  getHpRatio(): number;
-  getSize(): number;
-}
+import type { World, MovementComponent } from '../../world';
 
 export type CursorInteractionType = 'dps' | 'contact' | 'explode' | 'none';
 
@@ -30,7 +14,7 @@ export interface EntityTypeConfig {
 
 /** 엔티티 타입별 렌더러 */
 export interface EntityTypeRenderer {
-  render(entity: EntityRef, timeElapsed: number): void;
+  render(entityId: string, world: World, timeElapsed: number): void;
   playHitFlash?(duration: number): void;
   destroy(): void;
 }
@@ -48,14 +32,12 @@ export interface EntityTypePlugin {
   readonly config: EntityTypeConfig;
 
   createRenderer(scene: Phaser.Scene, host: Phaser.GameObjects.Container): EntityTypeRenderer;
-  createMovementStrategy?(entityId: string): MovementStrategy | null;
+  createMovementData?(entityId: string, homeX: number, homeY: number): MovementComponent;
   createAttackPatterns?(scene: Phaser.Scene, entityId: string): AttackPattern[];
 
-  onSpawn?(entity: EntityRef): void;
-  onUpdate?(entity: EntityRef, delta: number, gameTime: number): void;
-  onCursorEnter?(entity: EntityRef): void;
-  onCursorExit?(entity: EntityRef): void;
-  onDamaged?(entity: EntityRef, damage: number, source: DamageSource): void;
-  onDestroyed?(entity: EntityRef): void;
-  onTimeout?(entity: EntityRef): void;
+  onSpawn?(entityId: string, world: World): void;
+  onUpdate?(entityId: string, world: World, delta: number, gameTime: number): void;
+  onDamaged?(entityId: string, world: World, damage: number, source: DamageSource): void;
+  onDestroyed?(entityId: string, world: World): void;
+  onTimeout?(entityId: string, world: World): void;
 }

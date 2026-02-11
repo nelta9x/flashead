@@ -17,6 +17,7 @@ import type {
   BossVisibilitySnapshot,
   CursorSnapshot,
 } from './GameSceneContracts';
+import type { EntityDamageService } from '../../systems/EntityDamageService';
 import { BossContactDamageController } from './boss/BossContactDamageController';
 import { BossLaserController } from './boss/BossLaserController';
 import { BossRosterSync } from './boss/BossRosterSync';
@@ -32,6 +33,7 @@ interface BossCombatCoordinatorDeps {
   laserRenderer: LaserRenderer;
   healthSystem: HealthSystem;
   upgradeSystem: UpgradeSystem;
+  damageService: EntityDamageService;
   isGameOver: () => boolean;
   isPaused: () => boolean;
 }
@@ -81,7 +83,6 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       scene: this.scene,
       waveSystem: this.waveSystem,
       monsterSystem: this.monsterSystem,
-      feedbackSystem: this.feedbackSystem,
       laserRenderer: this.laserRenderer,
       bosses: this.bosses,
       laserNextTimeByBossId: this.laserNextTimeByBossId,
@@ -92,6 +93,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       },
       setNextLaserTime: (bossId, gameTime) => this.setNextLaserTime(bossId, gameTime),
       getCurrentGameTime: () => this.currentGameTime,
+      damageService: deps.damageService,
     });
 
     this.bossLaserController = new BossLaserController({
@@ -105,6 +107,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       healthSystem: this.healthSystem,
       upgradeSystem: this.upgradeSystem,
       isGameOver: this.isGameOver,
+      damageService: deps.damageService,
       bosses: this.bosses,
       laserNextTimeByBossId: this.laserNextTimeByBossId,
       getActiveLasers: () => this.activeLasers,
@@ -206,7 +209,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
 
     if (!nearestBoss) return null;
     return {
-      id: nearestBoss.getBossId(),
+      id: nearestBoss.getEntityId(),
       x: nearestBoss.x,
       y: nearestBoss.y,
     };

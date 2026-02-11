@@ -1,6 +1,6 @@
-import type { Entity } from '../../entities/Entity';
 import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
+import type { EntityDamageService } from '../EntityDamageService';
 
 export class EntityTimingSystem implements EntitySystem {
   readonly id = 'core:entity_timing';
@@ -8,10 +8,10 @@ export class EntityTimingSystem implements EntitySystem {
 
   constructor(
     private readonly world: World,
-    private readonly entityLookup: (entityId: string) => Entity | undefined,
+    private readonly damageService: EntityDamageService,
   ) {}
 
-  tick(_entities: Entity[], delta: number): void {
+  tick(delta: number): void {
     this.world.lifetime.forEach((entityId, lifetime) => {
       if (entityId === 'player') return;
       if (!this.world.isActive(entityId)) return;
@@ -25,8 +25,7 @@ export class EntityTimingSystem implements EntitySystem {
       lifetime.movementTime += delta;
 
       if (lifetime.lifetime !== null && lifetime.elapsedTime >= lifetime.lifetime) {
-        const entity = this.entityLookup(entityId);
-        entity?.handleTimeout();
+        this.damageService.handleTimeout(entityId);
       }
     });
   }

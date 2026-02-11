@@ -1,34 +1,41 @@
 import Phaser from 'phaser';
-import { CURSOR_HITBOX, MAGNET } from '../../../data/constants';
-import type { ParticleManager } from '../../../effects/ParticleManager';
-import type { EntityDamageService } from '../../../systems/EntityDamageService';
-import type { UpgradeSystem } from '../../../systems/UpgradeSystem';
-import { C_DishTag, C_DishProps, C_Transform } from '../../../world';
-import type { World } from '../../../world';
-import type { CursorSnapshot } from '../GameSceneContracts';
+import { MAGNET } from '../../data/constants';
+import { C_DishTag, C_DishProps, C_Transform } from '../../world';
+import type { EntitySystem } from './EntitySystem';
+import type { World } from '../../world';
+import type { EntityDamageService } from '../EntityDamageService';
+import type { UpgradeSystem } from '../UpgradeSystem';
+import type { ParticleManager } from '../../effects/ParticleManager';
 
-interface DishFieldEffectServiceDeps {
+interface MagnetSystemDeps {
   world: World;
-  particleManager: ParticleManager;
-  upgradeSystem: UpgradeSystem;
   damageService: EntityDamageService;
+  upgradeSystem: UpgradeSystem;
+  particleManager: ParticleManager;
+  getCursor: () => { x: number; y: number };
 }
 
-export class DishFieldEffectService {
-  private readonly world: World;
-  private readonly particleManager: ParticleManager;
-  private readonly upgradeSystem: UpgradeSystem;
-  private readonly damageService: EntityDamageService;
+export class MagnetSystem implements EntitySystem {
+  readonly id = 'core:magnet';
+  enabled = true;
 
-  constructor(deps: DishFieldEffectServiceDeps) {
+  private readonly world: World;
+  private readonly damageService: EntityDamageService;
+  private readonly upgradeSystem: UpgradeSystem;
+  private readonly particleManager: ParticleManager;
+  private readonly getCursor: () => { x: number; y: number };
+
+  constructor(deps: MagnetSystemDeps) {
     this.world = deps.world;
-    this.particleManager = deps.particleManager;
-    this.upgradeSystem = deps.upgradeSystem;
     this.damageService = deps.damageService;
+    this.upgradeSystem = deps.upgradeSystem;
+    this.particleManager = deps.particleManager;
+    this.getCursor = deps.getCursor;
   }
 
-  public updateMagnetEffect(delta: number, cursor: CursorSnapshot): void {
+  tick(delta: number): void {
     const magnetLevel = this.upgradeSystem.getMagnetLevel();
+    const cursor = this.getCursor();
 
     if (magnetLevel <= 0) {
       for (const [entityId] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
@@ -55,7 +62,6 @@ export class DishFieldEffectService {
       const newX = t.x + Math.cos(angle) * pullAmount;
       const newY = t.y + Math.sin(angle) * pullAmount;
 
-      // Transform + Phaser container 둘 다 즉시 변경
       t.x = newX;
       t.y = newY;
       const node = this.world.phaserNode.get(entityId);
@@ -68,20 +74,5 @@ export class DishFieldEffectService {
         this.particleManager.createMagnetPullEffect(newX, newY, cursor.x, cursor.y);
       }
     }
-  }
-
-  public updateCursorAttack(cursor: CursorSnapshot): void {
-    const cursorRadius = this.getCursorRadius();
-
-    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
-      const size = dp.size;
-      const dist = Phaser.Math.Distance.Between(cursor.x, cursor.y, t.x, t.y);
-      this.damageService.setInCursorRange(entityId, dist <= cursorRadius + size);
-    }
-  }
-
-  private getCursorRadius(): number {
-    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
-    return CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
   }
 }

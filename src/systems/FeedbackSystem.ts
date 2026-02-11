@@ -36,13 +36,13 @@ export class FeedbackSystem {
     // 파티클 폭발
     this.particleManager.createExplosion(x, y, color, dishType);
 
-    // 에너지 획득 연출 (게이지로 날아가는 효과)
-    // 지뢰가 아닐 때만 발생
-    if (dishType !== 'bomb') {
+    // 에너지 획득 연출 (데이터 기반: skipEnergyEffect가 없는 타입만)
+    const particleConfig = Data.feedback.particles[dishType];
+    if (!particleConfig?.skipEnergyEffect) {
       this.particleManager.createEnergyEffect(x, y, combo, cursorRadius);
     }
 
-    const shakeKey = dishType === 'bomb' ? 'bombDestroyed' : dishType === 'golden' ? 'goldenDestroyed' : 'dishDestroyed';
+    const shakeKey = Data.feedback.shakeKeys[dishType] ?? 'dishDestroyed';
     const shake = Data.feedback.shakePresets[shakeKey];
     if (shake) this.screenShake.shake(shake.intensity, shake.duration);
 

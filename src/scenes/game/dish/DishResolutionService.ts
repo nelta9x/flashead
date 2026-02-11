@@ -5,20 +5,21 @@ import type { Entity } from '../../../entities/Entity';
 import type { DamageText } from '../../../ui/DamageText';
 import type { ObjectPool } from '../../../utils/ObjectPool';
 import type { ComboSystem } from '../../../systems/ComboSystem';
+import type { EntityDamageService } from '../../../systems/EntityDamageService';
 import type { FeedbackSystem } from '../../../systems/FeedbackSystem';
 import type { HealthSystem } from '../../../systems/HealthSystem';
 import type { SoundSystem } from '../../../systems/SoundSystem';
 import type { UpgradeSystem } from '../../../systems/UpgradeSystem';
+import { C_DishTag, C_DishProps, C_Transform } from '../../../world';
+import type { World } from '../../../world';
 import type {
-  BossInteractionGateway,
-  CursorSnapshot,
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
-  DishLike,
   DishMissedEventPayload,
 } from '../GameSceneContracts';
 
 interface DishResolutionServiceDeps {
+  world: World;
   dishPool: ObjectPool<Entity>;
   dishes: Phaser.GameObjects.Group;
   healthSystem: HealthSystem;
@@ -27,12 +28,12 @@ interface DishResolutionServiceDeps {
   feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   damageText: DamageText;
-  bossGateway: BossInteractionGateway;
+  damageService: EntityDamageService;
   isAnyLaserFiring: () => boolean;
-  getCursor: () => CursorSnapshot;
 }
 
 export class DishResolutionService {
+  private readonly world: World;
   private readonly dishPool: ObjectPool<Entity>;
   private readonly dishes: Phaser.GameObjects.Group;
   private readonly healthSystem: HealthSystem;
@@ -41,11 +42,11 @@ export class DishResolutionService {
   private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly damageText: DamageText;
-  private readonly bossGateway: BossInteractionGateway;
+  private readonly damageService: EntityDamageService;
   private readonly isAnyLaserFiring: () => boolean;
-  private readonly getCursor: () => CursorSnapshot;
 
   constructor(deps: DishResolutionServiceDeps) {
+    this.world = deps.world;
     this.dishPool = deps.dishPool;
     this.dishes = deps.dishes;
     this.healthSystem = deps.healthSystem;
@@ -54,16 +55,15 @@ export class DishResolutionService {
     this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.damageText = deps.damageText;
-    this.bossGateway = deps.bossGateway;
+    this.damageService = deps.damageService;
     this.isAnyLaserFiring = deps.isAnyLaserFiring;
-    this.getCursor = deps.getCursor;
   }
 
   public onDishDestroyed(data: DishDestroyedEventPayload): void {
-    const { dish, x, y, byAbility } = data;
-    const dishData = Data.getDishData(dish.getDishType());
+    const { snapshot, x, y, byAbility } = data;
+    const dishData = Data.getDishData(snapshot.entityType);
 
-    if (dish.isDangerous()) {
+    if (snapshot.dangerous) {
       if (!byAbility && dishData) {
         const damage = dishData.playerDamage ?? 1;
         this.healthSystem.takeDamage(damage);
@@ -76,7 +76,7 @@ export class DishResolutionService {
       }
 
       this.feedbackSystem.onBombExploded(x, y, !!byAbility);
-      this.removeDishFromPool(dish);
+      this.removeDishFromPool(snapshot.entityId);
       return;
     }
 
@@ -96,80 +96,77 @@ export class DishResolutionService {
     this.feedbackSystem.onDishDestroyed(
       x,
       y,
-      dish.getColor(),
-      dish.getDishType(),
+      snapshot.color,
+      snapshot.entityType,
       this.comboSystem.getCombo(),
       cursorRadius
     );
 
-    this.removeDishFromPool(dish);
+    this.removeDishFromPool(snapshot.entityId);
   }
 
   public onDishDamaged(data: DishDamagedEventPayload): void {
-    const { x, y, damage, hpRatio, byAbility, isCritical } = data;
+    const { snapshot, x, y, damage, hpRatio, byAbility, isCritical } = data;
     const isAbilityDamage = byAbility === true;
     const combo = isAbilityDamage ? 0 : this.comboSystem.getCombo();
 
     const electricLevel = this.upgradeSystem.getElectricShockLevel();
     if (!isAbilityDamage && electricLevel > 0) {
       const electricRadius = this.upgradeSystem.getElectricShockRadius();
-      this.applyElectricShock(x, y, data.dish, electricRadius);
+      this.applyElectricShock(x, y, snapshot.entityId, electricRadius);
     }
 
     if (isCritical) {
       this.feedbackSystem.onCriticalHit(x, y, damage, combo);
-      if (data.type === 'amber') {
-        const cursor = this.getCursor();
-        const nearestBoss = this.bossGateway.findNearestAliveBoss(cursor.x, cursor.y);
-        if (nearestBoss) {
-          this.bossGateway.cancelChargingLasers(nearestBoss.id);
-        }
-      }
       return;
     }
 
-    this.feedbackSystem.onDishDamaged(x, y, damage, hpRatio, data.dish.getColor(), combo);
+    this.feedbackSystem.onDishDamaged(x, y, damage, hpRatio, snapshot.color, combo);
   }
 
   public onDishMissed(data: DishMissedEventPayload): void {
-    const { dish, x, y, isDangerous } = data;
-    const dishData = Data.getDishData(dish.getDishType());
+    const { snapshot, x, y, isDangerous } = data;
+    const dishData = Data.getDishData(snapshot.entityType);
 
     if (isDangerous) {
-      this.removeDishFromPool(dish);
+      this.removeDishFromPool(snapshot.entityId);
       return;
     }
 
-    this.feedbackSystem.onDishMissed(x, y, dish.getColor(), dish.getDishType());
+    this.feedbackSystem.onDishMissed(x, y, snapshot.color, snapshot.entityType);
     const damage = dishData?.playerDamage ?? 1;
     this.healthSystem.takeDamage(damage);
     this.comboSystem.reset();
-    this.removeDishFromPool(dish);
+    this.removeDishFromPool(snapshot.entityId);
   }
 
-  private applyElectricShock(x: number, y: number, excludeDish: DishLike, radius: number): void {
+  private applyElectricShock(x: number, y: number, excludeEntityId: string, radius: number): void {
     const targets: { x: number; y: number }[] = [];
     const damage = this.upgradeSystem.getElectricShockDamage();
     const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
 
-    this.dishPool.forEach((dish) => {
-      if (dish !== excludeDish && dish.active && !dish.isDangerous()) {
-        const distance = Phaser.Math.Distance.Between(x, y, dish.x, dish.y);
-        if (distance < radius) {
-          targets.push({ x: dish.x, y: dish.y });
-          dish.applyDamageWithUpgrades(damage, 0, criticalChanceBonus);
-        }
+    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
+      if (entityId === excludeEntityId) continue;
+      if (dp.dangerous) continue;
+
+      const distance = Phaser.Math.Distance.Between(x, y, t.x, t.y);
+      if (distance < radius) {
+        targets.push({ x: t.x, y: t.y });
+        this.damageService.applyUpgradeDamage(entityId, damage, 0, criticalChanceBonus);
       }
-    });
+    }
 
     if (targets.length > 0) {
       this.feedbackSystem.onElectricShock(x, y, targets);
     }
   }
 
-  private removeDishFromPool(dish: DishLike): void {
-    this.dishes.remove(dish as unknown as Phaser.GameObjects.GameObject);
-    this.dishPool.release(dish as unknown as Entity);
+  private removeDishFromPool(entityId: string): void {
+    const node = this.world.phaserNode.get(entityId);
+    if (node) {
+      this.dishes.remove(node.container as unknown as Phaser.GameObjects.GameObject);
+      this.dishPool.release(node.container as unknown as Entity);
+    }
   }
 
   private getCursorRadius(): number {

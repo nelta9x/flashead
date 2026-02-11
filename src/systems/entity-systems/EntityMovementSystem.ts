@@ -1,4 +1,4 @@
-import type { Entity } from '../../entities/Entity';
+import Phaser from 'phaser';
 import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
 
@@ -8,7 +8,7 @@ export class EntityMovementSystem implements EntitySystem {
 
   constructor(private readonly world: World) {}
 
-  tick(_entities: Entity[], delta: number): void {
+  tick(delta: number): void {
     this.world.movement.forEach((entityId, mov) => {
       if (entityId === 'player') return;
       if (!this.world.isActive(entityId)) return;
@@ -16,23 +16,32 @@ export class EntityMovementSystem implements EntitySystem {
       const statusCache = this.world.statusCache.get(entityId);
       const isFrozen = statusCache?.isFrozen ?? false;
       const slowFactor = statusCache?.slowFactor ?? 1.0;
-      const bossBeh = this.world.bossBehavior.get(entityId);
-      const isStunned = bossBeh?.behavior.isHitStunned ?? false;
+      const bs = this.world.bossState.get(entityId);
+      const isStunned = bs?.isHitStunned ?? false;
       const transform = this.world.transform.get(entityId);
       if (!transform) return;
 
-      if (mov.strategy && !isFrozen && !isStunned) {
-        const pos = mov.strategy.update(delta, isFrozen, isStunned);
-        transform.baseX = pos.x;
-        transform.baseY = pos.y;
+      if (mov.type === 'drift' && mov.drift && !isFrozen && !isStunned) {
+        // Advance movement time
+        mov.movementTime += delta;
 
-        const shakeX = bossBeh?.behavior.shakeOffsetX ?? 0;
-        const shakeY = bossBeh?.behavior.shakeOffsetY ?? 0;
-        const pushX = bossBeh?.behavior.pushOffsetX ?? 0;
-        const pushY = bossBeh?.behavior.pushOffsetY ?? 0;
+        // Sine-wave drift calculation (inlined from DriftMovement)
+        const d = mov.drift;
+        const baseX = mov.homeX +
+          Math.sin(mov.movementTime * d.xFrequency + d.phaseX) * d.xAmplitude;
+        const baseY = mov.homeY +
+          Math.sin(mov.movementTime * d.yFrequency + d.phaseY) * d.yAmplitude;
+
+        transform.baseX = Phaser.Math.Clamp(baseX, d.bounds.minX, d.bounds.maxX);
+        transform.baseY = Phaser.Math.Clamp(baseY, d.bounds.minY, d.bounds.maxY);
+
+        const shakeX = bs?.shakeOffsetX ?? 0;
+        const shakeY = bs?.shakeOffsetY ?? 0;
+        const pushX = bs?.pushOffsetX ?? 0;
+        const pushY = bs?.pushOffsetY ?? 0;
         transform.x = transform.baseX + shakeX + pushX;
         transform.y = transform.baseY + shakeY + pushY;
-      } else if (!mov.strategy) {
+      } else if (mov.type === 'none') {
         const visualState = this.world.visualState.get(entityId);
         if (visualState) {
           visualState.wobblePhase += 0.1 * slowFactor;

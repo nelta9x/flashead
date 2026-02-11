@@ -25,20 +25,19 @@ describe('EntitySystemPipeline', () => {
       pipeline.register(sysA);
       pipeline.register(sysB);
 
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(order).toEqual(['a', 'b', 'c']);
     });
 
-    it('entities와 delta를 각 시스템에 전달해야 함', () => {
+    it('delta를 각 시스템에 전달해야 함', () => {
       const pipeline = new EntitySystemPipeline(['sys1']);
       const sys = createMockSystem('sys1');
       pipeline.register(sys);
 
-      const entities = [{ id: 'e1' }] as never;
-      pipeline.run(entities, 33);
+      pipeline.run(33);
 
-      expect(sys.tick).toHaveBeenCalledWith(entities, 33);
+      expect(sys.tick).toHaveBeenCalledWith(33);
     });
   });
 
@@ -50,7 +49,7 @@ describe('EntitySystemPipeline', () => {
       pipeline.register(sysA);
       pipeline.register(sysB);
 
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(sysA.tick).toHaveBeenCalledOnce();
       expect(sysB.tick).toHaveBeenCalledOnce();
@@ -68,7 +67,7 @@ describe('EntitySystemPipeline', () => {
       pipeline.register(sysA);
       pipeline.register(sysExtra);
 
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(order).toEqual(['a', 'extra']);
     });
@@ -83,7 +82,7 @@ describe('EntitySystemPipeline', () => {
       pipeline.register(sysB);
 
       pipeline.setEnabled('a', false);
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(sysA.tick).not.toHaveBeenCalled();
       expect(sysB.tick).toHaveBeenCalledOnce();
@@ -95,11 +94,11 @@ describe('EntitySystemPipeline', () => {
       pipeline.register(sysA);
 
       pipeline.setEnabled('a', false);
-      pipeline.run([], 16);
+      pipeline.run(16);
       expect(sysA.tick).not.toHaveBeenCalled();
 
       pipeline.setEnabled('a', true);
-      pipeline.run([], 16);
+      pipeline.run(16);
       expect(sysA.tick).toHaveBeenCalledOnce();
     });
 
@@ -118,7 +117,7 @@ describe('EntitySystemPipeline', () => {
       pipeline.register(sysB);
 
       pipeline.unregister('a');
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(sysA.tick).not.toHaveBeenCalled();
       expect(sysB.tick).toHaveBeenCalledOnce();
@@ -133,7 +132,7 @@ describe('EntitySystemPipeline', () => {
 
       pipeline.register(sysOld);
       pipeline.register(sysNew);
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(sysOld.tick).not.toHaveBeenCalled();
       expect(sysNew.tick).toHaveBeenCalledOnce();
@@ -181,7 +180,7 @@ describe('EntitySystemPipeline', () => {
       pipeline.register(sys);
 
       pipeline.clear();
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(sys.tick).not.toHaveBeenCalled();
     });
@@ -202,7 +201,7 @@ describe('EntitySystemPipeline', () => {
       const sys = createMockSystem('custom');
       pipeline.register(sys);
 
-      pipeline.run([], 16);
+      pipeline.run(16);
 
       expect(sys.tick).toHaveBeenCalledOnce();
     });
@@ -215,12 +214,12 @@ describe('EntitySystemPipeline', () => {
 
       const sysA: EntitySystem = { id: 'a', enabled: true, tick: vi.fn(() => order.push('a')) };
       pipeline.register(sysA);
-      pipeline.run([], 16);
+      pipeline.run(16);
       expect(order).toEqual(['a']);
 
       const sysB: EntitySystem = { id: 'b', enabled: true, tick: vi.fn(() => order.push('b')) };
       pipeline.register(sysB);
-      pipeline.run([], 16);
+      pipeline.run(16);
       expect(order).toEqual(['a', 'a', 'b']);
     });
   });

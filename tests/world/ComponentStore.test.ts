@@ -92,6 +92,16 @@ describe('ComponentStore', () => {
     expect(store.size()).toBe(1);
   });
 
+  it('entries는 [entityId, component] 쌍을 순회해야 함', () => {
+    store.set('e1', { value: 1, name: 'a' });
+    store.set('e2', { value: 2, name: 'b' });
+
+    const collected = [...store.entries()];
+    expect(collected).toHaveLength(2);
+    const ids = collected.map(([id]) => id).sort();
+    expect(ids).toEqual(['e1', 'e2']);
+  });
+
   it('get은 뮤터블 참조를 반환해야 함 (인플레이스 수정 가능)', () => {
     store.set('e1', { value: 1, name: 'mutable' });
     const ref = store.get('e1')!;

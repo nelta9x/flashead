@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
-import { Entity } from '../entities/Entity';
-import type { FallingBomb } from '../entities/FallingBomb';
-import { UpgradeSystem } from './UpgradeSystem';
-import { ObjectPool } from '../utils/ObjectPool';
+import type { UpgradeSystem } from './UpgradeSystem';
+import type { EntityDamageService } from './EntityDamageService';
+import type { FallingBombSystem } from './FallingBombSystem';
 import type { SystemUpgradeData } from '../data/types';
 import type { BossRadiusSnapshot } from '../scenes/game/GameSceneContracts';
+import { C_DishTag, C_DishProps, C_Transform, C_Lifetime, C_FallingBombTag, C_FallingBomb } from '../world';
+import { Data } from '../data/DataManager';
+import type { EntitySystem } from './entity-systems/EntitySystem';
+import type { World } from '../world';
 
 export interface OrbPosition {
   x: number;
@@ -18,20 +21,58 @@ interface OrbOverclockConfig {
   maxStacks: number;
 }
 
-export class OrbSystem {
+export class OrbSystem implements EntitySystem {
+  readonly id = 'core:orb';
+  enabled = true;
+
   private upgradeSystem: UpgradeSystem;
+  private world: World;
+  private damageService: EntityDamageService;
   private currentAngle: number = 0;
 
-  // Cooldown tracking per dish: Map<Dish, NextHitTime>
-  private lastHitTimes: WeakMap<Entity, number> = new WeakMap();
+  // Cooldown tracking per entity: Map<entityId, NextHitTime>
+  private lastHitTimes: Map<string, number> = new Map();
   private bossLastHitTimes: Map<string, number> = new Map();
 
   private orbPositions: OrbPosition[] = [];
   private overclockStacks: number = 0;
   private overclockExpireAt: number = 0;
 
-  constructor(upgradeSystem: UpgradeSystem) {
+  // Context set each frame before tick
+  private _gameTime = 0;
+  private _playerX = 0;
+  private _playerY = 0;
+  private _getBossSnapshots: () => BossRadiusSnapshot[] = () => [];
+  private _onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {};
+  private _fallingBombSystem?: FallingBombSystem;
+
+  constructor(upgradeSystem: UpgradeSystem, world: World, damageService: EntityDamageService) {
     this.upgradeSystem = upgradeSystem;
+    this.world = world;
+    this.damageService = damageService;
+  }
+
+  setContext(
+    gameTime: number,
+    playerX: number,
+    playerY: number,
+    getBossSnapshots: () => BossRadiusSnapshot[],
+    onBossDamage: (bossId: string, damage: number, x: number, y: number) => void,
+  ): void {
+    this._gameTime = gameTime;
+    this._playerX = playerX;
+    this._playerY = playerY;
+    this._getBossSnapshots = getBossSnapshots;
+    this._onBossDamage = onBossDamage;
+  }
+
+  setFallingBombSystem(system: FallingBombSystem): void {
+    this._fallingBombSystem = system;
+  }
+
+  tick(delta: number): void {
+    this.update(delta, this._gameTime, this._playerX, this._playerY,
+      this._getBossSnapshots, this._onBossDamage);
   }
 
   update(
@@ -39,10 +80,8 @@ export class OrbSystem {
     gameTime: number,
     playerX: number,
     playerY: number,
-    dishPool: ObjectPool<Entity>,
     getBossSnapshots: () => BossRadiusSnapshot[] = () => [],
     onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {},
-    fallingBombPool?: ObjectPool<FallingBomb>
   ): void {
     const level = this.upgradeSystem.getOrbitingOrbLevel();
     if (level <= 0) {
@@ -95,7 +134,6 @@ export class OrbSystem {
     // Check Collisions
     this.checkCollisions(
       gameTime,
-      dishPool,
       stats.damage,
       finalSize,
       hitInterval,
@@ -103,13 +141,11 @@ export class OrbSystem {
       overclockConfig,
       getBossSnapshots,
       onBossDamage,
-      fallingBombPool
     );
   }
 
   private checkCollisions(
     gameTime: number,
-    dishPool: ObjectPool<Entity>,
     damage: number,
     orbSize: number,
     hitInterval: number,
@@ -117,42 +153,37 @@ export class OrbSystem {
     overclockConfig: OrbOverclockConfig,
     getBossSnapshots: () => BossRadiusSnapshot[],
     onBossDamage: (bossId: string, damage: number, x: number, y: number) => void,
-    fallingBombPool?: ObjectPool<FallingBomb>
   ): void {
-    dishPool.forEach((dish) => {
-      if (!dish.active) return;
+    for (const [entityId, , dp, t, lt] of this.world.query(C_DishTag, C_DishProps, C_Transform, C_Lifetime)) {
+      const dangerous = dp.dangerous;
+      const size = dp.size;
 
       // 폭탄(dangerous)은 완전히 스폰된 후에만 타격 가능
-      if (dish.isDangerous() && !dish.isFullySpawned()) return;
+      if (dangerous && lt.elapsedTime < lt.spawnDuration) continue;
 
       // Collision Check (Circle vs Circle)
-      // Iterate all orbs
       let hit = false;
       for (const orb of this.orbPositions) {
-        const dist = Phaser.Math.Distance.Between(orb.x, orb.y, dish.x, dish.y);
-        // 타격 범위를 넉넉하게 잡기 위해 (orbSize + dish.getSize())의 1.5배 적용
-        if (dist <= (orbSize + dish.getSize()) * 1.5) {
+        const dist = Phaser.Math.Distance.Between(orb.x, orb.y, t.x, t.y);
+        if (dist <= (orbSize + size) * 1.5) {
           hit = true;
           break;
         }
       }
 
       if (hit) {
-        const nextHitTime = this.lastHitTimes.get(dish) || 0;
+        const nextHitTime = this.lastHitTimes.get(entityId) || 0;
         if (gameTime >= nextHitTime) {
-          // 폭탄(dangerous)은 HP와 관계없이 즉시 제거
-          if (dish.isDangerous()) {
-            dish.forceDestroy(true);
+          if (dangerous) {
+            this.damageService.forceDestroy(entityId, true);
             this.activateOverclock(gameTime, overclockConfig);
           } else {
-            // 일반 접시는 데미지 적용
-            dish.applyDamageWithUpgrades(damage, 0, criticalChanceBonus);
+            this.damageService.applyUpgradeDamage(entityId, damage, 0, criticalChanceBonus);
           }
-          // Set Cooldown
-          this.lastHitTimes.set(dish, gameTime + hitInterval);
+          this.lastHitTimes.set(entityId, gameTime + hitInterval);
         }
       }
-    });
+    }
 
     // Boss collision check
     const bosses = getBossSnapshots();
@@ -170,20 +201,20 @@ export class OrbSystem {
       }
     }
 
-    // Falling bomb collision check
-    if (fallingBombPool) {
-      fallingBombPool.forEach((bomb) => {
-        if (!bomb.active || !bomb.isDangerous() || !bomb.isFullySpawned()) return;
+    // Falling bomb collision check (ECS World query)
+    if (this._fallingBombSystem) {
+      for (const [bombId, , fb, bt] of this.world.query(C_FallingBombTag, C_FallingBomb, C_Transform)) {
+        if (!fb.fullySpawned) continue;
 
         for (const orb of this.orbPositions) {
-          const dist = Phaser.Math.Distance.Between(orb.x, orb.y, bomb.x, bomb.y);
-          if (dist <= (orbSize + bomb.getSize()) * 1.5) {
-            bomb.forceDestroy(true);
+          const dist = Phaser.Math.Distance.Between(orb.x, orb.y, bt.x, bt.y);
+          if (dist <= (orbSize + Data.fallingBomb.hitboxSize) * 1.5) {
+            this._fallingBombSystem.forceDestroy(bombId, true);
             this.activateOverclock(gameTime, overclockConfig);
             break;
           }
         }
-      });
+      }
     }
   }
 

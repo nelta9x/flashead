@@ -1,17 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Phaser from 'phaser';
 
-// Mock Phaser
 vi.mock('phaser', () => {
   return {
     default: {
       Scene: class {},
       Math: {
-        Between: vi.fn((min, _max) => min),
+        Between: vi.fn((min: number, _max: number) => min),
         Distance: {
-          Between: vi.fn((x1, y1, x2, y2) => {
+          Between: vi.fn((x1: number, y1: number, x2: number, y2: number) => {
             return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
           }),
+        },
+      },
+      Geom: {
+        Circle: class {
+          constructor(public x: number, public y: number, public radius: number) {}
+          static Contains = vi.fn(() => true);
         },
       },
     },
@@ -22,7 +26,6 @@ import { HealthPackSystem } from '../src/systems/HealthPackSystem';
 import { GameEvents } from '../src/utils/EventBus';
 import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
 
-// Mock constants
 vi.mock('../src/data/constants', () => ({
   GAME_WIDTH: 800,
   HEAL_PACK: {
@@ -33,59 +36,112 @@ vi.mock('../src/data/constants', () => ({
   },
 }));
 
-// Mock EventBus
+vi.mock('../src/data/DataManager', () => ({
+  Data: {
+    healthPack: {
+      moveSpeed: 80,
+      visualSize: 20,
+      hitboxSize: 25,
+      spawnMargin: 40,
+      preMissWarningDistance: 100,
+    },
+    gameConfig: {
+      screen: { height: 720 },
+    },
+  },
+}));
+
 const mockEmit = vi.fn();
-const mockOn = vi.fn();
 vi.mock('../src/utils/EventBus', () => ({
   EventBus: {
     getInstance: () => ({
       emit: mockEmit,
-      on: mockOn,
+      on: vi.fn(),
       off: vi.fn(),
     }),
   },
   GameEvents: {
-    HP_CHANGED: 'hp_changed',
-    HEALTH_PACK_COLLECTED: 'health_pack_collected',
-    HEALTH_PACK_MISSED: 'health_pack_missed',
+    HEALTH_PACK_SPAWNED: 'healthPack:spawned',
+    HEALTH_PACK_COLLECTED: 'healthPack:collected',
+    HEALTH_PACK_MISSED: 'healthPack:missed',
+    HEALTH_PACK_PASSING: 'healthPack:passing',
   },
 }));
 
-// Mock Entity and Pool
-const mockPack = {
-  spawn: vi.fn(),
-  update: vi.fn(),
-  active: false,
-};
+vi.mock('../src/effects/HealthPackRenderer', () => ({
+  HealthPackRenderer: {
+    render: vi.fn(),
+  },
+}));
 
-vi.mock('../src/entities/HealthPack', () => {
-  return {
-    HealthPack: vi.fn(() => mockPack),
+function createWorldMock() {
+  const stores = new Map<string, Map<string, unknown>>();
+  const activeEntities = new Set<string>();
+
+  function getStore(name: string) {
+    if (!stores.has(name)) stores.set(name, new Map());
+    return stores.get(name)!;
+  }
+
+  const world = {
+    isActive: (id: string) => activeEntities.has(id),
+    createEntity: (id: string) => activeEntities.add(id),
+    destroyEntity: (id: string) => {
+      activeEntities.delete(id);
+      stores.forEach(s => s.delete(id));
+    },
+    archetypeRegistry: {
+      getRequired: () => ({
+        id: 'healthPack',
+        components: [
+          { name: 'healthPackTag' },
+          { name: 'healthPack' },
+          { name: 'transform' },
+          { name: 'phaserNode' },
+        ],
+      }),
+    },
+    spawnFromArchetype: vi.fn((_arch: unknown, entityId: string, values: Record<string, unknown>) => {
+      activeEntities.add(entityId);
+      for (const [name, value] of Object.entries(values)) {
+        getStore(name).set(entityId, value);
+      }
+    }),
+    getStoreByName: (name: string) => {
+      const s = getStore(name);
+      return {
+        get: (id: string) => s.get(id),
+        has: (id: string) => s.has(id),
+        set: (id: string, val: unknown) => s.set(id, val),
+        delete: (id: string) => s.delete(id),
+        size: () => s.size,
+        entries: () => s.entries(),
+      };
+    },
+    healthPack: {
+      get: (id: string) => getStore('healthPack').get(id),
+    },
+    transform: {
+      get: (id: string) => getStore('transform').get(id),
+    },
+    phaserNode: {
+      get: (id: string) => getStore('phaserNode').get(id),
+    },
+    query: vi.fn(function* () {
+      const hpTagStore = getStore('healthPackTag');
+      for (const [entityId] of hpTagStore) {
+        if (!activeEntities.has(entityId)) continue;
+        const hp = getStore('healthPack').get(entityId);
+        const t = getStore('transform').get(entityId);
+        if (!hp || !t) continue;
+        yield [entityId, hpTagStore.get(entityId), hp, t];
+      }
+    }),
   };
-});
 
-// We can mock ObjectPool properly or use a simple mock implementation
-const mockAcquire = vi.fn(() => mockPack);
-const mockRelease = vi.fn();
-const mockForEach = vi.fn();
-const mockGetActiveCount = vi.fn(() => 0);
-const mockGetActiveObjects = vi.fn<[], { active: boolean }[]>(() => []);
-const mockClear = vi.fn();
+  return { world, activeEntities, stores };
+}
 
-vi.mock('../src/utils/ObjectPool', () => {
-  return {
-    ObjectPool: vi.fn().mockImplementation(() => ({
-      acquire: mockAcquire,
-      release: mockRelease,
-      forEach: mockForEach,
-      getActiveCount: mockGetActiveCount,
-      getActiveObjects: mockGetActiveObjects,
-      clear: mockClear,
-    })),
-  };
-});
-
-// Mock UpgradeSystem
 const mockGetHealthPackDropBonus = vi.fn(() => 0);
 const mockUpgradeSystem = {
   getHealthPackDropBonus: mockGetHealthPackDropBonus,
@@ -93,19 +149,44 @@ const mockUpgradeSystem = {
 
 describe('HealthPackSystem', () => {
   let system: HealthPackSystem;
-  let mockScene: Phaser.Scene;
+  let worldMock: ReturnType<typeof createWorldMock>;
+
+  const mockScene = {
+    add: {
+      container: vi.fn(() => ({
+        add: vi.fn(),
+        setScale: vi.fn(),
+        setAlpha: vi.fn(),
+        setVisible: vi.fn(),
+        setActive: vi.fn(),
+        setInteractive: vi.fn(),
+        disableInteractive: vi.fn(),
+        removeAllListeners: vi.fn(),
+        on: vi.fn(),
+        x: 0,
+        y: 0,
+      })),
+      graphics: vi.fn(() => ({})),
+    },
+    tweens: {
+      add: vi.fn(),
+    },
+  } as never;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockScene = {} as Phaser.Scene;
     mockGetHealthPackDropBonus.mockReturnValue(0);
-    system = new HealthPackSystem(mockScene, mockUpgradeSystem);
+    worldMock = createWorldMock();
+    system = new HealthPackSystem(mockScene, mockUpgradeSystem, worldMock.world as never);
   });
 
-  describe('Initialization', () => {
-    it('should subscribe to events', () => {
-      expect(mockOn).toHaveBeenCalledWith(GameEvents.HEALTH_PACK_COLLECTED, expect.any(Function));
-      expect(mockOn).toHaveBeenCalledWith(GameEvents.HEALTH_PACK_MISSED, expect.any(Function));
+  describe('EntitySystem interface', () => {
+    it('should have correct id', () => {
+      expect(system.id).toBe('core:health_pack');
+    });
+
+    it('should be enabled by default', () => {
+      expect(system.enabled).toBe(true);
     });
   });
 
@@ -121,17 +202,22 @@ describe('HealthPackSystem', () => {
 
     it('should not spawn if check interval not reached', () => {
       const originalRandom = Math.random;
-      Math.random = vi.fn(() => 0.01); // 성공 확률
+      Math.random = vi.fn(() => 0.01);
 
-      mockAcquire.mockClear();
+      system.setContext(10000);
+      system.tick(4900); // < CHECK_INTERVAL (5000)
+      expect(worldMock.world.spawnFromArchetype).not.toHaveBeenCalled();
 
-      // 4.9초 업데이트 (5초 미만)
-      system.update(4900, 10000);
-      expect(mockAcquire).not.toHaveBeenCalled();
+      Math.random = originalRandom;
+    });
 
-      // 추가 0.1초 업데이트 (총 5초)
-      system.update(100, 10100);
-      expect(mockAcquire).toHaveBeenCalledTimes(1);
+    it('should spawn when check interval reached and roll succeeds', () => {
+      const originalRandom = Math.random;
+      Math.random = vi.fn(() => 0.01);
+
+      system.setContext(10000);
+      system.tick(5100); // > CHECK_INTERVAL (5000)
+      expect(worldMock.world.spawnFromArchetype).toHaveBeenCalledTimes(1);
 
       Math.random = originalRandom;
     });
@@ -140,89 +226,98 @@ describe('HealthPackSystem', () => {
       const originalRandom = Math.random;
       Math.random = vi.fn(() => 0.01);
 
-      mockAcquire.mockClear();
+      // First spawn
+      system.setContext(10000);
+      system.tick(5100);
+      expect(worldMock.world.spawnFromArchetype).toHaveBeenCalledTimes(1);
 
-      // 첫 번째 업데이트: 스폰
-      system.update(5100, 10000);
-      expect(mockAcquire).toHaveBeenCalledTimes(1);
+      // Reset query mock for second tick
+      worldMock.world.query = vi.fn(function* () {
+        const hpTagStore = worldMock.stores.get('healthPackTag')!;
+        for (const [entityId] of hpTagStore) {
+          if (!worldMock.activeEntities.has(entityId)) continue;
+          const hp = worldMock.stores.get('healthPack')!.get(entityId);
+          const t = worldMock.stores.get('transform')!.get(entityId);
+          if (!hp || !t) continue;
+          yield [entityId, hpTagStore.get(entityId), hp, t];
+        }
+      }) as never;
 
-      // 두 번째 업데이트: 5초 지났지만 쿨다운(5초) 중이라 안 됨
-      // lastSpawnTime = 10000, 쿨다운 5000 -> 15000 이후 가능
-      mockAcquire.mockClear();
-      system.update(5100, 14000); // gameTime 14000 < 15000
-
-      expect(mockAcquire).not.toHaveBeenCalled();
+      // Second tick during cooldown (gameTime 14000 < lastSpawn 10000 + 5000)
+      system.setContext(14000);
+      system.tick(5100);
+      expect(worldMock.world.spawnFromArchetype).toHaveBeenCalledTimes(1); // still 1
 
       Math.random = originalRandom;
     });
   });
 
-  describe('Event Handling', () => {
-    it('should not change spawn chance on collected', () => {
-      expect(system.getSpawnChance()).toBe(0.04);
+  describe('checkCollection', () => {
+    it('should collect pack if cursor is in range', () => {
+      const entityId = 'hp_1';
+      worldMock.activeEntities.add(entityId);
+      if (!worldMock.stores.has('healthPackTag')) worldMock.stores.set('healthPackTag', new Map());
+      worldMock.stores.get('healthPackTag')!.set(entityId, {});
+      if (!worldMock.stores.has('healthPack')) worldMock.stores.set('healthPack', new Map());
+      worldMock.stores.get('healthPack')!.set(entityId, {
+        moveSpeed: 80,
+        pulsePhase: 0,
+        hasPreMissWarningEmitted: false,
+      });
+      if (!worldMock.stores.has('transform')) worldMock.stores.set('transform', new Map());
+      worldMock.stores.get('transform')!.set(entityId, { x: 100, y: 100 });
+      if (!worldMock.stores.has('phaserNode')) worldMock.stores.set('phaserNode', new Map());
+      worldMock.stores.get('phaserNode')!.set(entityId, {
+        container: {
+          disableInteractive: vi.fn(),
+          removeAllListeners: vi.fn(),
+          setVisible: vi.fn(),
+          setActive: vi.fn(),
+        },
+      });
 
-      // 힐팩 수집
-      const collectCallback = mockOn.mock.calls.find(
-        (call) => call[0] === GameEvents.HEALTH_PACK_COLLECTED
-      )?.[1];
-      if (collectCallback) {
-        collectCallback();
-      }
+      worldMock.world.query = vi.fn(function* () {
+        yield [entityId, {}, worldMock.stores.get('healthPack')!.get(entityId), worldMock.stores.get('transform')!.get(entityId)];
+      }) as never;
 
-      expect(system.getSpawnChance()).toBe(0.04);
-    });
+      // Out of range (distance 60 > hitDistance 55)
+      system.checkCollection(100, 160, 30);
+      expect(mockEmit).not.toHaveBeenCalledWith(GameEvents.HEALTH_PACK_COLLECTED, expect.anything());
 
-    it('should release inactive packs on collected', () => {
-      const inactivePack = { active: false };
-      const activePack = { active: true };
-      mockGetActiveObjects.mockReturnValue([inactivePack, activePack]);
-
-      const callback = mockOn.mock.calls.find(
-        (call) => call[0] === GameEvents.HEALTH_PACK_COLLECTED
-      )?.[1];
-      if (callback) {
-        callback();
-        expect(mockRelease).toHaveBeenCalledWith(inactivePack);
-        expect(mockRelease).not.toHaveBeenCalledWith(activePack);
-      }
-    });
-
-    it('should release inactive packs on missed', () => {
-      const inactivePack = { active: false };
-      mockGetActiveObjects.mockReturnValue([inactivePack]);
-
-      const callback = mockOn.mock.calls.find(
-        (call) => call[0] === GameEvents.HEALTH_PACK_MISSED
-      )?.[1];
-      if (callback) {
-        callback();
-        expect(mockRelease).toHaveBeenCalledWith(inactivePack);
-      }
+      // In range (distance 40 < hitDistance 55)
+      system.checkCollection(100, 140, 30);
+      expect(mockEmit).toHaveBeenCalledWith(GameEvents.HEALTH_PACK_COLLECTED, expect.objectContaining({ x: 100, y: 100 }));
     });
   });
 
-  describe('checkCollection', () => {
-    it('should collect pack if cursor is in range', () => {
-      const mockPackForCollection = {
-        active: true,
-        x: 100,
-        y: 100,
-        getRadius: vi.fn(() => 20),
-        collect: vi.fn(),
-      };
+  describe('clear', () => {
+    it('should remove all health pack entities', () => {
+      const ids = ['hp_1', 'hp_2'];
+      for (const id of ids) {
+        worldMock.activeEntities.add(id);
+        if (!worldMock.stores.has('healthPackTag')) worldMock.stores.set('healthPackTag', new Map());
+        worldMock.stores.get('healthPackTag')!.set(id, {});
+        if (!worldMock.stores.has('phaserNode')) worldMock.stores.set('phaserNode', new Map());
+        worldMock.stores.get('phaserNode')!.set(id, {
+          container: {
+            setVisible: vi.fn(),
+            setActive: vi.fn(),
+            disableInteractive: vi.fn(),
+            removeAllListeners: vi.fn(),
+          },
+        });
+      }
 
-      mockForEach.mockImplementation((callback) => {
-        callback(mockPackForCollection);
-      });
+      worldMock.world.query = vi.fn(function* () {
+        for (const id of ids) {
+          if (worldMock.activeEntities.has(id)) {
+            yield [id, {}];
+          }
+        }
+      }) as never;
 
-      // 커서 반경 30, 팩 반경 20 -> 50 이내면 수집
-      // 1. 범위 밖 (거리 60)
-      system.checkCollection(100, 160, 30);
-      expect(mockPackForCollection.collect).not.toHaveBeenCalled();
-
-      // 2. 범위 안 (거리 40)
-      system.checkCollection(100, 140, 30);
-      expect(mockPackForCollection.collect).toHaveBeenCalledTimes(1);
+      system.clear();
+      expect(worldMock.activeEntities.size).toBe(0);
     });
   });
 });

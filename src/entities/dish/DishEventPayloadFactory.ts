@@ -1,11 +1,7 @@
-interface DishLike {
-  x: number;
-  y: number;
-}
+import type { EntitySnapshot } from '../EntitySnapshot';
 
 interface DishDamagedPayloadParams {
-  dish: DishLike;
-  type: string;
+  snapshot: EntitySnapshot;
   damage: number;
   currentHp: number;
   maxHp: number;
@@ -15,28 +11,26 @@ interface DishDamagedPayloadParams {
 }
 
 interface DishDestroyedPayloadParams {
-  dish: DishLike;
-  type: string;
+  snapshot: EntitySnapshot;
   byAbility?: boolean;
 }
 
 interface DishMissedPayloadParams {
-  dish: DishLike;
-  type: string;
+  snapshot: EntitySnapshot;
   isDangerous: boolean;
 }
 
 export class DishEventPayloadFactory {
   public static createDishDamagedPayload(params: DishDamagedPayloadParams) {
     return {
-      dish: params.dish,
-      x: params.dish.x,
-      y: params.dish.y,
-      type: params.type,
+      snapshot: params.snapshot,
+      x: params.snapshot.x,
+      y: params.snapshot.y,
+      type: params.snapshot.entityType,
       damage: params.damage,
       currentHp: params.currentHp,
       maxHp: params.maxHp,
-      hpRatio: params.currentHp / params.maxHp,
+      hpRatio: params.maxHp > 0 ? params.currentHp / params.maxHp : 1,
       isFirstHit: params.isFirstHit,
       isCritical: params.isCritical,
       byAbility: params.byAbility,
@@ -45,20 +39,20 @@ export class DishEventPayloadFactory {
 
   public static createDishDestroyedPayload(params: DishDestroyedPayloadParams) {
     return {
-      dish: params.dish,
-      x: params.dish.x,
-      y: params.dish.y,
-      type: params.type,
+      snapshot: params.snapshot,
+      x: params.snapshot.x,
+      y: params.snapshot.y,
+      type: params.snapshot.entityType,
       byAbility: params.byAbility,
     };
   }
 
   public static createDishMissedPayload(params: DishMissedPayloadParams) {
     return {
-      dish: params.dish,
-      x: params.dish.x,
-      y: params.dish.y,
-      type: params.type,
+      snapshot: params.snapshot,
+      x: params.snapshot.x,
+      y: params.snapshot.y,
+      type: params.snapshot.entityType,
       isDangerous: params.isDangerous,
     };
   }

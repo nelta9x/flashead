@@ -640,6 +640,9 @@ export interface ComboMilestoneEffect {
 
 export interface ParticleConfig {
   count: number;
+  sparkBurst?: boolean;
+  shockwave?: boolean;
+  skipEnergyEffect?: boolean;
 }
 
 export interface DamageTextTypeConfig {
@@ -837,12 +840,8 @@ export interface UpgradeAbsorptionConfig {
 export interface FeedbackConfig {
   damageText: DamageTextConfig;
   comboMilestones: Record<string, ComboMilestoneEffect>;
-  particles: {
-    basic: ParticleConfig;
-    golden: ParticleConfig;
-    crystal: ParticleConfig;
-    bomb: ParticleConfig;
-  };
+  particles: Record<string, ParticleConfig>;
+  shakeKeys: Record<string, string>;
   energyEffect: EnergyEffectConfig;
   cursorTrail: CursorTrailConfig;
   bossAttack: BossAttackConfig;

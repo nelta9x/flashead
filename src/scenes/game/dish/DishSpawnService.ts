@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Data } from '../../../data/DataManager';
+import type { BombWarningConfig } from '../../../data/types';
 import type { Entity } from '../../../entities/Entity';
 import type { PlayerAttackRenderer } from '../../../effects/PlayerAttackRenderer';
 import type { ObjectPool } from '../../../utils/ObjectPool';
@@ -31,8 +32,9 @@ export class DishSpawnService {
   }
 
   public spawnDish(type: string, x: number, y: number, speedMultiplier: number = 1): void {
-    if (type === 'bomb') {
-      this.showBombWarningAndSpawn(x, y, speedMultiplier);
+    const dishData = Data.getDishData(type);
+    if (dishData?.bombWarning) {
+      this.showBombWarningAndSpawn(type, x, y, speedMultiplier, dishData.bombWarning);
       return;
     }
 
@@ -74,16 +76,20 @@ export class DishSpawnService {
     this.dishes.add(entity);
   }
 
-  private showBombWarningAndSpawn(x: number, y: number, speedMultiplier: number): void {
-    const bombData = Data.getDishData('bomb');
-    const warning = bombData?.bombWarning ?? { duration: 500, radius: 50, blinkInterval: 100 };
+  private showBombWarningAndSpawn(
+    type: string,
+    x: number,
+    y: number,
+    speedMultiplier: number,
+    warning: BombWarningConfig,
+  ): void {
     this.getPlayerAttackRenderer().showBombWarning(
       x,
       y,
       warning,
       () => {
         if (!this.isGameOver()) {
-          this.spawnDishImmediate('bomb', x, y, speedMultiplier);
+          this.spawnDishImmediate(type, x, y, speedMultiplier);
         }
       }
     );

@@ -3,9 +3,8 @@ import type {
   EntityTypePlugin,
   EntityTypeConfig,
   EntityTypeRenderer,
-  MovementStrategy,
 } from '../../types';
-import { DriftMovement } from '../movement/DriftMovement';
+import type { MovementComponent } from '../../../world';
 
 interface BossMovementConfig {
   type: string;
@@ -46,24 +45,43 @@ export class StandardBossPlugin implements EntityTypePlugin {
     _scene: Phaser.Scene,
     _host: Phaser.GameObjects.Container
   ): EntityTypeRenderer {
-    // BossRenderer 인스턴스를 래핑
-    // Phase 4 통합 시 기존 BossRenderer를 EntityTypeRenderer 어댑터로 교체
     return {
       render: () => {},
       destroy: () => {},
     };
   }
 
-  createMovementStrategy(entityId: string): MovementStrategy | null {
+  createMovementData(entityId: string, homeX: number, homeY: number): MovementComponent {
     if (!this.movementConfig || this.movementConfig.type !== 'drift') {
-      return null;
+      return { type: 'none', homeX, homeY, movementTime: 0, drift: null };
     }
 
-    return new DriftMovement(
-      this.movementConfig.drift,
-      this.movementConfig.bounds,
-      entityId
-    );
+    const d = this.movementConfig.drift;
+    const b = this.movementConfig.bounds;
+    return {
+      type: 'drift',
+      homeX,
+      homeY,
+      movementTime: 0,
+      drift: {
+        xAmplitude: d.xAmplitude,
+        xFrequency: d.xFrequency,
+        yAmplitude: d.yAmplitude,
+        yFrequency: d.yFrequency,
+        phaseX: resolvePhase(`${entityId}:x`),
+        phaseY: resolvePhase(`${entityId}:y`),
+        bounds: { minX: b.minX, maxX: b.maxX, minY: b.minY, maxY: b.maxY },
+      },
+    };
   }
+}
 
+function resolvePhase(seed: string): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const normalized = (hash >>> 0) / 0xffffffff;
+  return normalized * Math.PI * 2;
 }

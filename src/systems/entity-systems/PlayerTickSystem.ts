@@ -1,5 +1,4 @@
 import { CURSOR_HITBOX } from '../../data/constants';
-import type { Entity } from '../../entities/Entity';
 import type { World } from '../../world';
 import type { CursorRenderer } from '../../effects/CursorRenderer';
 import type { CursorTrail } from '../../effects/CursorTrail';
@@ -25,7 +24,7 @@ export class PlayerTickSystem implements EntitySystem {
     private readonly healthSystem: HealthSystem,
   ) {}
 
-  tick(_entities: Entity[], delta: number): void {
+  tick(delta: number): void {
     const playerId = 'player';
     if (!this.world.isActive(playerId)) return;
 

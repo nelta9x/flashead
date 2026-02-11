@@ -1,9 +1,14 @@
-import type { BossEntityBehavior } from '../entities/BossEntityBehavior';
-import type { MovementStrategy } from '../plugins/types';
+import type { BossRenderer } from '../effects/BossRenderer';
 import type { DishUpgradeOptions } from '../entities/EntityTypes';
 import type { CursorInteractionType } from '../plugins/types';
 import type { CursorSmoothingConfig } from '../data/types';
 import { defineComponent } from './ComponentDef';
+
+// === Tags ===
+export type DishTag = Record<string, never>;
+export const C_DishTag = defineComponent<DishTag>('dishTag');
+export type BossTag = Record<string, never>;
+export const C_BossTag = defineComponent<BossTag>('bossTag');
 
 // === C1: Identity ===
 export interface IdentityComponent {
@@ -82,9 +87,23 @@ export interface VisualStateComponent {
 }
 export const C_VisualState = defineComponent<VisualStateComponent>('visualState');
 
-// === C9: Movement ===
+// === C9: Movement (pure data — no class instances) ===
+export interface DriftData {
+  xAmplitude: number;
+  xFrequency: number;
+  yAmplitude: number;
+  yFrequency: number;
+  phaseX: number;
+  phaseY: number;
+  bounds: { minX: number; maxX: number; minY: number; maxY: number };
+}
+
 export interface MovementComponent {
-  strategy: MovementStrategy | null;
+  type: 'drift' | 'none';
+  homeX: number;
+  homeY: number;
+  movementTime: number;
+  drift: DriftData | null;
 }
 export const C_Movement = defineComponent<MovementComponent>('movement');
 
@@ -94,14 +113,52 @@ export interface PhaserNodeComponent {
   graphics: Phaser.GameObjects.Graphics;
   body: Phaser.Physics.Arcade.Body | null;
   spawnTween: Phaser.Tweens.Tween | null;
+  bossRenderer: BossRenderer | null;
 }
 export const C_PhaserNode = defineComponent<PhaserNodeComponent>('phaserNode');
 
-// === C11: BossBehavior ===
-export interface BossBehaviorComponent {
-  behavior: BossEntityBehavior;
+// === C11: BossState (pure data — no class instances) ===
+export interface BossStateComponent {
+  defaultArmorPieces: number;
+  armorPieceCount: number;
+  currentArmorCount: number;
+  filledHpSlotCount: number;
+  shakeOffsetX: number;
+  shakeOffsetY: number;
+  pushOffsetX: number;
+  pushOffsetY: number;
+  isHitStunned: boolean;
+  pendingDamageReaction: boolean;
+  damageSourceX: number;
+  damageSourceY: number;
+  pendingDeathAnimation: boolean;
+  deathAnimationPlaying: boolean;
+  reactionTweens: Phaser.Tweens.Tween[];
+  deathTween: Phaser.Tweens.Tween | null;
 }
-export const C_BossBehavior = defineComponent<BossBehaviorComponent>('bossBehavior');
+export const C_BossState = defineComponent<BossStateComponent>('bossState');
+
+// === FallingBomb components ===
+export type FallingBombTag = Record<string, never>;
+export const C_FallingBombTag = defineComponent<FallingBombTag>('fallingBombTag');
+
+export interface FallingBombComponent {
+  moveSpeed: number;
+  blinkPhase: number;
+  fullySpawned: boolean;
+}
+export const C_FallingBomb = defineComponent<FallingBombComponent>('fallingBomb');
+
+// === HealthPack components ===
+export type HealthPackTag = Record<string, never>;
+export const C_HealthPackTag = defineComponent<HealthPackTag>('healthPackTag');
+
+export interface HealthPackComponent {
+  moveSpeed: number;
+  pulsePhase: number;
+  hasPreMissWarningEmitted: boolean;
+}
+export const C_HealthPack = defineComponent<HealthPackComponent>('healthPack');
 
 // === Player-specific components ===
 

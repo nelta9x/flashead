@@ -13,11 +13,23 @@ import {
   C_VisualState,
   C_Movement,
   C_PhaserNode,
-  C_BossBehavior,
+  C_BossState,
   C_PlayerInput,
   C_PlayerRender,
+  C_DishTag,
+  C_BossTag,
+  C_FallingBombTag,
+  C_FallingBomb,
+  C_HealthPackTag,
+  C_HealthPack,
 } from './components';
 import type {
+  DishTag,
+  BossTag,
+  FallingBombTag,
+  FallingBombComponent,
+  HealthPackTag,
+  HealthPackComponent,
   IdentityComponent,
   TransformComponent,
   HealthComponent,
@@ -28,7 +40,7 @@ import type {
   VisualStateComponent,
   MovementComponent,
   PhaserNodeComponent,
-  BossBehaviorComponent,
+  BossStateComponent,
   PlayerInputComponent,
   PlayerRenderComponent,
 } from './components';
@@ -54,9 +66,15 @@ export class World {
   readonly visualState: ComponentStore<VisualStateComponent>;
   readonly movement: ComponentStore<MovementComponent>;
   readonly phaserNode: ComponentStore<PhaserNodeComponent>;
-  readonly bossBehavior: ComponentStore<BossBehaviorComponent>;
+  readonly bossState: ComponentStore<BossStateComponent>;
+  readonly dishTag: ComponentStore<DishTag>;
+  readonly bossTag: ComponentStore<BossTag>;
   readonly playerInput: ComponentStore<PlayerInputComponent>;
   readonly playerRender: ComponentStore<PlayerRenderComponent>;
+  readonly fallingBombTag: ComponentStore<FallingBombTag>;
+  readonly fallingBomb: ComponentStore<FallingBombComponent>;
+  readonly healthPackTag: ComponentStore<HealthPackTag>;
+  readonly healthPack: ComponentStore<HealthPackComponent>;
 
   // 아키타입 레지스트리
   readonly archetypeRegistry = new ArchetypeRegistry();
@@ -77,9 +95,15 @@ export class World {
     this.visualState = this.register(C_VisualState);
     this.movement = this.register(C_Movement);
     this.phaserNode = this.register(C_PhaserNode);
-    this.bossBehavior = this.register(C_BossBehavior);
+    this.bossState = this.register(C_BossState);
+    this.dishTag = this.register(C_DishTag);
+    this.bossTag = this.register(C_BossTag);
     this.playerInput = this.register(C_PlayerInput);
     this.playerRender = this.register(C_PlayerRender);
+    this.fallingBombTag = this.register(C_FallingBombTag);
+    this.fallingBomb = this.register(C_FallingBomb);
+    this.healthPackTag = this.register(C_HealthPackTag);
+    this.healthPack = this.register(C_HealthPack);
 
     // 빌트인 아키타입 등록
     registerBuiltinArchetypes(this.archetypeRegistry);
@@ -163,15 +187,58 @@ export class World {
     return Array.from(this.activeEntities);
   }
 
-  /** 모든 지정 store에 컴포넌트가 존재하는 active 엔티티 ID 반환 */
-  query(...stores: ComponentStore<unknown>[]): string[] {
-    const result: string[] = [];
-    for (const entityId of this.activeEntities) {
-      if (stores.every((store) => store.has(entityId))) {
-        result.push(entityId);
+  /** 지정 ComponentDef 토큰에 해당하는 active 엔티티의 [id, ...components] 튜플을 yield */
+  query<A>(c1: ComponentDef<A>): IterableIterator<[string, A]>;
+  query<A, B>(c1: ComponentDef<A>, c2: ComponentDef<B>): IterableIterator<[string, A, B]>;
+  query<A, B, C>(c1: ComponentDef<A>, c2: ComponentDef<B>, c3: ComponentDef<C>): IterableIterator<[string, A, B, C]>;
+  query<A, B, C, D>(c1: ComponentDef<A>, c2: ComponentDef<B>, c3: ComponentDef<C>, c4: ComponentDef<D>): IterableIterator<[string, A, B, C, D]>;
+  query<A, B, C, D, E>(c1: ComponentDef<A>, c2: ComponentDef<B>, c3: ComponentDef<C>, c4: ComponentDef<D>, c5: ComponentDef<E>): IterableIterator<[string, A, B, C, D, E]>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query(...defs: ComponentDef<any>[]): IterableIterator<[string, ...unknown[]]> {
+    return this.queryImpl(defs);
+  }
+
+  private *queryImpl(defs: ComponentDef[]): Generator<[string, ...unknown[]]> {
+    if (defs.length === 0) return;
+
+    // Resolve stores
+    const stores: ComponentStore<unknown>[] = [];
+    for (const def of defs) {
+      const s = this.stores.get(def.name);
+      if (!s) return; // store not registered → no results
+      stores.push(s);
+    }
+
+    // Pivot on smallest store for efficiency
+    let pivotIdx = 0;
+    let pivotSize = stores[0].size();
+    for (let i = 1; i < stores.length; i++) {
+      const sz = stores[i].size();
+      if (sz < pivotSize) {
+        pivotSize = sz;
+        pivotIdx = i;
       }
     }
-    return result;
+
+    const pivot = stores[pivotIdx];
+    for (const [entityId] of pivot.entries()) {
+      if (!this.activeEntities.has(entityId)) continue;
+
+      // Cross-validate all other stores
+      let valid = true;
+      for (let i = 0; i < stores.length; i++) {
+        if (i === pivotIdx) continue;
+        if (!stores[i].has(entityId)) { valid = false; break; }
+      }
+      if (!valid) continue;
+
+      // Build tuple: [entityId, c1Data, c2Data, ...]
+      const tuple: [string, ...unknown[]] = [entityId];
+      for (const store of stores) {
+        tuple.push(store.get(entityId)!);
+      }
+      yield tuple;
+    }
   }
 
   /** dead 엔티티를 정리하고 제거된 ID 목록을 반환 */

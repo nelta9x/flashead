@@ -1,4 +1,3 @@
-import type { Entity } from '../entities/Entity';
 import type { EntitySystem } from './entity-systems/EntitySystem';
 
 /**
@@ -32,13 +31,13 @@ export class EntitySystemPipeline {
     }
   }
 
-  run(entities: Entity[], delta: number): void {
+  run(delta: number): void {
     if (this.dirty) {
       this.rebuild();
     }
     for (const system of this.sorted) {
       if (system.enabled) {
-        system.tick(entities, delta);
+        system.tick(delta);
       }
     }
   }
