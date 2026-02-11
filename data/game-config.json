@@ -43,7 +43,9 @@
     "cursorSpeed": 1123,
     "input": {
       "pointerPriorityMs": 120,
-      "keyboardAxisRampUpMs": 90,
+      "keyboardAxisRampUpMs": 130,
+      "keyboardEaseInPower": 1.35,
+      "keyboardMinAxisSpeed": 0.18,
       "smoothing": {
         "baseLerp": 0.4,
         "snapThreshold": 175,

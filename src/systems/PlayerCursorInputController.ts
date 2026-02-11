@@ -12,6 +12,8 @@ interface MovementKeys {
 export interface PlayerCursorInputControllerConfig {
   pointerPriorityMs: number;
   keyboardAxisRampUpMs: number;
+  keyboardEaseInPower: number;
+  keyboardMinAxisSpeed: number;
 }
 
 export interface KeyboardAxisState {
@@ -23,6 +25,8 @@ export interface KeyboardAxisState {
 export class PlayerCursorInputController {
   private pointerPriorityMs: number = 0;
   private keyboardAxisRampUpMs: number = 1;
+  private keyboardEaseInPower: number = 1;
+  private keyboardMinAxisSpeed: number = 0;
   private lastInputDevice: InputDevice = 'pointer';
   private lastPointerMoveAt: number = Number.NEGATIVE_INFINITY;
 
@@ -41,6 +45,8 @@ export class PlayerCursorInputController {
   public updateConfig(config: PlayerCursorInputControllerConfig): void {
     this.pointerPriorityMs = Math.max(0, config.pointerPriorityMs);
     this.keyboardAxisRampUpMs = Math.max(1, config.keyboardAxisRampUpMs);
+    this.keyboardEaseInPower = Math.max(1, config.keyboardEaseInPower);
+    this.keyboardMinAxisSpeed = Math.max(0, Math.min(1, config.keyboardMinAxisSpeed));
   }
 
   public bindKeyboard(keyboard: Phaser.Input.Keyboard.KeyboardPlugin): void {
@@ -101,8 +107,8 @@ export class PlayerCursorInputController {
 
     this.lastInputDevice = 'keyboard';
 
-    let x = this.axisX;
-    let y = this.axisY;
+    let x = this.applyEaseIn(this.axisX);
+    let y = this.applyEaseIn(this.axisY);
     const lengthSq = x * x + y * y;
     if (lengthSq > 1) {
       const factor = 1 / Math.sqrt(lengthSq);
@@ -196,6 +202,14 @@ export class PlayerCursorInputController {
       return Math.min(target, Math.min(1, next));
     }
     return Math.max(target, Math.max(-1, next));
+  }
+
+  private applyEaseIn(axis: number): number {
+    if (axis === 0) return 0;
+    const sign = Math.sign(axis);
+    const abs = Math.abs(axis);
+    const curved = Math.pow(abs, this.keyboardEaseInPower);
+    return sign * Math.max(this.keyboardMinAxisSpeed, curved);
   }
 
   private isMovementKeyCode(code: string): boolean {

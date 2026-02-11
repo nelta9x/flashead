@@ -23,6 +23,8 @@ export interface CursorSmoothingConfig {
 export interface PlayerInputConfig {
   pointerPriorityMs: number;
   keyboardAxisRampUpMs: number;
+  keyboardEaseInPower: number;
+  keyboardMinAxisSpeed: number;
   smoothing: CursorSmoothingConfig;
 }
 

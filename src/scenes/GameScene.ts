@@ -384,6 +384,8 @@ export class GameScene extends Phaser.Scene {
     this.inputController = new PlayerCursorInputController({
       pointerPriorityMs: playerInputConfig.pointerPriorityMs,
       keyboardAxisRampUpMs: playerInputConfig.keyboardAxisRampUpMs,
+      keyboardEaseInPower: playerInputConfig.keyboardEaseInPower,
+      keyboardMinAxisSpeed: playerInputConfig.keyboardMinAxisSpeed,
     });
 
     this.bossCombatCoordinator = new BossCombatCoordinator({

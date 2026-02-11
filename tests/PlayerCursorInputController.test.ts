@@ -66,6 +66,8 @@ describe('PlayerCursorInputController', () => {
     const controller = new PlayerCursorInputController({
       pointerPriorityMs: 120,
       keyboardAxisRampUpMs: 90,
+      keyboardEaseInPower: 1,
+      keyboardMinAxisSpeed: 0,
     });
     controller.bindKeyboard(harness.plugin as never);
 
@@ -88,6 +90,8 @@ describe('PlayerCursorInputController', () => {
     const controller = new PlayerCursorInputController({
       pointerPriorityMs: 120,
       keyboardAxisRampUpMs: 90,
+      keyboardEaseInPower: 1,
+      keyboardMinAxisSpeed: 0,
     });
     controller.bindKeyboard(harness.plugin as never);
 
@@ -105,6 +109,8 @@ describe('PlayerCursorInputController', () => {
     const controller = new PlayerCursorInputController({
       pointerPriorityMs: 120,
       keyboardAxisRampUpMs: 90,
+      keyboardEaseInPower: 1,
+      keyboardMinAxisSpeed: 0,
     });
     controller.bindKeyboard(harness.plugin as never);
 
@@ -127,6 +133,8 @@ describe('PlayerCursorInputController', () => {
     const controller = new PlayerCursorInputController({
       pointerPriorityMs: 120,
       keyboardAxisRampUpMs: 90,
+      keyboardEaseInPower: 1,
+      keyboardMinAxisSpeed: 0,
     });
     controller.bindKeyboard(harness.plugin as never);
 
@@ -152,6 +160,8 @@ describe('PlayerCursorInputController', () => {
     const controller = new PlayerCursorInputController({
       pointerPriorityMs: 120,
       keyboardAxisRampUpMs: 90,
+      keyboardEaseInPower: 1,
+      keyboardMinAxisSpeed: 0,
     });
     controller.bindKeyboard(harness.plugin as never);
 
@@ -172,6 +182,8 @@ describe('PlayerCursorInputController', () => {
     const controller = new PlayerCursorInputController({
       pointerPriorityMs: 120,
       keyboardAxisRampUpMs: 90,
+      keyboardEaseInPower: 1,
+      keyboardMinAxisSpeed: 0,
     });
     controller.bindKeyboard(harness.plugin as never);
 
@@ -188,11 +200,55 @@ describe('PlayerCursorInputController', () => {
     expect(controller.shouldUseKeyboardMovement(1050)).toBe(false);
   });
 
+  it('applies ease-in curve to axis output', () => {
+    const harness = createKeyboardHarness();
+    const controller = new PlayerCursorInputController({
+      pointerPriorityMs: 120,
+      keyboardAxisRampUpMs: 100,
+      keyboardEaseInPower: 2,
+      keyboardMinAxisSpeed: 0,
+    });
+    controller.bindKeyboard(harness.plugin as never);
+
+    harness.cursorKeys.right.isDown = true;
+    harness.emitKeyDown('ArrowRight');
+
+    // Raw axis at 50ms/100ms = 0.5, ease-in(0.5, power=2) = 0.25
+    const half = controller.getKeyboardAxis(50, 1000);
+    expect(half.x).toBeCloseTo(0.25, 5);
+    expect(half.isMoving).toBe(true);
+
+    // Raw axis at 100ms/100ms = 1.0, ease-in(1.0, power=2) = 1.0
+    const full = controller.getKeyboardAxis(50, 1050);
+    expect(full.x).toBeCloseTo(1, 5);
+  });
+
+  it('enforces minimum axis speed floor on first frame', () => {
+    const harness = createKeyboardHarness();
+    const controller = new PlayerCursorInputController({
+      pointerPriorityMs: 120,
+      keyboardAxisRampUpMs: 100,
+      keyboardEaseInPower: 2,
+      keyboardMinAxisSpeed: 0.2,
+    });
+    controller.bindKeyboard(harness.plugin as never);
+
+    harness.cursorKeys.right.isDown = true;
+    harness.emitKeyDown('ArrowRight');
+
+    // Raw axis at 10ms/100ms = 0.1, ease-in(0.1, power=2) = 0.01, but floor = 0.2
+    const first = controller.getKeyboardAxis(10, 1000);
+    expect(first.x).toBeCloseTo(0.2, 5);
+    expect(first.isMoving).toBe(true);
+  });
+
   it('initial keypress still switches to keyboard immediately', () => {
     const harness = createKeyboardHarness();
     const controller = new PlayerCursorInputController({
       pointerPriorityMs: 120,
       keyboardAxisRampUpMs: 90,
+      keyboardEaseInPower: 1,
+      keyboardMinAxisSpeed: 0,
     });
     controller.bindKeyboard(harness.plugin as never);
 
