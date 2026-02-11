@@ -48,7 +48,7 @@
 
 ### 1.5 GameScene 보조 모듈 (`src/scenes/game/`)
 
-- **`BossCombatCoordinator.ts`**: 멀티 보스 동기화, 보스 스폰 배치, 레이저 스케줄/취소/충돌, 보스 접촉 데미지, 보스 스냅샷 제공.
+- **`BossCombatCoordinator.ts`**: 멀티 보스 동기화, 보스 스폰 배치, 레이저 스케줄/취소/충돌, 보스 접촉 데미지, 보스 스냅샷 제공. `forEachBoss(cb)` 로 활성 보스 엔티티를 외부에 노출 (ECS 시스템 순회용).
   - 내부 분해: `boss/BossRosterSync.ts`, `boss/BossLaserController.ts`, `boss/BossContactDamageController.ts`
 - **`PlayerAttackController.ts`**: 게이지 공격(차지/순차 미사일/재타겟), 미사일 경로 접시 제거, 치명타 시 레이저 취소 처리.
 - **`DishLifecycleController.ts`**: `DISH_DESTROYED/DISH_DAMAGED/DISH_MISSED` 처리, 접시 스폰(폭탄 경고 포함), 전기 충격(직접 커서 히트 기반)/자기장/커서 범위 판정.
@@ -89,7 +89,26 @@
 - **`HealthPackSystem.ts`**: 기본 확률과 업그레이드 보너스를 기반으로 힐팩을 스폰합니다. `destroy()` 메서드로 EventBus 리스너 해제.
 - **`FallingBombSystem.ts`**: 특정 웨이브(`minWave`) 이후부터 화면 위에서 아래로 떨어지는 낙하 폭탄을 확률 기반으로 스폰합니다. 커서 접촉 시 데미지를 주며, 금구슬(`OrbSystem`)와 블랙홀(`BlackHoleSystem`)에 의해 제거될 수 있습니다.
 
-### 2.5 플러그인 아키텍처 (신규)
+### 2.5 MOD 인프라
+
+MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 시스템을 등록할 수 있는 경량 기반.
+
+- **`StatusEffectManager.ts`** (`src/systems/`): 엔티티별 상태효과 관리. `applyEffect(entityId, effect)`, `removeEffect(entityId, effectId)`, `tick(delta)` (만료 자동 제거 + `onExpire` 콜백), `clearEntity(entityId)` (엔티티 비활성화 시 전체 제거). **내장 효과**: `freeze` (Infinity 지속, 수동 제거), `slow` (유한 지속, factor 데이터). MOD가 커스텀 `StatusEffect` 구현체를 등록하여 새로운 상태효과를 추가할 수 있다.
+- **`EntityQueryService.ts`** (`src/systems/`): dishPool(`ObjectPool<Entity>`)을 감싸는 읽기 전용 쿼리 파사드. `getActiveEntities()`, `forEachActive(cb)`, `getEntitiesInRadius(x, y, r)`, `getEntitiesWithCondition(pred)`. `setBossProvider(provider)` 호출 시 보스 엔티티도 포함하여 조회. 기존 dishPool 소비 코드 7+ 파일 수정 없이 MOD에 엔티티 접근을 제공한다.
+- **`ModSystemRegistry.ts`** (`src/plugins/`): MOD 커스텀 시스템 등록/실행 레지스트리. `registerSystem(id, tickFn, priority?)` → `runAll(delta, context)`. context로 `{ entities: EntityQueryService, statusEffectManager, eventBus }` 제공. GameScene.update() 끝에서 호출.
+- **`EntityManager.ts` 쿼리 확장**: `getEntitiesInRadius(x, y, radius)`, `getEntitiesWithCondition(predicate)` — MOD 시스템의 크로스 엔티티 상호작용용.
+- **`entity-systems/`** (`src/systems/entity-systems/`): Entity.update()를 제거하고 5개 독립 ECS 스타일 시스템으로 분리. 각 시스템은 `EntitySystem` 인터페이스(`id`, `enabled`, `tick`)를 구현하며 전체 엔티티를 순회하며 단일 관심사만 처리.
+  - `EntitySystem.ts`: 공통 인터페이스 (`id: string`, `enabled: boolean`, `tick(entities, delta)`)
+  - `EntityStatusSystem` (`core:entity_status`): SEM → freeze/slow 캐시 파생 (tickStatusEffects)
+  - `EntityTimingSystem` (`core:entity_timing`): effectiveDelta, 시간 누적, lifetime 만료 (tickTimeDelta)
+  - `EntityMovementSystem` (`core:entity_movement`): 이동 전략 + 보스 오프셋 / wobble (tickMovement)
+  - `EntityVisualSystem` (`core:entity_visual`): pull/hitFlash/blink/dangerVibration (tickVisual)
+  - `EntityRenderSystem` (`core:entity_render`): drawEntity + typePlugin.onUpdate (tickRender)
+- **`EntitySystemPipeline.ts`** (`src/systems/`): data-driven 엔티티 시스템 실행 파이프라인. `game-config.json`의 `entityPipeline` 배열이 실행 순서의 SSOT. `register(system)`, `unregister(id)`, `setEnabled(id, enabled)`, `run(entities, delta)`. config 순서대로 배치 → config에 없는 등록 시스템은 끝에 추가. `getMissingSystems()`, `getUnmappedSystems()` 진단 메서드 제공.
+  - GameScene 호출 순서: statusEffectManager.tick → entitySystemPipeline.run (5개 코어 시스템 순차) → modSystemRegistry.runAll
+- **`Entity.ts` 연동**: `deactivate()` 시 `StatusEffectManager.clearEntity()` 자동 호출로 풀 반환 시 잔류 효과 방지. freeze/slow는 StatusEffectManager로 위임. 6개 tick 메서드(`tickStatusEffects`/`tickTimeDelta`/`tickMovement`/`tickVisual`/`tickRender`)를 외부 시스템에 노출하고, `update()` 메서드는 제거됨.
+
+### 2.6 플러그인 아키텍처
 
 `src/plugins/` 디렉토리에는 확장 가능한 플러그인 시스템이 위치합니다. 코어 코드 수정 없이 새 콘텐츠를 추가할 수 있도록 설계되었습니다.
 
@@ -109,7 +128,7 @@
 
 `src/entities/` 디렉토리에는 물리적인 게임 오브젝트가 위치하며, `Dish`, `HealthPack`, `FallingBomb`은 `ObjectPool`에 의해 재사용됩니다.
 
-- **`Entity.ts`** (신규): Dish + Boss를 통합하는 범용 엔티티. `EntityTypePlugin`을 통해 행동을 주입받으며, `Poolable`과 `EntityRef`를 구현합니다. HP 관리, 커서 상호작용 (dps/contact/explode), 이동 전략 위임, 타임아웃/슬로우/프리즈를 지원합니다.
+- **`Entity.ts`** (신규): Dish + Boss를 통합하는 범용 엔티티. `EntityTypePlugin`을 통해 행동을 주입받으며, `Poolable`과 `EntityRef`를 구현합니다. HP 관리, 커서 상호작용 (dps/contact/explode), 이동 전략 위임, 타임아웃을 지원합니다. freeze/slow는 `StatusEffectManager`에 위임합니다. `update()` 메서드는 제거되고 6개 tick 메서드(`tickStatusEffects`/`tickTimeDelta`/`tickMovement`/`tickVisual`/`tickRender`)를 외부 ECS 스타일 시스템에 노출합니다.
 - **`EntityTypes.ts`**: Entity와 Dish가 공유하는 `DishUpgradeOptions` 인터페이스 정의.
 - **`Dish.ts`**: 주요 적인 '접시' (레거시, Entity로 마이그레이션 예정).
   - `spawn()`: 초기화 및 애니메이션 시작.
@@ -166,7 +185,7 @@
 - **`src/data/constants.ts`**: JSON 기반 데이터 중 코드에서 자주 쓰이는 물리/기하학적 상수.
 - **`src/data/game.config.ts`**: Phaser 엔진 기술 설정 (물리, 렌더링, 스케일, 오디오 등).
 - **데이터 파일 목록 (`data/*.json`)**:
-  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT.
+  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT. **`entityPipeline`**: 엔티티 시스템 실행 순서 배열 (코어 5개 + MOD 커스텀 시스템).
   - `locales.json`: 다국어(EN, KO) 번역 데이터 및 업그레이드 설명/카드 라벨 템플릿 (`upgrade.stat.*`, `upgrade.card.*`).
   - `main-menu.json`: 메인 메뉴 씬 설정 (별 배경, 보스 애니메이션, 메뉴 접시 스폰, 언어 UI 설정).
   - `colors.json`: 게임 내 모든 색상 팔레트 및 테마 (숫자값/hex).

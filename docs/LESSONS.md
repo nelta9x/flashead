@@ -190,3 +190,16 @@
 - Dish와 Boss가 별개 클래스로 존재하여 새 적 타입 추가가 어려웠음 → 통합 Entity + EntityTypePlugin 도입
 - UpgradeSystem에 30개 이상의 getter가 하드코딩되어 있었음 → UpgradeSystemCore 인터페이스 + AbilityPlugin.getEffectValue() 패턴 도입
 - WaveConfigResolver.getScaledDishTypes()에 접시 타입별 스케일링이 하드코딩 → dishTypeScaling 배열로 데이터 주도 리팩토링
+
+---
+
+## 12. 엔진 마이그레이션 (Phaser 3 → 4)
+
+### 원칙
+- Phaser 4에서 `fillPoints`/`strokePoints`는 `{x,y}` 리터럴 대신 `Phaser.Math.Vector2` 인스턴스를 요구한다.
+- `BlendModes`, `generateTexture`, `HexStringToColor` 등 핵심 API는 v4에서 보존되어 코드 수정 불필요.
+- 테스트 mock은 Phaser 내부 구현과 무관한 스텁이므로, export 구조가 변하지 않는 한 수정 불필요.
+
+### 사례 요약
+- `MenuBossRenderer`와 `ParticleManager`에서 `{x,y}` 리터럴을 `new Phaser.Math.Vector2(x,y)`로 변경 (총 4곳)
+- 그 외 59개 `import Phaser from 'phaser'` 파일, 37개 테스트 파일 모두 수정 없이 통과

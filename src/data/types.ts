@@ -518,6 +518,7 @@ export interface DepthsConfig {
 }
 
 export interface GameConfig {
+  entityPipeline: readonly string[];
   screen: ScreenConfig;
   defaultLanguage: string;
   player: PlayerConfig;

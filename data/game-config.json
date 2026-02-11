@@ -1,4 +1,11 @@
 {
+  "entityPipeline": [
+    "core:entity_status",
+    "core:entity_timing",
+    "core:entity_movement",
+    "core:entity_visual",
+    "core:entity_render"
+  ],
   "screen": {
     "width": 1280,
     "height": 720

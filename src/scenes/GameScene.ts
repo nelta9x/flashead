@@ -48,7 +48,19 @@ import { SceneInputAdapter } from './game/SceneInputAdapter';
 import type { CursorSnapshot } from './game/GameSceneContracts';
 import { computeCursorSmoothing } from '../utils/cursorSmoothing';
 import { AbilityManager } from '../systems/AbilityManager';
+import { StatusEffectManager } from '../systems/StatusEffectManager';
+import { EntityQueryService } from '../systems/EntityQueryService';
+import {
+  EntityStatusSystem,
+  EntityTimingSystem,
+  EntityMovementSystem,
+  EntityVisualSystem,
+  EntityRenderSystem,
+} from '../systems/entity-systems';
+import { EntitySystemPipeline } from '../systems/EntitySystemPipeline';
 import { PluginRegistry } from '../plugins/PluginRegistry';
+import { ModSystemRegistry } from '../plugins/ModSystemRegistry';
+import type { ModSystemContext } from '../plugins/ModSystemRegistry';
 import { registerBuiltinAbilities } from '../plugins/builtin/abilities';
 import { registerBuiltinEntityTypes } from '../plugins/builtin/entities';
 
@@ -70,6 +82,10 @@ export class GameScene extends Phaser.Scene {
   private orbSystem!: OrbSystem;
   private blackHoleSystem!: BlackHoleSystem;
   private abilityManager!: AbilityManager;
+  private statusEffectManager!: StatusEffectManager;
+  private entityQueryService!: EntityQueryService;
+  private modSystemRegistry!: ModSystemRegistry;
+  private entitySystemPipeline!: EntitySystemPipeline;
 
   // UI & 이펙트
   private hud!: HUD;
@@ -224,6 +240,19 @@ export class GameScene extends Phaser.Scene {
       () => this.fallingBombSystem.getPool()
     );
 
+    // MOD 인프라
+    this.statusEffectManager = new StatusEffectManager();
+    this.modSystemRegistry = new ModSystemRegistry();
+    Entity.setStatusEffectManager(this.statusEffectManager);
+
+    // ECS-style entity system pipeline (data-driven 순서)
+    this.entitySystemPipeline = new EntitySystemPipeline(Data.gameConfig.entityPipeline);
+    this.entitySystemPipeline.register(new EntityStatusSystem());
+    this.entitySystemPipeline.register(new EntityTimingSystem());
+    this.entitySystemPipeline.register(new EntityMovementSystem());
+    this.entitySystemPipeline.register(new EntityVisualSystem());
+    this.entitySystemPipeline.register(new EntityRenderSystem());
+
     // 플러그인 등록 및 초기화
     PluginRegistry.resetInstance();
     registerBuiltinAbilities();
@@ -241,6 +270,7 @@ export class GameScene extends Phaser.Scene {
 
   private initializeEntities(): void {
     this.dishPool = new ObjectPool<Entity>(() => new Entity(this), 10, 50);
+    this.entityQueryService = new EntityQueryService(this.dishPool);
   }
 
   private initializeRenderers(): void {
@@ -364,6 +394,13 @@ export class GameScene extends Phaser.Scene {
       resetMovementInput: () => this.resetMovementInput(),
       isGameOver: () => this.isGameOver,
       togglePause: () => this.togglePause(),
+    });
+
+    // EntityQueryService에 보스 프로바이더 연결
+    this.entityQueryService.setBossProvider(() => {
+      const bosses: Entity[] = [];
+      this.bossCombatCoordinator.forEachBoss((boss) => bosses.push(boss));
+      return bosses;
     });
   }
 
@@ -504,6 +541,11 @@ export class GameScene extends Phaser.Scene {
     this.inGameUpgradeUI.destroy();
     this.waveCountdownUI.destroy();
 
+    Entity.setStatusEffectManager(null);
+    this.statusEffectManager?.clear();
+    this.modSystemRegistry?.clear();
+    this.entitySystemPipeline?.clear();
+
     this.starBackground?.destroy();
     this.gridRenderer?.destroy();
     this.cursorRenderer?.destroy();
@@ -573,12 +615,14 @@ export class GameScene extends Phaser.Scene {
     this.fallingBombSystem.update(delta, this.gameTime, this.waveSystem.getCurrentWave());
     this.fallingBombSystem.checkCursorCollision(this.cursorX, this.cursorY, cursorRadius);
 
-    this.dishPool.forEach((dish) => {
-      dish.update(delta);
-    });
+    // MOD 인프라: 상태효과 틱을 엔티티 업데이트 전에 실행 (만료 처리 우선)
+    this.statusEffectManager.tick(delta);
+
+    // ECS-style: 모든 활성 엔티티를 수집하고 data-driven 파이프라인으로 순차 처리
+    const allEntities = this.collectActiveEntities();
+    this.entitySystemPipeline.run(allEntities, delta);
 
     this.hud.render(this.gameTime);
-    this.bossCombatCoordinator.updateBosses(delta);
 
     this.cursorTrail.update(delta, cursorRadius, this.cursorX, this.cursorY);
     this.inGameUpgradeUI.update(delta);
@@ -609,6 +653,17 @@ export class GameScene extends Phaser.Scene {
     this.dishLifecycleController.updateCursorAttack(cursor);
     this.updateAttackRangeIndicator();
     this.bossCombatCoordinator.update(delta, this.gameTime, cursor);
+
+    // MOD 시스템 실행 (새 효과 적용은 다음 프레임에 반영)
+    this.modSystemRegistry.runAll(delta, this.getModSystemContext());
+  }
+
+  private getModSystemContext(): ModSystemContext {
+    return {
+      entities: this.entityQueryService,
+      statusEffectManager: this.statusEffectManager,
+      eventBus: EventBus.getInstance(),
+    };
   }
 
   private updateAttackRangeIndicator(): void {
@@ -637,6 +692,13 @@ export class GameScene extends Phaser.Scene {
       currentHp,
       maxHp
     );
+  }
+
+  private collectActiveEntities(): Entity[] {
+    const entities: Entity[] = [];
+    this.dishPool.forEach((dish) => entities.push(dish));
+    this.bossCombatCoordinator.forEachBoss((boss) => entities.push(boss));
+    return entities;
   }
 
   private clearAllDishes(): void {

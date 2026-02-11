@@ -639,11 +639,11 @@ export class ParticleManager {
 
     const sides = 6;
     const radius = 40;
-    const points: { x: number; y: number }[] = [];
+    const points: Phaser.Math.Vector2[] = [];
 
     for (let i = 0; i < sides; i++) {
       const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
-      points.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+      points.push(new Phaser.Math.Vector2(Math.cos(angle) * radius, Math.sin(angle) * radius));
     }
 
     shield.fillPoints(points, true);
@@ -698,12 +698,12 @@ export class ParticleManager {
 
       shard.fillStyle(color, alpha);
 
-      const points = [];
+      const points: Phaser.Math.Vector2[] = [];
       const numPoints = Phaser.Math.Between(3, 5);
       for (let j = 0; j < numPoints; j++) {
         const pAngle = (j / numPoints) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
         const pRadius = (size / 2) * (0.5 + Math.random() * 0.5);
-        points.push({ x: Math.cos(pAngle) * pRadius, y: Math.sin(pAngle) * pRadius });
+        points.push(new Phaser.Math.Vector2(Math.cos(pAngle) * pRadius, Math.sin(pAngle) * pRadius));
       }
 
       shard.fillPoints(points, true);

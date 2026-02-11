@@ -143,10 +143,9 @@ export class BossCombatCoordinator implements BossInteractionGateway {
     this.updateLaser(delta, gameTime, cursor);
   }
 
-  public updateBosses(delta: number): void {
-    this.bosses.forEach((boss) => {
-      boss.update(delta);
-    });
+  /** Expose active boss entities for external iteration */
+  public forEachBoss(callback: (boss: Entity) => void): void {
+    this.bosses.forEach((boss) => callback(boss));
   }
 
   public clearForWaveTransition(): void {

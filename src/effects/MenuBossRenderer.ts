@@ -53,28 +53,18 @@ export class MenuBossRenderer {
       const p4y = bossY + Math.sin(startAngle) * config.armor.outerRadius;
 
       // 아머 본체 (어두운 색)
+      const armorPoints = [
+        new Phaser.Math.Vector2(p1x, p1y),
+        new Phaser.Math.Vector2(p2x, p2y),
+        new Phaser.Math.Vector2(p3x, p3y),
+        new Phaser.Math.Vector2(p4x, p4y),
+      ];
       this.graphics.fillStyle(COLORS.MENU_BOSS_ARMOR, 0.9);
-      this.graphics.fillPoints(
-        [
-          { x: p1x, y: p1y },
-          { x: p2x, y: p2y },
-          { x: p3x, y: p3y },
-          { x: p4x, y: p4y },
-        ],
-        true
-      );
+      this.graphics.fillPoints(armorPoints, true);
 
       // 아머 테두리 (네온 레드)
       this.graphics.lineStyle(3, COLORS.RED, 0.8);
-      this.graphics.strokePoints(
-        [
-          { x: p1x, y: p1y },
-          { x: p2x, y: p2y },
-          { x: p3x, y: p3y },
-          { x: p4x, y: p4y },
-        ],
-        true
-      );
+      this.graphics.strokePoints(armorPoints, true);
 
       // 아머 내부 디테일 라인
       this.graphics.lineStyle(1, COLORS.RED, 0.4);

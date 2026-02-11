@@ -7,6 +7,7 @@ import { DishRenderer } from '../effects/DishRenderer';
 import { DishDamageResolver } from './dish/DishDamageResolver';
 import { DishEventPayloadFactory } from './dish/DishEventPayloadFactory';
 import { BossEntityBehavior } from './BossEntityBehavior';
+import type { StatusEffectManager } from '../systems/StatusEffectManager';
 import type { DishUpgradeOptions } from './EntityTypes';
 import type { FeedbackSystem } from '../systems/FeedbackSystem';
 import type {
@@ -26,6 +27,13 @@ export interface EntitySpawnConfig {
 }
 
 export class Entity extends Phaser.GameObjects.Container implements Poolable, EntityRef {
+  /** StatusEffectManager 연결 (GameScene.create에서 설정) */
+  private static statusEffectManager: StatusEffectManager | null = null;
+
+  static setStatusEffectManager(manager: StatusEffectManager | null): void {
+    Entity.statusEffectManager = manager;
+  }
+
   active: boolean = false;
 
   // === Core identity ===
@@ -75,9 +83,8 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
   private _isBeingPulled: boolean = false;
   private pullPhase: number = 0;
 
-  // === Slow/freeze ===
+  // === Slow/freeze (frame cache, derived from StatusEffectManager) ===
   private slowFactor: number = 1.0;
-  private slowEndTime: number = 0;
   private _isFrozen: boolean = false;
 
   // === Movement ===
@@ -118,7 +125,6 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     this._isDead = false;
     this._isFrozen = false;
     this.slowFactor = 1.0;
-    this.slowEndTime = 0;
     this.movementTime = 0;
     this.destroyedByAbility = false;
     this.clearDamageTimer();
@@ -239,30 +245,41 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     EventBus.getInstance().emit(GameEvents.DISH_SPAWNED, { x: this.x, y: this.y });
   }
 
-  // === Update ===
+  // === Tick Phase Methods (called by external systems) ===
 
-  update(delta: number = 16.67): void {
-    if (!this.active || this._isDead) return;
-
-    // Frozen effect
-    if (this._isFrozen && this._elapsedTime >= this.slowEndTime) {
+  /** EntityStatusSystem: derive freeze/slow cache from StatusEffectManager */
+  tickStatusEffects(): void {
+    const sem = Entity.statusEffectManager;
+    if (sem) {
+      const id = this._entityId;
+      this._isFrozen = sem.hasEffect(id, 'freeze') || sem.hasEffect(id, 'slow');
+      const slowEffects = sem.getEffectsByType(id, 'slow');
+      this.slowFactor = slowEffects.length > 0
+        ? Math.min(...slowEffects.map(e => (e.data['factor'] as number) ?? 1.0))
+        : 1.0;
+    } else {
       this._isFrozen = false;
       this.slowFactor = 1.0;
     }
+  }
 
+  /** EntityTimingSystem: accumulate time + check lifetime. Returns true if timed out */
+  tickTimeDelta(delta: number): boolean {
     const globalSlowPercent = this.upgradeOptions.globalSlowPercent ?? 0;
     const globalSlowFactor = 1 - globalSlowPercent;
     const effectiveDelta = delta * this.slowFactor * globalSlowFactor;
     this._elapsedTime += effectiveDelta;
     this.movementTime += delta;
 
-    // Timeout check (dish-style)
     if (this.lifetime !== null && this._elapsedTime >= this.lifetime) {
       this.onTimeout();
-      return;
+      return true;
     }
+    return false;
+  }
 
-    // Movement
+  /** EntityMovementSystem: execute movement strategy + boss offsets, or wobble */
+  tickMovement(delta: number): void {
     const isStunned = this.bossBehavior?.isHitStunned ?? false;
     if (this.movementStrategy && !this._isFrozen && !isStunned) {
       const pos = this.movementStrategy.update(delta, this._isFrozen, isStunned);
@@ -278,7 +295,10 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
     } else if (!this.movementStrategy) {
       this.wobblePhase += 0.1 * this.slowFactor;
     }
+  }
 
+  /** EntityVisualSystem: visual counters + blink + boss vibration */
+  tickVisual(delta: number): void {
     if (this._isBeingPulled) {
       this.pullPhase += 0.5;
     }
@@ -288,7 +308,6 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
       if (this.hitFlashPhase < 0) this.hitFlashPhase = 0;
     }
 
-    // Blink when time running low (dish-style)
     if (this.lifetime !== null) {
       const timeRatio = this.getTimeRatio();
       if (timeRatio < 0.3) {
@@ -297,7 +316,6 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
       }
     }
 
-    // Boss-style danger vibration
     if (this._isGatekeeper && this._maxHp > 0) {
       const dangerLevel = 1 - this._currentHp / this._maxHp;
       const bossFeedback = Data.boss.feedback;
@@ -307,10 +325,16 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
         this.y += (Math.random() - 0.5) * intensity;
       }
     }
+  }
 
+  /** EntityRenderSystem: drawEntity + typePlugin.onUpdate */
+  tickRender(delta: number): void {
     this.drawEntity();
     this.typePlugin?.onUpdate?.(this, delta, this.movementTime);
   }
+
+  /** Dead state accessor for system guards */
+  getIsDead(): boolean { return this._isDead; }
 
   // === Damage ===
 
@@ -457,13 +481,44 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
 
   applySlow(duration: number, factor: number = 0.3): void {
     if (!this.active) return;
-    this._isFrozen = true;
-    this.slowFactor = factor;
-    this.slowEndTime = this._elapsedTime + duration;
+    const sem = Entity.statusEffectManager;
+    if (sem) {
+      const effectId = `${this._entityId}:slow`;
+      sem.removeEffect(this._entityId, effectId);
+      sem.applyEffect(this._entityId, {
+        id: effectId,
+        type: 'slow',
+        duration,
+        remaining: duration,
+        data: { factor },
+      });
+    }
   }
 
-  freeze(): void { this._isFrozen = true; }
-  unfreeze(): void { this._isFrozen = false; }
+  freeze(): void {
+    const sem = Entity.statusEffectManager;
+    if (sem) {
+      const effectId = `${this._entityId}:freeze`;
+      sem.applyEffect(this._entityId, {
+        id: effectId,
+        type: 'freeze',
+        duration: Infinity,
+        remaining: Infinity,
+        data: {},
+      });
+    } else {
+      this._isFrozen = true;
+    }
+  }
+
+  unfreeze(): void {
+    const sem = Entity.statusEffectManager;
+    if (sem) {
+      sem.removeEffect(this._entityId, `${this._entityId}:freeze`);
+    } else {
+      this._isFrozen = false;
+    }
+  }
 
   // === Magnet ===
 
@@ -579,6 +634,7 @@ export class Entity extends Phaser.GameObjects.Container implements Poolable, En
 
   deactivate(): void {
     this.active = false;
+    Entity.statusEffectManager?.clearEntity(this._entityId);
     this.clearDamageTimer();
     if (this.spawnTween) { this.spawnTween.stop(); this.spawnTween = null; }
     this.bossBehavior?.stopAllTweens();

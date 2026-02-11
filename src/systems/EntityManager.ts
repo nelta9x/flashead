@@ -90,7 +90,12 @@ export class EntityManager {
       if (!entity.active) {
         deadIds.push(entityId);
       } else {
-        entity.update(delta);
+        entity.tickStatusEffects();
+        if (!entity.tickTimeDelta(delta)) {
+          entity.tickMovement(delta);
+          entity.tickVisual(delta);
+          entity.tickRender(delta);
+        }
       }
     }
     // Phase 2: remove dead entries
@@ -241,6 +246,32 @@ export class EntityManager {
         callback(entity);
       }
     }
+  }
+
+  // === Spatial / predicate queries (MOD support) ===
+
+  getEntitiesInRadius(x: number, y: number, radius: number): Entity[] {
+    const result: Entity[] = [];
+    const radiusSq = radius * radius;
+    for (const [, entity] of this.activeEntities) {
+      if (!entity.active) continue;
+      const dx = entity.x - x;
+      const dy = entity.y - y;
+      if (dx * dx + dy * dy <= radiusSq) {
+        result.push(entity);
+      }
+    }
+    return result;
+  }
+
+  getEntitiesWithCondition(predicate: (e: Entity) => boolean): Entity[] {
+    const result: Entity[] = [];
+    for (const [, entity] of this.activeEntities) {
+      if (entity.active && predicate(entity)) {
+        result.push(entity);
+      }
+    }
+    return result;
   }
 
   // === Cleanup ===
