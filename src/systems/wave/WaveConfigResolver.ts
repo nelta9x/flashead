@@ -78,6 +78,101 @@ export class WaveConfigResolver {
     const lastWave = wavesData.waves[wavesData.waves.length - 1];
     const baseWeights = new Map(lastWave.dishTypes.map((dish) => [dish.type, dish.weight]));
 
+    // dishTypeScaling 배열이 있으면 데이터 주도 방식 사용
+    const dishTypeScaling = scaling.dishTypeScaling;
+    if (dishTypeScaling && dishTypeScaling.length > 0) {
+      return this.getScaledDishTypesFromData(wavesBeyond, baseWeights, dishTypeScaling, scaling);
+    }
+
+    // 레거시 하드코딩 폴백
+    return this.getScaledDishTypesLegacy(wavesBeyond, baseWeights, scaling);
+  }
+
+  private getScaledDishTypesFromData(
+    wavesBeyond: number,
+    baseWeights: Map<string, number>,
+    dishTypeScaling: ReadonlyArray<{
+      type: string;
+      baseWeightFallback?: number;
+      weightPerWave?: number;
+      maxWeight?: number;
+      minWeight?: number;
+      startWaveOffset?: number;
+      startWeight?: number;
+    }>,
+    scaling: typeof Data.waves.infiniteScaling
+  ): { type: string; weight: number }[] {
+    const remainderType = scaling.remainderType ?? 'basic';
+    const remainderMinWeight = scaling.remainderMinWeight ?? 0.05;
+
+    const scaledTypes: { type: string; weight: number }[] = [];
+
+    for (const entry of dishTypeScaling) {
+      const baseWeight = baseWeights.get(entry.type) ?? (entry.baseWeightFallback ?? 0);
+
+      let weight: number;
+
+      if (entry.startWaveOffset !== undefined) {
+        // 지연 시작 스케일링 (amber 패턴)
+        const offset = Math.max(1, Math.floor(entry.startWaveOffset));
+        const progress = wavesBeyond - offset;
+        if (progress < 0) {
+          weight = 0;
+        } else {
+          const startWeight = entry.startWeight ?? 0;
+          const perWave = entry.weightPerWave ?? 0;
+          weight = Math.max(0, startWeight + progress * perWave);
+        }
+      } else {
+        // 선형 스케일링
+        const perWave = entry.weightPerWave ?? 0;
+        weight = baseWeight + wavesBeyond * perWave;
+      }
+
+      // clamp
+      if (entry.maxWeight !== undefined) {
+        weight = Math.min(entry.maxWeight, weight);
+      }
+      if (entry.minWeight !== undefined) {
+        weight = Math.max(entry.minWeight, weight);
+      }
+
+      scaledTypes.push({ type: entry.type, weight: Math.max(0, weight) });
+    }
+
+    // 나머지 타입 (basic 등)으로 1.0 채우기
+    let nonRemainderSum = scaledTypes.reduce((sum, t) => sum + t.weight, 0);
+    const maxNonRemainderSum = 1 - remainderMinWeight;
+
+    if (nonRemainderSum > maxNonRemainderSum && nonRemainderSum > 0) {
+      const scale = maxNonRemainderSum / nonRemainderSum;
+      scaledTypes.forEach((t) => {
+        t.weight *= scale;
+      });
+      nonRemainderSum = scaledTypes.reduce((sum, t) => sum + t.weight, 0);
+    }
+
+    const dishTypes = [
+      { type: remainderType, weight: Math.max(remainderMinWeight, 1 - nonRemainderSum) },
+      ...scaledTypes,
+    ];
+
+    const totalWeight = dishTypes.reduce((sum, t) => sum + t.weight, 0);
+    if (totalWeight <= 0) {
+      return [{ type: remainderType, weight: 1 }];
+    }
+
+    return dishTypes.map((t) => ({
+      type: t.type,
+      weight: t.weight / totalWeight,
+    }));
+  }
+
+  private getScaledDishTypesLegacy(
+    wavesBeyond: number,
+    baseWeights: Map<string, number>,
+    scaling: typeof Data.waves.infiniteScaling
+  ): { type: string; weight: number }[] {
     const baseBombWeight = baseWeights.get('bomb') ?? 0.25;
     const baseCrystalWeight = baseWeights.get('crystal') ?? 0.3;
     const baseGoldenWeight = baseWeights.get('golden') ?? 0.25;

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Dish } from '../src/entities/Dish';
+import type { Entity } from '../src/entities/Entity';
 import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
 import type { BlackHoleLevelData } from '../src/data/types';
 import type { ObjectPool } from '../src/utils/ObjectPool';
@@ -77,10 +77,10 @@ describe('BlackHoleSystem', () => {
   let damageBoss: ReturnType<typeof vi.fn>;
   let system: BlackHoleSystem;
 
-  const createDishPool = (): ObjectPool<Dish> =>
+  const createDishPool = (): ObjectPool<Entity> =>
     ({
-      getActiveObjects: () => dishes as unknown as Dish[],
-    }) as unknown as ObjectPool<Dish>;
+      getActiveObjects: () => dishes as unknown as Entity[],
+    }) as unknown as ObjectPool<Entity>;
 
   const setupSystem = (): void => {
     const upgradeSystem = {

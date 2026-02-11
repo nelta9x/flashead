@@ -1,4 +1,4 @@
-import type { DishUpgradeOptions } from '../Dish';
+import type { DishUpgradeOptions } from '../EntityTypes';
 
 interface DishDamageConfig {
   playerDamage: number;

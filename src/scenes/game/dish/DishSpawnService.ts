@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
-import type { Dish } from '../../../entities/Dish';
+import { Data } from '../../../data/DataManager';
+import type { Entity } from '../../../entities/Entity';
 import type { PlayerAttackRenderer } from '../../../effects/PlayerAttackRenderer';
 import type { ObjectPool } from '../../../utils/ObjectPool';
 import type { UpgradeSystem } from '../../../systems/UpgradeSystem';
+import { PluginRegistry } from '../../../plugins/PluginRegistry';
 
 interface DishSpawnServiceDeps {
-  dishPool: ObjectPool<Dish>;
+  dishPool: ObjectPool<Entity>;
   dishes: Phaser.GameObjects.Group;
   upgradeSystem: UpgradeSystem;
   getPlayerAttackRenderer: () => PlayerAttackRenderer;
@@ -13,11 +15,12 @@ interface DishSpawnServiceDeps {
 }
 
 export class DishSpawnService {
-  private readonly dishPool: ObjectPool<Dish>;
+  private readonly dishPool: ObjectPool<Entity>;
   private readonly dishes: Phaser.GameObjects.Group;
   private readonly upgradeSystem: UpgradeSystem;
   private readonly getPlayerAttackRenderer: () => PlayerAttackRenderer;
   private readonly isGameOver: () => boolean;
+  private spawnCounter: number = 0;
 
   constructor(deps: DishSpawnServiceDeps) {
     this.dishPool = deps.dishPool;
@@ -40,18 +43,35 @@ export class DishSpawnService {
     type: string,
     x: number,
     y: number,
-    speedMultiplier: number = 1
+    _speedMultiplier: number = 1
   ): void {
-    const dish = this.dishPool.acquire();
-    if (!dish) return;
+    const entity = this.dishPool.acquire();
+    if (!entity) return;
 
+    const plugin = PluginRegistry.getInstance().getEntityType(type);
+    if (!plugin) {
+      this.dishPool.release(entity);
+      return;
+    }
+
+    const dishData = Data.getDishData(type);
     const options = {
       cursorSizeBonus: this.upgradeSystem.getCursorSizeBonus(),
       damageBonus: this.upgradeSystem.getCursorDamageBonus(),
       criticalChance: this.upgradeSystem.getCriticalChanceBonus(),
     };
-    dish.spawn(x, y, type, speedMultiplier, options);
-    this.dishes.add(dish);
+
+    entity.spawn(x, y, {
+      entityId: `dish_${++this.spawnCounter}`,
+      entityType: type,
+      hp: dishData?.hp ?? 10,
+      lifetime: dishData?.lifetime ?? 7000,
+      isGatekeeper: false,
+      spawnAnimation: dishData?.spawnAnimation,
+      upgradeOptions: options,
+    }, plugin);
+
+    this.dishes.add(entity);
   }
 
   private showBombWarningAndSpawn(x: number, y: number, speedMultiplier: number): void {

@@ -1,19 +1,19 @@
 import Phaser from 'phaser';
 import { CURSOR_HITBOX, MAGNET } from '../../../data/constants';
-import type { Dish } from '../../../entities/Dish';
+import type { Entity } from '../../../entities/Entity';
 import type { ParticleManager } from '../../../effects/ParticleManager';
 import type { ObjectPool } from '../../../utils/ObjectPool';
 import type { UpgradeSystem } from '../../../systems/UpgradeSystem';
 import type { CursorSnapshot } from '../GameSceneContracts';
 
 interface DishFieldEffectServiceDeps {
-  dishPool: ObjectPool<Dish>;
+  dishPool: ObjectPool<Entity>;
   particleManager: ParticleManager;
   upgradeSystem: UpgradeSystem;
 }
 
 export class DishFieldEffectService {
-  private readonly dishPool: ObjectPool<Dish>;
+  private readonly dishPool: ObjectPool<Entity>;
   private readonly particleManager: ParticleManager;
   private readonly upgradeSystem: UpgradeSystem;
 

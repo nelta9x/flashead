@@ -1,0 +1,174 @@
+{
+  "types": {
+    "basic": {
+      "name": "기본 접시",
+      "hp": 10,
+      "color": "#00ffff",
+      "size": 30,
+      "dangerous": false,
+      "invulnerable": false,
+      "lifetime": 7000,
+      "poolSize": 50,
+      "cursorInteraction": "dps",
+      "playerDamage": 1,
+      "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
+    },
+    "golden": {
+      "name": "골든 접시",
+      "hp": 17,
+      "color": "#ffff00",
+      "size": 35,
+      "dangerous": false,
+      "invulnerable": false,
+      "lifetime": 7000,
+      "poolSize": 50,
+      "cursorInteraction": "dps",
+      "playerDamage": 1,
+      "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
+    },
+    "crystal": {
+      "name": "크리스탈 접시",
+      "hp": 28,
+      "color": "#ff00ff",
+      "size": 25,
+      "dangerous": false,
+      "invulnerable": false,
+      "lifetime": 7500,
+      "poolSize": 50,
+      "cursorInteraction": "dps",
+      "playerDamage": 1,
+      "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
+    },
+    "bomb": {
+      "name": "폭탄 접시",
+      "hp": 999,
+      "color": "#ff0044",
+      "size": 40,
+      "dangerous": true,
+      "invulnerable": true,
+      "lifetime": 2800,
+      "poolSize": 10,
+      "cursorInteraction": "explode",
+      "playerDamage": 1,
+      "resetCombo": true,
+      "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
+    },
+    "mini": {
+      "name": "미니 접시",
+      "hp": 5,
+      "color": "#00ff88",
+      "size": 20,
+      "dangerous": false,
+      "invulnerable": false,
+      "lifetime": 7000,
+      "poolSize": 50,
+      "cursorInteraction": "dps",
+      "playerDamage": 1,
+      "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
+    },
+    "amber": {
+      "name": "앰버 접시",
+      "hp": 30,
+      "color": "#ff8800",
+      "size": 60,
+      "dangerous": false,
+      "invulnerable": false,
+      "lifetime": 9500,
+      "poolSize": 50,
+      "cursorInteraction": "dps",
+      "playerDamage": 1,
+      "spawnAnimation": { "duration": 200, "ease": "Back.easeOut" }
+    },
+    "boss_standard": {
+      "name": "표준 보스",
+      "size": 55,
+      "poolSize": 0,
+      "lifetime": null,
+      "cursorInteraction": "contact",
+      "isGatekeeper": true,
+      "movement": {
+        "type": "drift",
+        "drift": { "xAmplitude": 160, "xFrequency": 0.0008, "yAmplitude": 8, "yFrequency": 0.0012 },
+        "bounds": { "minX": 200, "maxX": 1080, "minY": 70, "maxY": 140 }
+      },
+      "visual": {
+        "core": {
+          "radius": 30,
+          "color": "red",
+          "initialAlpha": 0.8,
+          "pulseSpeed": 0.01,
+          "pulseIntensity": 0.2,
+          "glowLevels": [
+            { "radius": 1.2, "alpha": 0.3 },
+            { "radius": 1.5, "alpha": 0.15 },
+            { "radius": 2.0, "alpha": 0.05 }
+          ]
+        },
+        "armor": {
+          "maxPieces": 10,
+          "radius": 55,
+          "innerRadius": 40,
+          "rotationSpeed": 0.0005,
+          "gap": 0.1,
+          "bodyColor": "0x1a0505",
+          "bodyAlpha": 0.9,
+          "borderColor": "red",
+          "depletedBodyColor": "0x090202",
+          "depletedBodyAlpha": 0.22,
+          "depletedBorderColor": "0x5a1313",
+          "depletedBorderAlpha": 0.42,
+          "hpSegments": {
+            "minPieces": 1,
+            "maxPieces": 9999,
+            "targetHpPerPiece": 100
+          },
+          "glowAlpha": 0.4,
+          "glowWidth": 4
+        },
+        "hitReaction": {
+          "pushDistance": 35,
+          "pushDuration": 60,
+          "pushEase": "Power2.Out",
+          "shakeDuration": 200,
+          "shakeIntensity": 4,
+          "shakeFrequency": 50,
+          "hitRotation": 0.15,
+          "returnDuration": 600,
+          "returnEase": "Cubic.Out",
+          "flashDuration": 50
+        },
+        "vibration": { "threshold": 0.6, "intensity": 2 }
+      },
+      "spawn": { "y": 100, "duration": 1000, "initialScale": 0.5 },
+      "feedback": {
+        "damageShake": { "intensity": 3, "duration": 50 },
+        "armorBreakShake": { "intensity": 0.01, "duration": 200 },
+        "deathAnimation": { "scale": 1.5, "duration": 800, "ease": "Power2.In" },
+        "shockwave": { "initialRadius": 40, "maxRadius": 120, "initialAlpha": 0.8, "duration": 400 },
+        "shatter": {
+          "shardCount": 25,
+          "minSize": 4,
+          "maxSize": 12,
+          "energyShardRatio": 0.7,
+          "gravity": 800,
+          "minVelocity": 100,
+          "maxVelocity": 300,
+          "upwardForce": 150,
+          "minDuration": 1000,
+          "maxDuration": 2000,
+          "rotationSpeedRange": 15,
+          "sparkCount": 15,
+          "sparkTravelDistance": 100,
+          "sparkDuration": 500
+        },
+        "breakParticles": { "count": 10, "radius": 5, "spawnDistance": 50, "travelDistance": 150, "duration": 600 }
+      }
+    }
+  },
+  "damage": {
+    "playerDamage": 10,
+    "damageInterval": 150,
+    "criticalMultiplier": 1.5,
+    "criticalChance": 0.1
+  }
+}

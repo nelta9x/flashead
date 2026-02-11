@@ -289,6 +289,7 @@
       "overclockDurationMs": 3000,
       "overclockSpeedMultiplier": 2,
       "overclockMaxStacks": 3,
+      "magnetSynergyPerLevel": 0.2,
       "levels": [
         {
           "count": 2,

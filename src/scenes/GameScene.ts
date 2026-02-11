@@ -9,7 +9,7 @@ import {
   DEPTHS,
 } from '../data/constants';
 import { Data } from '../data/DataManager';
-import { Dish } from '../entities/Dish';
+import { Entity } from '../entities/Entity';
 import { EventBus } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
 import { ComboSystem } from '../systems/ComboSystem';
@@ -47,9 +47,13 @@ import { GameSceneEventBinder } from './game/GameSceneEventBinder';
 import { SceneInputAdapter } from './game/SceneInputAdapter';
 import type { CursorSnapshot } from './game/GameSceneContracts';
 import { computeCursorSmoothing } from '../utils/cursorSmoothing';
+import { AbilityManager } from '../systems/AbilityManager';
+import { PluginRegistry } from '../plugins/PluginRegistry';
+import { registerBuiltinAbilities } from '../plugins/builtin/abilities';
+import { registerBuiltinEntityTypes } from '../plugins/builtin/entities';
 
 export class GameScene extends Phaser.Scene {
-  private dishPool!: ObjectPool<Dish>;
+  private dishPool!: ObjectPool<Entity>;
   private dishes!: Phaser.GameObjects.Group;
 
   // 시스템
@@ -65,6 +69,7 @@ export class GameScene extends Phaser.Scene {
   private gaugeSystem!: GaugeSystem;
   private orbSystem!: OrbSystem;
   private blackHoleSystem!: BlackHoleSystem;
+  private abilityManager!: AbilityManager;
 
   // UI & 이펙트
   private hud!: HUD;
@@ -219,12 +224,23 @@ export class GameScene extends Phaser.Scene {
       () => this.fallingBombSystem.getPool()
     );
 
+    // 플러그인 등록 및 초기화
+    PluginRegistry.resetInstance();
+    registerBuiltinAbilities();
+    registerBuiltinEntityTypes();
+    this.abilityManager = new AbilityManager();
+    this.abilityManager.init({
+      scene: this,
+      upgradeSystem: this.upgradeSystem,
+      getCursor: () => this.getCursorSnapshot(),
+    });
+
     this.hud = new HUD(this, this.waveSystem, this.healthSystem, this.upgradeSystem);
     this.waveCountdownUI = new WaveCountdownUI(this);
   }
 
   private initializeEntities(): void {
-    this.dishPool = new ObjectPool<Dish>(() => new Dish(this, 0, 0, 'basic'), 10, 50);
+    this.dishPool = new ObjectPool<Entity>(() => new Entity(this), 10, 50);
   }
 
   private initializeRenderers(): void {
@@ -497,6 +513,7 @@ export class GameScene extends Phaser.Scene {
     this.orbRenderer?.destroy();
     this.blackHoleRenderer?.destroy();
     this.blackHoleSystem?.clear();
+    this.abilityManager?.destroy();
 
     this.playerAttackRenderer?.destroy();
     this.playerAttackRenderer = null;
@@ -631,7 +648,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  public getDishPool(): ObjectPool<Dish> {
+  public getDishPool(): ObjectPool<Entity> {
     return this.dishPool;
   }
 

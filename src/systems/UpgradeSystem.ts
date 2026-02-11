@@ -12,6 +12,7 @@ import type {
   UpgradePreviewCardModel,
   SystemUpgradeData,
 } from '../data/types/upgrades';
+import type { UpgradeSystemCore } from '../plugins/types';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { UpgradeDescriptionFormatter } from './upgrades/UpgradeDescriptionFormatter';
 import { UpgradePreviewModelBuilder } from './upgrades/UpgradePreviewModelBuilder';
@@ -59,7 +60,7 @@ function createSystemUpgrades(): Upgrade[] {
 
 export const UPGRADES: Upgrade[] = createSystemUpgrades();
 
-export class UpgradeSystem {
+export class UpgradeSystem implements UpgradeSystemCore {
   private readonly stateStore = new UpgradeStateStore();
   private readonly rarityRoller = new UpgradeRarityRoller();
   private readonly descriptionFormatter: UpgradeDescriptionFormatter;

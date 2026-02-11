@@ -175,3 +175,18 @@
 - `activeDishPositions` 미초기화 → 이전 웨이브 데이터가 스폰 위치 탐색을 방해
 
 > 상세: [LESSONS_ARCHIVE.md](LESSONS_ARCHIVE.md)
+
+---
+
+## 11. 플러그인 아키텍처 (MOD 확장)
+
+### 원칙
+- 새 적 타입, 새 어빌리티, 새 공격 패턴은 코어 코드 수정 없이 플러그인으로 추가할 수 있어야 한다.
+- Entity는 하나의 통합 클래스, 행동 차이는 EntityTypePlugin의 설정과 훅으로 표현한다.
+- 이벤트 페이로드의 엔티티 참조는 구체 클래스(Dish/Boss) 대신 DishLike 인터페이스를 사용하여 유연성을 확보한다.
+- 무한 스케일링의 접시 타입 가중치 변화는 하드코딩이 아닌 `dishTypeScaling` 배열로 데이터 주도화한다.
+
+### 사례 요약
+- Dish와 Boss가 별개 클래스로 존재하여 새 적 타입 추가가 어려웠음 → 통합 Entity + EntityTypePlugin 도입
+- UpgradeSystem에 30개 이상의 getter가 하드코딩되어 있었음 → UpgradeSystemCore 인터페이스 + AbilityPlugin.getEffectValue() 패턴 도입
+- WaveConfigResolver.getScaledDishTypes()에 접시 타입별 스케일링이 하드코딩 → dishTypeScaling 배열로 데이터 주도 리팩토링

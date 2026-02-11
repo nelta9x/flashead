@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { Data } from '../../../data/DataManager';
-import { Boss } from '../../../entities/Boss';
+import type { Entity } from '../../../entities/Entity';
 import type { FeedbackSystem } from '../../../systems/FeedbackSystem';
 import type { MonsterSystem } from '../../../systems/MonsterSystem';
 import type { UpgradeSystem } from '../../../systems/UpgradeSystem';
 import type { CursorSnapshot } from '../GameSceneContracts';
 
 interface BossContactDamageControllerDeps {
-  bosses: Map<string, Boss>;
+  bosses: Map<string, Entity>;
   monsterSystem: MonsterSystem;
   feedbackSystem: FeedbackSystem;
   upgradeSystem: UpgradeSystem;
@@ -15,7 +15,7 @@ interface BossContactDamageControllerDeps {
 }
 
 export class BossContactDamageController {
-  private readonly bosses: Map<string, Boss>;
+  private readonly bosses: Map<string, Entity>;
   private readonly monsterSystem: MonsterSystem;
   private readonly feedbackSystem: FeedbackSystem;
   private readonly upgradeSystem: UpgradeSystem;

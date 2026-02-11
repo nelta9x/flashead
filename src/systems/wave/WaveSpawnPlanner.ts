@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { MIN_BOSS_DISTANCE, MIN_DISH_DISTANCE, SPAWN_AREA } from '../../data/constants';
-import type { Dish } from '../../entities/Dish';
+import type { Entity } from '../../entities/Entity';
 import type { ObjectPool } from '../../utils/ObjectPool';
 import type { WaveRuntimeConfig } from './WaveConfigResolver';
 
@@ -12,7 +12,7 @@ interface BossPositionSnapshot {
 }
 
 interface WaveSpawnPlannerDeps {
-  getDishPool: () => ObjectPool<Dish>;
+  getDishPool: () => ObjectPool<Entity>;
   getMaxSpawnY: () => number;
   getBosses: () => BossPositionSnapshot[];
 }
@@ -25,7 +25,7 @@ export interface PlannedDishSpawn {
 }
 
 export class WaveSpawnPlanner {
-  private readonly getDishPool: () => ObjectPool<Dish>;
+  private readonly getDishPool: () => ObjectPool<Entity>;
   private readonly getMaxSpawnY: () => number;
   private readonly getBosses: () => BossPositionSnapshot[];
 

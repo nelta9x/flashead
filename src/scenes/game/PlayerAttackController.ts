@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Data } from '../../data/DataManager';
 import { COLORS, CURSOR_HITBOX } from '../../data/constants';
-import type { Dish } from '../../entities/Dish';
+import type { Entity } from '../../entities/Entity';
 import type { ParticleManager } from '../../effects/ParticleManager';
 import type { PlayerAttackRenderer } from '../../effects/PlayerAttackRenderer';
 import type { ObjectPool } from '../../utils/ObjectPool';
@@ -20,7 +20,7 @@ interface PlayerAttackControllerDeps {
   feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   particleManager: ParticleManager;
-  dishPool: ObjectPool<Dish>;
+  dishPool: ObjectPool<Entity>;
   getCursor: () => CursorSnapshot;
   getPlayerAttackRenderer: () => PlayerAttackRenderer;
   bossGateway: BossInteractionGateway;
@@ -35,7 +35,7 @@ export class PlayerAttackController {
   private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly particleManager: ParticleManager;
-  private readonly dishPool: ObjectPool<Dish>;
+  private readonly dishPool: ObjectPool<Entity>;
   private readonly getCursor: () => CursorSnapshot;
   private readonly getPlayerAttackRenderer: () => PlayerAttackRenderer;
   private readonly bossGateway: BossInteractionGateway;
@@ -295,7 +295,7 @@ export class PlayerAttackController {
     toY: number,
     pathRadius: number
   ): void {
-    const hitCandidates: Dish[] = [];
+    const hitCandidates: Entity[] = [];
 
     this.dishPool.forEach((dish) => {
       if (!dish.active) return;

@@ -138,7 +138,9 @@ export class UpgradePreviewModelBuilder {
       if (orbSize === null) return null;
 
       const magnetLevel = this.resolveMagnetLevel(upgradeId, isNextLevel);
-      return orbSize * (1 + magnetLevel * 0.2);
+      const upgradeData = this.getUpgradeDataOrThrow('orbiting_orb');
+      const magnetSynergyPerLevel = upgradeData.magnetSynergyPerLevel ?? 0.2;
+      return orbSize * (1 + magnetLevel * magnetSynergyPerLevel);
     }
 
     return this.resolveDirectNumeric(statId, levelData);

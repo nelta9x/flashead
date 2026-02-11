@@ -89,17 +89,35 @@
 - **`HealthPackSystem.ts`**: 기본 확률과 업그레이드 보너스를 기반으로 힐팩을 스폰합니다. `destroy()` 메서드로 EventBus 리스너 해제.
 - **`FallingBombSystem.ts`**: 특정 웨이브(`minWave`) 이후부터 화면 위에서 아래로 떨어지는 낙하 폭탄을 확률 기반으로 스폰합니다. 커서 접촉 시 데미지를 주며, 금구슬(`OrbSystem`)와 블랙홀(`BlackHoleSystem`)에 의해 제거될 수 있습니다.
 
+### 2.5 플러그인 아키텍처 (신규)
+
+`src/plugins/` 디렉토리에는 확장 가능한 플러그인 시스템이 위치합니다. 코어 코드 수정 없이 새 콘텐츠를 추가할 수 있도록 설계되었습니다.
+
+- **`PluginRegistry.ts`**: 어빌리티 및 엔티티 타입 플러그인을 등록/조회하는 싱글톤.
+- **`types/`**: 플러그인 인터페이스 정의.
+  - `AbilityPlugin.ts`: 어빌리티 플러그인 인터페이스, `UpgradeSystemCore`, `AbilityContext`, `DerivedStatEntry`.
+  - `EntityTypePlugin.ts`: 엔티티 타입 플러그인 인터페이스, `EntityRef`, `EntityTypeRenderer`, `DamageSource`.
+  - `MovementStrategy.ts`: 이동 전략 인터페이스 (DriftMovement 등).
+  - `AttackPattern.ts`: 공격 패턴 인터페이스 (LaserAttackPattern 등).
+- **`builtin/abilities/`**: 내장 어빌리티 플러그인 (CursorSize, CriticalChance, Missile, HealthPack, Magnet, ElectricShock, Orb, BlackHole).
+- **`builtin/entities/`**: 내장 엔티티 타입 플러그인 (BasicDish, BombDish, StandardBoss).
+- **`builtin/movement/DriftMovement.ts`**: Boss 사인파 드리프트 이동 전략.
+- **`AbilityManager.ts`** (`src/systems/`): 어빌리티 플러그인의 init/update/clear/destroy 라이프사이클 통합 관리.
+- **`EntityManager.ts`** (`src/systems/`): 통합 엔티티 관리자. 타입별 ObjectPool, 스폰/업데이트/파괴 통합, 게이트키퍼(보스) 추적.
+
 ### 3. 엔티티 및 오브젝트 (Entities)
 
 `src/entities/` 디렉토리에는 물리적인 게임 오브젝트가 위치하며, `Dish`, `HealthPack`, `FallingBomb`은 `ObjectPool`에 의해 재사용됩니다.
 
-- **`Dish.ts`**: 주요 적인 '접시'.
+- **`Entity.ts`** (신규): Dish + Boss를 통합하는 범용 엔티티. `EntityTypePlugin`을 통해 행동을 주입받으며, `Poolable`과 `EntityRef`를 구현합니다. HP 관리, 커서 상호작용 (dps/contact/explode), 이동 전략 위임, 타임아웃/슬로우/프리즈를 지원합니다.
+- **`EntityTypes.ts`**: Entity와 Dish가 공유하는 `DishUpgradeOptions` 인터페이스 정의.
+- **`Dish.ts`**: 주요 적인 '접시' (레거시, Entity로 마이그레이션 예정).
   - `spawn()`: 초기화 및 애니메이션 시작.
   - `applyDamage()`: HP 감소 및 파괴 로직.
   - `update()`: 생존 시간 체크 및 이동 로직.
   - 내부 분해: `entities/dish/DishDamageResolver.ts`, `entities/dish/DishEventPayloadFactory.ts`
   - 외형 렌더링: `DishRenderer`에 위임 (인게임/메뉴 공용 스타일).
-- **`Boss.ts`**: 보스 몬스터의 로직 엔티티. 각 인스턴스는 자신의 `bossId` 이벤트(`MONSTER_HP_CHANGED`/`MONSTER_DIED`)만 처리하며, 시각화는 `BossRenderer`에 위임합니다.
+- **`Boss.ts`**: 보스 몬스터의 로직 엔티티 (레거시, Entity로 마이그레이션 예정). 각 인스턴스는 자신의 `bossId` 이벤트(`MONSTER_HP_CHANGED`/`MONSTER_DIED`)만 처리하며, 시각화는 `BossRenderer`에 위임합니다.
 - **`HealthPack.ts`**: 화면 하단에서 스폰되어 상단으로 이동하는 힐 아이템 오브젝트. 커서와 충돌 시 `HEALTH_PACK_COLLECTED`, 상단 이탈 직전 `HEALTH_PACK_PASSING` 이벤트를 발생시키며, 외형 렌더링은 `HealthPackRenderer`에 위임합니다.
 - **`FallingBomb.ts`**: 화면 상단에서 스폰되어 하단으로 떨어지는 위험 오브젝트. 커서 접촉 시 `FALLING_BOMB_DESTROYED`(데미지), 하단 이탈 시 `FALLING_BOMB_MISSED` 이벤트를 발생시킵니다. 외형은 `DishRenderer.renderDangerDish()`를 재사용합니다.
 
@@ -152,9 +170,10 @@
   - `locales.json`: 다국어(EN, KO) 번역 데이터 및 업그레이드 설명/카드 라벨 템플릿 (`upgrade.stat.*`, `upgrade.card.*`).
   - `main-menu.json`: 메인 메뉴 씬 설정 (별 배경, 보스 애니메이션, 메뉴 접시 스폰, 언어 UI 설정).
   - `colors.json`: 게임 내 모든 색상 팔레트 및 테마 (숫자값/hex).
-  - `dishes.json`: 적 종류별 체력, 크기, 수명, 특수 속성 설정.
-  - `waves.json`: 웨이브별 구성, 난이도 곡선, 멀티 보스 구성(`bossTotalHp`, `bosses[]`, `bossSpawnMinDistance`), 무한 웨이브 스케일링 설정(`infiniteBossCount`, `amberStart*`, `maxAmberWeight` 포함).
-  - `boss.json`: 보스 비주얼 및 공격 설정 (코어 반지름, 아머 조각, 아머 HP 세그먼트 스케일링, 레이저 공격).
+  - `entities.json` (신규): dishes.json + boss.json을 통합한 엔티티 타입 정의. 접시/보스 모두 동일한 스키마로 관리하며, `cursorInteraction`, `isGatekeeper`, `movement`, `visual` 등 타입별 설정 포함.
+  - `dishes.json`: 적 종류별 체력, 크기, 수명, 특수 속성 설정 (레거시, entities.json으로 마이그레이션 예정).
+  - `waves.json`: 웨이브별 구성, 난이도 곡선, 멀티 보스 구성(`bossTotalHp`, `bosses[]`, `bossSpawnMinDistance`), 무한 웨이브 스케일링 설정(`infiniteBossCount`, `amberStart*`, `maxAmberWeight`, `dishTypeScaling[]` 포함).
+  - `boss.json`: 보스 비주얼 및 공격 설정 (레거시, entities.json으로 마이그레이션 예정).
   - `upgrades.json`: 업그레이드 어빌리티 정의, 확률(Rarity), 효과 수치, 카드 프리뷰 표시 스키마(`previewDisplay`).
   - `feedback.json`: 연출용 수치 (흔들림 강도, 파티클 개수, 슬로우모션 강도, 커서 트레일 설정).
   - `combo.json`: 콤보 타임아웃, 마일스톤, 배율 공식, 게이지 보너스.

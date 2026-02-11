@@ -3,7 +3,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../data/constants';
 import { Data } from '../data/DataManager';
 import type { BlackHoleLevelData } from '../data/types';
 import { EventBus, GameEvents } from '../utils/EventBus';
-import type { Dish } from '../entities/Dish';
+import type { Entity } from '../entities/Entity';
 import type { FallingBomb } from '../entities/FallingBomb';
 import type { ObjectPool } from '../utils/ObjectPool';
 import type { UpgradeSystem } from './UpgradeSystem';
@@ -29,7 +29,7 @@ interface BossSnapshot {
 
 export class BlackHoleSystem {
   private readonly upgradeSystem: UpgradeSystem;
-  private readonly getDishPool: () => ObjectPool<Dish>;
+  private readonly getDishPool: () => ObjectPool<Entity>;
   private readonly getBosses: () => BossSnapshot[];
   private readonly damageBoss: (
     bossId: string,
@@ -47,7 +47,7 @@ export class BlackHoleSystem {
 
   constructor(
     upgradeSystem: UpgradeSystem,
-    getDishPool: () => ObjectPool<Dish>,
+    getDishPool: () => ObjectPool<Entity>,
     getBosses: () => BossSnapshot[],
     damageBoss: (
       bossId: string,

@@ -19,7 +19,7 @@ import { WaveSystem } from '../src/systems/WaveSystem';
 import { GameEvents } from '../src/utils/EventBus';
 import Phaser from 'phaser'; // Import mocked Phaser to manipulate mocks
 import type { ObjectPool } from '../src/utils/ObjectPool';
-import type { Dish } from '../src/entities/Dish';
+import type { Entity } from '../src/entities/Entity';
 
 // Mock dependencies
 const mockEmit = vi.fn();
@@ -152,7 +152,7 @@ describe('WaveSystem', () => {
 
     waveSystem = new WaveSystem(
       mockScene as unknown as Phaser.Scene,
-      () => mockDishPool as unknown as ObjectPool<Dish>,
+      () => mockDishPool as unknown as ObjectPool<Entity>,
       mockGetMaxSpawnY,
       mockGetBoss as () => Array<{ id: string; x: number; y: number; visible: boolean }>
     );

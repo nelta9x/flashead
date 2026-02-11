@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Data } from '../../../data/DataManager';
 import { COLORS, CURSOR_HITBOX, GAME_HEIGHT, GAME_WIDTH } from '../../../data/constants';
-import { Boss } from '../../../entities/Boss';
+import type { Entity } from '../../../entities/Entity';
 import type { LaserRenderer } from '../../../effects/LaserRenderer';
 import type { DamageText } from '../../../ui/DamageText';
 import type { FeedbackSystem } from '../../../systems/FeedbackSystem';
@@ -24,7 +24,7 @@ interface BossLaserControllerDeps {
   healthSystem: HealthSystem;
   upgradeSystem: UpgradeSystem;
   isGameOver: () => boolean;
-  bosses: Map<string, Boss>;
+  bosses: Map<string, Entity>;
   laserNextTimeByBossId: Map<string, number>;
   getActiveLasers: () => ActiveLaser[];
   setActiveLasers: (lasers: ActiveLaser[]) => void;
@@ -43,7 +43,7 @@ export class BossLaserController {
   private readonly healthSystem: HealthSystem;
   private readonly upgradeSystem: UpgradeSystem;
   private readonly isGameOver: () => boolean;
-  private readonly bosses: Map<string, Boss>;
+  private readonly bosses: Map<string, Entity>;
   private readonly laserNextTimeByBossId: Map<string, number>;
   private readonly getActiveLasers: () => ActiveLaser[];
   private readonly setActiveLasers: (lasers: ActiveLaser[]) => void;
@@ -312,7 +312,7 @@ export class BossLaserController {
     };
   }
 
-  private getAliveVisibleBossById(bossId: string): Boss | null {
+  private getAliveVisibleBossById(bossId: string): Entity | null {
     const boss = this.bosses.get(bossId);
     if (!boss) return null;
     if (!boss.visible) return null;

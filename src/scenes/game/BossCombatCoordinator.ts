@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Data } from '../../data/DataManager';
 import { CURSOR_HITBOX, GAME_HEIGHT, GAME_WIDTH } from '../../data/constants';
-import { Boss } from '../../entities/Boss';
+import { Entity } from '../../entities/Entity';
 import type { LaserRenderer } from '../../effects/LaserRenderer';
 import type { DamageText } from '../../ui/DamageText';
 import type { FeedbackSystem } from '../../systems/FeedbackSystem';
@@ -49,7 +49,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
   private readonly isGameOver: () => boolean;
   private readonly isPaused: () => boolean;
 
-  private readonly bosses = new Map<string, Boss>();
+  private readonly bosses = new Map<string, Entity>();
   private readonly laserNextTimeByBossId = new Map<string, number>();
   private readonly bossOverlapLastHitTimeByBossId = new Map<string, number>();
   private activeLasers: ActiveLaser[] = [];
@@ -191,7 +191,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
   }
 
   public findNearestAliveBoss(x: number, y: number): BossTargetSnapshot | null {
-    let nearestBoss: Boss | null = null;
+    let nearestBoss: Entity | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
 
     for (const [bossId, boss] of this.bosses.entries()) {
@@ -238,7 +238,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
     this.bossOverlapLastHitTimeByBossId.clear();
   }
 
-  private getAliveVisibleBossById(bossId: string): Boss | null {
+  private getAliveVisibleBossById(bossId: string): Entity | null {
     const boss = this.bosses.get(bossId);
     if (!boss) return null;
     if (!boss.visible) return null;

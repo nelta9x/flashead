@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Data } from '../../../data/DataManager';
 import { COLORS, CURSOR_HITBOX } from '../../../data/constants';
-import type { Dish } from '../../../entities/Dish';
+import type { Entity } from '../../../entities/Entity';
 import type { DamageText } from '../../../ui/DamageText';
 import type { ObjectPool } from '../../../utils/ObjectPool';
 import type { ComboSystem } from '../../../systems/ComboSystem';
@@ -14,11 +14,12 @@ import type {
   CursorSnapshot,
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
+  DishLike,
   DishMissedEventPayload,
 } from '../GameSceneContracts';
 
 interface DishResolutionServiceDeps {
-  dishPool: ObjectPool<Dish>;
+  dishPool: ObjectPool<Entity>;
   dishes: Phaser.GameObjects.Group;
   healthSystem: HealthSystem;
   comboSystem: ComboSystem;
@@ -32,7 +33,7 @@ interface DishResolutionServiceDeps {
 }
 
 export class DishResolutionService {
-  private readonly dishPool: ObjectPool<Dish>;
+  private readonly dishPool: ObjectPool<Entity>;
   private readonly dishes: Phaser.GameObjects.Group;
   private readonly healthSystem: HealthSystem;
   private readonly comboSystem: ComboSystem;
@@ -146,7 +147,7 @@ export class DishResolutionService {
     this.removeDishFromPool(dish);
   }
 
-  private applyElectricShock(x: number, y: number, excludeDish: Dish, radius: number): void {
+  private applyElectricShock(x: number, y: number, excludeDish: DishLike, radius: number): void {
     const targets: { x: number; y: number }[] = [];
     const damage = this.upgradeSystem.getElectricShockDamage();
     const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
@@ -166,9 +167,9 @@ export class DishResolutionService {
     }
   }
 
-  private removeDishFromPool(dish: Dish): void {
-    this.dishes.remove(dish);
-    this.dishPool.release(dish);
+  private removeDishFromPool(dish: DishLike): void {
+    this.dishes.remove(dish as unknown as Phaser.GameObjects.GameObject);
+    this.dishPool.release(dish as unknown as Entity);
   }
 
   private getCursorRadius(): number {

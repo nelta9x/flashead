@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Dish } from '../../entities/Dish';
+import type { Entity } from '../../entities/Entity';
 import type { DamageText } from '../../ui/DamageText';
 import type { ParticleManager } from '../../effects/ParticleManager';
 import type { PlayerAttackRenderer } from '../../effects/PlayerAttackRenderer';
@@ -21,7 +21,7 @@ import { DishResolutionService } from './dish/DishResolutionService';
 import { DishSpawnService } from './dish/DishSpawnService';
 
 interface DishLifecycleControllerDeps {
-  dishPool: ObjectPool<Dish>;
+  dishPool: ObjectPool<Entity>;
   dishes: Phaser.GameObjects.Group;
   healthSystem: HealthSystem;
   comboSystem: ComboSystem;

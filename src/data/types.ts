@@ -895,6 +895,16 @@ export interface WaveData {
   laser?: WaveLaserConfig;
 }
 
+export interface DishTypeScalingEntry {
+  type: string;
+  baseWeightFallback?: number;
+  weightPerWave?: number;
+  maxWeight?: number;
+  minWeight?: number;
+  startWaveOffset?: number;
+  startWeight?: number;
+}
+
 export interface InfiniteScalingConfig {
   spawnIntervalReduction: number;
   minSpawnInterval: number;
@@ -913,6 +923,9 @@ export interface InfiniteScalingConfig {
   amberStartWeight: number;
   amberWeightIncrease: number;
   maxAmberWeight: number;
+  dishTypeScaling?: DishTypeScalingEntry[];
+  remainderType?: string;
+  remainderMinWeight?: number;
 }
 
 export interface FeverConfig {
@@ -1080,6 +1093,7 @@ export interface SystemUpgradeData {
   overclockDurationMs?: number;
   overclockSpeedMultiplier?: number;
   overclockMaxStacks?: number;
+  magnetSynergyPerLevel?: number;
   levels?: SystemUpgradeLevelData[];
   maxStack?: number; // health_pack 등 소모품 전용
 }

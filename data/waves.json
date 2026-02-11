@@ -376,6 +376,33 @@
     "amberStartWaveOffset": 1,
     "amberStartWeight": 0.02,
     "amberWeightIncrease": 0.02,
-    "maxAmberWeight": 0.16
+    "maxAmberWeight": 0.16,
+    "dishTypeScaling": [
+      {
+        "type": "bomb",
+        "baseWeightFallback": 0.25,
+        "weightPerWave": 0.002,
+        "maxWeight": 0.18
+      },
+      {
+        "type": "golden",
+        "baseWeightFallback": 0.25,
+        "weightPerWave": -0.002,
+        "minWeight": 0.16
+      },
+      {
+        "type": "crystal",
+        "baseWeightFallback": 0.3
+      },
+      {
+        "type": "amber",
+        "startWaveOffset": 1,
+        "startWeight": 0.02,
+        "weightPerWave": 0.02,
+        "maxWeight": 0.16
+      }
+    ],
+    "remainderType": "basic",
+    "remainderMinWeight": 0.05
   }
 }

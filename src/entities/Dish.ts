@@ -16,14 +16,9 @@ interface DishConfig {
   size: number;
 }
 
-// 업그레이드 옵션 인터페이스
-export interface DishUpgradeOptions {
-  damageBonus?: number;
-  attackSpeedMultiplier?: number;
-  criticalChance?: number;
-  globalSlowPercent?: number;
-  cursorSizeBonus?: number;
-}
+// 업그레이드 옵션 인터페이스 (EntityTypes.ts에서 정의, 호환성을 위해 re-export)
+import type { DishUpgradeOptions } from './EntityTypes';
+export type { DishUpgradeOptions } from './EntityTypes';
 
 // JSON에서 접시 설정 로드
 function getDishConfig(type: string): DishConfig {

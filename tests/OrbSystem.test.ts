@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UpgradeSystem } from '../src/systems/UpgradeSystem';
 import type { ObjectPool } from '../src/utils/ObjectPool';
-import type { Dish } from '../src/entities/Dish';
+import type { Entity } from '../src/entities/Entity';
 
 // Mock Phaser
 vi.mock('phaser', () => {
@@ -55,7 +55,7 @@ describe('OrbSystem', () => {
     getCriticalChanceBonus: ReturnType<typeof vi.fn>;
     getSystemUpgrade: ReturnType<typeof vi.fn>;
   };
-  let mockDishPool: { forEach: (callback: (dish: Dish) => void) => void };
+  let mockDishPool: { forEach: (callback: (entity: Entity) => void) => void };
   let mockDishes: MockDish[];
 
   beforeEach(() => {
@@ -76,8 +76,8 @@ describe('OrbSystem', () => {
 
     mockDishes = [];
     mockDishPool = {
-      forEach: vi.fn((callback: (dish: Dish) => void) => {
-        mockDishes.forEach((dish) => callback(dish as unknown as Dish));
+      forEach: vi.fn((callback: (dish: Entity) => void) => {
+        mockDishes.forEach((dish) => callback(dish as unknown as Entity));
       }),
     };
 
@@ -87,7 +87,7 @@ describe('OrbSystem', () => {
   it('should not spawn orbs if level is 0', () => {
     mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(0);
 
-    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     expect(system.getOrbs()).toHaveLength(0);
   });
@@ -102,7 +102,7 @@ describe('OrbSystem', () => {
       size: 10,
     });
 
-    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     const orbs = system.getOrbs();
     expect(orbs).toHaveLength(2);
@@ -134,7 +134,7 @@ describe('OrbSystem', () => {
     };
     mockDishes.push(mockDish);
 
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledWith(10, 0, 0);
   });
@@ -160,16 +160,16 @@ describe('OrbSystem', () => {
     mockDishes.push(mockDish);
 
     // First hit
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
 
     // Second update (immediate) - Should fail cooldown
     mockDish.applyDamageWithUpgrades.mockClear();
-    system.update(100, 1100, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // +100ms
+    system.update(100, 1100, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // +100ms
     expect(mockDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
 
     // Third update (after cooldown 300ms)
-    system.update(100, 1400, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // +400ms from start
+    system.update(100, 1400, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // +400ms from start
     expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
   });
 
@@ -195,16 +195,16 @@ describe('OrbSystem', () => {
     mockDishes.push(mockDish);
 
     // First hit at t=1000
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
 
     // 800ms later: still in cooldown when hitInterval=900
     mockDish.applyDamageWithUpgrades.mockClear();
-    system.update(100, 1800, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 1800, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     expect(mockDish.applyDamageWithUpgrades).not.toHaveBeenCalled();
 
     // 900ms later: cooldown expired
-    system.update(100, 1900, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 1900, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledTimes(1);
   });
 
@@ -229,7 +229,7 @@ describe('OrbSystem', () => {
     };
     mockDishes.push(mockDish);
 
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     expect(mockDish.applyDamageWithUpgrades).toHaveBeenCalledWith(10, 0, 0.35);
   });
@@ -245,7 +245,7 @@ describe('OrbSystem', () => {
     });
     mockUpgradeSystem.getMagnetLevel.mockReturnValue(5); // Level 5 Magnet
 
-    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 0, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     const orb = system.getOrbs()[0];
     // Base 10. Magnet 5 * 0.2 = +100% -> 2.0x -> 20.
@@ -276,18 +276,18 @@ describe('OrbSystem', () => {
 
     // Case 1: Dangerous and NOT fully spawned
     mockBomb.isFullySpawned.mockReturnValue(false);
-    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     expect(mockBomb.forceDestroy).not.toHaveBeenCalled();
 
     // Case 2: Dangerous and fully spawned but TOO FAR
     mockBomb.isFullySpawned.mockReturnValue(true);
     mockBomb.x = 200; // Orb is at x=100. Distance = 100. (10+10)*1.5 = 30.
-    system.update(100, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     expect(mockBomb.forceDestroy).not.toHaveBeenCalled();
 
     // Case 3: Within 1.5x range
     mockBomb.x = 125; // Distance = 25. <= 30.
-    system.update(100, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(100, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     expect(mockBomb.forceDestroy).toHaveBeenCalled();
   });
 
@@ -317,8 +317,8 @@ describe('OrbSystem', () => {
     };
     mockDishes.push(normalDish);
 
-    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
-    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
+    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     const orb = system.getOrbs()[0];
     expect(orb.x).toBeCloseTo(-100, 3);
@@ -356,14 +356,14 @@ describe('OrbSystem', () => {
     });
     mockDishes.push(bomb);
 
-    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // stack 1
-    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // boosted
+    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // stack 1
+    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // boosted
 
     const boostedOrb = system.getOrbs()[0];
     expect(boostedOrb.x).toBeCloseTo(0, 3);
     expect(boostedOrb.y).toBeCloseTo(-100, 3);
 
-    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>); // expired
+    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>); // expired
     const expiredOrb = system.getOrbs()[0];
     expect(expiredOrb.x).toBeCloseTo(100, 3);
     expect(expiredOrb.y).toBeCloseTo(0, 3);
@@ -403,18 +403,18 @@ describe('OrbSystem', () => {
     };
 
     mockDishes.push(makeBomb(50, 86.6025403784)); // angle 60, stack 1
-    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(1000, 1000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     mockDishes.push(makeBomb(-100, 0)); // angle 180, stack 2
-    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(1000, 2000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     mockDishes.push(makeBomb(100, 0)); // angle 0, stack 3
-    system.update(1000, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(1000, 3000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
     mockDishes.push(makeBomb(-50, -86.6025403784)); // angle 240, tries stack 4 but clamped to 3
-    system.update(1000, 4000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(1000, 4000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
 
-    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Dish>);
+    system.update(1000, 5000, 0, 0, mockDishPool as unknown as ObjectPool<Entity>);
     const orb = system.getOrbs()[0];
 
     // stack 3 유지 시 최종 각도 120도
@@ -437,7 +437,7 @@ describe('OrbSystem', () => {
 
     system.update(
       100, 1000, 0, 0,
-      mockDishPool as unknown as ObjectPool<Dish>,
+      mockDishPool as unknown as ObjectPool<Entity>,
       getBossSnapshots,
       onBossDamage
     );
@@ -457,7 +457,7 @@ describe('OrbSystem', () => {
 
     const onBossDamage = vi.fn();
     const getBossSnapshots = () => [{ id: 'boss1', x: 100, y: 0, radius: 20 }];
-    const pool = mockDishPool as unknown as ObjectPool<Dish>;
+    const pool = mockDishPool as unknown as ObjectPool<Entity>;
 
     // First hit at t=1000
     system.update(100, 1000, 0, 0, pool, getBossSnapshots, onBossDamage);
@@ -489,7 +489,7 @@ describe('OrbSystem', () => {
 
     system.update(
       100, 1000, 0, 0,
-      mockDishPool as unknown as ObjectPool<Dish>,
+      mockDishPool as unknown as ObjectPool<Entity>,
       getBossSnapshots,
       onBossDamage
     );

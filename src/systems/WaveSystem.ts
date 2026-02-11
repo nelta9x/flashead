@@ -4,7 +4,7 @@ import { Data } from '../data/DataManager';
 import { WaveBossConfig } from '../data/types/waves';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { ObjectPool } from '../utils/ObjectPool';
-import { Dish } from '../entities/Dish';
+import { Entity } from '../entities/Entity';
 import { WaveConfigResolver, WaveRuntimeConfig } from './wave/WaveConfigResolver';
 import { WavePhase, WavePhaseController } from './wave/WavePhaseController';
 import { WaveSpawnPlanner } from './wave/WaveSpawnPlanner';
@@ -18,7 +18,7 @@ export class WaveSystem {
   private waveConfig: WaveRuntimeConfig | null = null;
   private isFeverTime = false;
   private totalGameTime = 0;
-  private readonly getDishPool: () => ObjectPool<Dish>;
+  private readonly getDishPool: () => ObjectPool<Entity>;
   private readonly getMaxSpawnY: () => number;
   private readonly getBosses: () => Array<{ id: string; x: number; y: number; visible: boolean }>;
 
@@ -28,7 +28,7 @@ export class WaveSystem {
 
   constructor(
     scene: Phaser.Scene,
-    getDishPool: () => ObjectPool<Dish>,
+    getDishPool: () => ObjectPool<Entity>,
     getMaxSpawnY?: () => number,
     getBosses?: () => Array<{ id: string; x: number; y: number; visible: boolean }>,
     dishSpawnDelegate?: DishSpawnDelegate

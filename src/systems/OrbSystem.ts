@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Dish } from '../entities/Dish';
+import { Entity } from '../entities/Entity';
 import type { FallingBomb } from '../entities/FallingBomb';
 import { UpgradeSystem } from './UpgradeSystem';
 import { ObjectPool } from '../utils/ObjectPool';
@@ -23,7 +23,7 @@ export class OrbSystem {
   private currentAngle: number = 0;
 
   // Cooldown tracking per dish: Map<Dish, NextHitTime>
-  private lastHitTimes: WeakMap<Dish, number> = new WeakMap();
+  private lastHitTimes: WeakMap<Entity, number> = new WeakMap();
   private bossLastHitTimes: Map<string, number> = new Map();
 
   private orbPositions: OrbPosition[] = [];
@@ -39,7 +39,7 @@ export class OrbSystem {
     gameTime: number,
     playerX: number,
     playerY: number,
-    dishPool: ObjectPool<Dish>,
+    dishPool: ObjectPool<Entity>,
     getBossSnapshots: () => BossRadiusSnapshot[] = () => [],
     onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {},
     fallingBombPool?: ObjectPool<FallingBomb>
@@ -62,8 +62,8 @@ export class OrbSystem {
 
     // Magnet Synergy: Increase Size
     const magnetLevel = this.upgradeSystem.getMagnetLevel();
-    // Base size + 20% per magnet level
-    const synergySizeMultiplier = 1 + magnetLevel * 0.2;
+    const magnetSynergyPerLevel = upgradeData?.magnetSynergyPerLevel ?? 0.2;
+    const synergySizeMultiplier = 1 + magnetLevel * magnetSynergyPerLevel;
     const finalSize = stats.size * synergySizeMultiplier;
 
     // Update Angle
@@ -109,7 +109,7 @@ export class OrbSystem {
 
   private checkCollisions(
     gameTime: number,
-    dishPool: ObjectPool<Dish>,
+    dishPool: ObjectPool<Entity>,
     damage: number,
     orbSize: number,
     hitInterval: number,

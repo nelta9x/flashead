@@ -1,18 +1,85 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BossCombatCoordinator } from '../src/scenes/game/BossCombatCoordinator';
 
-vi.mock('phaser', () => ({
-  default: {
-    Math: {
-      Between: (min: number, _max: number) => min,
-      Clamp: (value: number, min: number, max: number) => Math.max(min, Math.min(max, value)),
-      Distance: {
-        Between: (x1: number, y1: number, x2: number, y2: number) =>
-          Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)),
+vi.mock('phaser', () => {
+  class MockContainer {
+    x = 0;
+    y = 0;
+    visible = true;
+    active = false;
+    scaleX = 1;
+    scaleY = 1;
+    rotation = 0;
+    body: Record<string, unknown> | null = null;
+    add() { return this; }
+    setVisible(v: boolean) { this.visible = v; return this; }
+    setActive(v: boolean) { this.active = v; return this; }
+    setPosition(x: number, y: number) { this.x = x; this.y = y; return this; }
+    setDepth() { return this; }
+    setScale() { return this; }
+    setAlpha() { return this; }
+    setInteractive() { return this; }
+    disableInteractive() { return this; }
+    removeAllListeners() { return this; }
+    destroy() {}
+  }
+  class MockGraphics {
+    clear() { return this; }
+    fillStyle() { return this; }
+    lineStyle() { return this; }
+    fillCircle() { return this; }
+    strokeCircle() { return this; }
+    beginPath() { return this; }
+    closePath() { return this; }
+    arc() { return this; }
+    lineTo() { return this; }
+    moveTo() { return this; }
+    fillPath() { return this; }
+    strokePath() { return this; }
+    fillRect() { return this; }
+    strokeRect() { return this; }
+    setBlendMode() { return this; }
+  }
+  class MockArc {
+    setAlpha() { return this; }
+    setScale() { return this; }
+    setFillStyle() { return this; }
+  }
+  return {
+    default: {
+      Math: {
+        Between: (min: number, _max: number) => min,
+        Clamp: (value: number, min: number, max: number) => Math.max(min, Math.min(max, value)),
+        Distance: {
+          Between: (x1: number, y1: number, x2: number, y2: number) =>
+            Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)),
+        },
+        Angle: {
+          Between: (_x1: number, _y1: number, _x2: number, _y2: number) => 0,
+        },
+        DegToRad: (deg: number) => deg * (Math.PI / 180),
+        FloatBetween: (min: number, _max: number) => min,
+      },
+      GameObjects: {
+        Container: MockContainer,
+        Graphics: MockGraphics,
+        Arc: MockArc,
+      },
+      Physics: {
+        Arcade: {
+          Body: class { enable = true; setCircle() {} setOffset() {} setVelocity() {} },
+        },
+      },
+      Geom: {
+        Circle: class { constructor() {} static Contains() { return false; } },
+      },
+      BlendModes: { ADD: 1 },
+      Display: {
+        Color: { HexStringToColor: () => ({ color: 0xffffff }) },
       },
     },
-  },
-}));
+  };
+});
 
 vi.mock('../src/data/constants', () => ({
   GAME_WIDTH: 1280,
@@ -65,39 +132,59 @@ vi.mock('../src/data/DataManager', () => ({
   },
 }));
 
-vi.mock('../src/entities/Boss', () => ({
-  Boss: class {
-    public x: number;
-    public y: number;
+vi.mock('../src/entities/Entity', () => ({
+  Entity: class {
+    public x = 0;
+    public y = 0;
     public scaleX = 1;
     public scaleY = 1;
     public visible = false;
-    private readonly id: string;
+    public active = false;
+    private id = '';
 
     public readonly setDepth = vi.fn().mockReturnThis();
     public readonly freeze = vi.fn();
     public readonly unfreeze = vi.fn();
     public readonly update = vi.fn();
-    public readonly deactivate = vi.fn(() => {
+    public readonly setFeedbackSystem = vi.fn();
+    public readonly deactivate = vi.fn(function(this: { visible: boolean; active: boolean }) {
       this.visible = false;
+      this.active = false;
     });
     public readonly destroy = vi.fn();
 
-    constructor(_scene: unknown, x: number, y: number, id: string) {
+    constructor(_scene?: unknown) {}
+
+    public spawn(x: number, y: number, config: { entityId: string }, _plugin?: unknown): void {
       this.x = x;
       this.y = y;
-      this.id = id;
+      this.id = config.entityId;
+      this.visible = true;
+      this.active = true;
     }
 
     public spawnAt(x: number, y: number): void {
       this.x = x;
       this.y = y;
       this.visible = true;
+      this.active = true;
     }
 
     public getBossId(): string {
       return this.id;
     }
+  },
+}));
+
+vi.mock('../src/plugins/PluginRegistry', () => ({
+  PluginRegistry: {
+    getInstance: () => ({
+      getEntityType: () => ({
+        typeId: 'boss_standard',
+        config: { poolSize: 0, defaultLifetime: null, isGatekeeper: true, cursorInteraction: 'contact' },
+        createMovementStrategy: () => null,
+      }),
+    }),
   },
 }));
 
@@ -139,16 +226,58 @@ describe('BossCombatCoordinator', () => {
     getAliveBossIds: vi.fn(() => Array.from(aliveBossIds)),
     takeDamage: vi.fn(),
     publishBossHpSnapshot: vi.fn(),
+    getMaxHp: vi.fn(() => 100),
   };
 
   function createCoordinator(): BossCombatCoordinator {
     delayedCallbacks = [];
     return new BossCombatCoordinator({
       scene: {
+        add: {
+          existing: vi.fn(),
+          graphics: vi.fn(() => ({
+            clear: vi.fn().mockReturnThis(),
+            fillStyle: vi.fn().mockReturnThis(),
+            lineStyle: vi.fn().mockReturnThis(),
+            fillCircle: vi.fn().mockReturnThis(),
+            strokeCircle: vi.fn().mockReturnThis(),
+            beginPath: vi.fn().mockReturnThis(),
+            closePath: vi.fn().mockReturnThis(),
+            arc: vi.fn().mockReturnThis(),
+            lineTo: vi.fn().mockReturnThis(),
+            moveTo: vi.fn().mockReturnThis(),
+            fillPath: vi.fn().mockReturnThis(),
+            strokePath: vi.fn().mockReturnThis(),
+            setBlendMode: vi.fn().mockReturnThis(),
+          })),
+          arc: vi.fn(() => ({
+            setAlpha: vi.fn().mockReturnThis(),
+            setScale: vi.fn().mockReturnThis(),
+            setFillStyle: vi.fn().mockReturnThis(),
+          })),
+        },
+        physics: {
+          add: {
+            existing: vi.fn((obj: Record<string, unknown>) => {
+              obj.body = {
+                enable: true,
+                setCircle: vi.fn(),
+                setOffset: vi.fn(),
+                setVelocity: vi.fn(),
+              };
+            }),
+          },
+        },
         time: {
           delayedCall: vi.fn((_delay: number, cb: () => void) => {
             delayedCallbacks.push(cb);
           }),
+        },
+        tweens: {
+          add: vi.fn(() => ({
+            stop: vi.fn(),
+            remove: vi.fn(),
+          })),
         },
         cameras: {
           main: {
