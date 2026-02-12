@@ -5,12 +5,13 @@ import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
 import type { EntityDamageService } from '../EntityDamageService';
 import type { UpgradeSystem } from '../UpgradeSystem';
+import type { GameEnvironment } from '../../scenes/game/GameEnvironment';
 
 interface CursorAttackSystemDeps {
   world: World;
   damageService: EntityDamageService;
   upgradeSystem: UpgradeSystem;
-  getCursor: () => { x: number; y: number };
+  gameEnv: GameEnvironment;
 }
 
 export class CursorAttackSystem implements EntitySystem {
@@ -20,17 +21,17 @@ export class CursorAttackSystem implements EntitySystem {
   private readonly world: World;
   private readonly damageService: EntityDamageService;
   private readonly upgradeSystem: UpgradeSystem;
-  private readonly getCursor: () => { x: number; y: number };
+  private readonly gameEnv: GameEnvironment;
 
   constructor(deps: CursorAttackSystemDeps) {
     this.world = deps.world;
     this.damageService = deps.damageService;
     this.upgradeSystem = deps.upgradeSystem;
-    this.getCursor = deps.getCursor;
+    this.gameEnv = deps.gameEnv;
   }
 
   tick(_delta: number): void {
-    const cursor = this.getCursor();
+    const cursor = this.gameEnv.getCursorPosition();
     const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
     const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 

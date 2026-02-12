@@ -2,7 +2,7 @@ import { MagnetSystem } from '../../../systems/entity-systems';
 import { EntityDamageService } from '../../../systems/EntityDamageService';
 import { UpgradeSystem } from '../../../systems/UpgradeSystem';
 import { ParticleManager } from '../../../effects/ParticleManager';
-import { GetCursorToken } from '../../ServiceTokens';
+import { GameEnvironment } from '../../../scenes/game/GameEnvironment';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import type { SystemPlugin, SystemPluginContext } from '../../types/SystemPlugin';
 
@@ -16,7 +16,7 @@ export class MagnetSystemPlugin implements SystemPlugin {
         damageService: ctx.services.get(EntityDamageService),
         upgradeSystem: ctx.services.get(UpgradeSystem),
         particleManager: ctx.services.get(ParticleManager),
-        getCursor: ctx.services.get(GetCursorToken),
+        gameEnv: ctx.services.get(GameEnvironment),
       }),
     ];
   }

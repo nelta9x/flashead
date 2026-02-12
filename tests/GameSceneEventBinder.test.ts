@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GameSceneEventBinder } from '../src/scenes/game/GameSceneEventBinder';
-import { GameEvents } from '../src/utils/EventBus';
 
 type Listener = (...args: unknown[]) => void;
 
@@ -21,6 +19,25 @@ const mockOff = vi.fn((event: string, handler?: Listener) => {
     current.filter((candidate) => candidate !== handler)
   );
 });
+
+vi.mock('phaser', () => ({
+  default: {
+    GameObjects: {
+      Container: class {},
+      Graphics: class {},
+      Text: class {},
+      Group: class {},
+    },
+    Scene: class {},
+    Math: {
+      Between: vi.fn((min: number) => min),
+      Distance: { Between: vi.fn(() => 0) },
+    },
+    Display: {
+      Color: { HexStringToColor: () => ({ color: 0xffffff }) },
+    },
+  },
+}));
 
 vi.mock('../src/utils/EventBus', () => ({
   EventBus: {
@@ -53,74 +70,116 @@ vi.mock('../src/utils/EventBus', () => ({
   },
 }));
 
+vi.mock('../src/data/constants', () => ({
+  COLORS: { CYAN: 0x00ffff },
+  GAME_WIDTH: 800,
+  GAME_HEIGHT: 600,
+  INITIAL_HP: 3,
+}));
+
+vi.mock('../src/data/DataManager', () => ({
+  Data: {
+    fallingBomb: { playerDamage: 1, resetCombo: true },
+    t: (key: string) => key,
+  },
+}));
+
+/** Minimal mock ServiceRegistry that returns stub services. */
+function createMockServiceRegistry() {
+  const stubs = new Map<unknown, unknown>();
+  return {
+    get: vi.fn((key: unknown) => {
+      if (!stubs.has(key)) {
+        stubs.set(
+          key,
+          new Proxy(
+            {},
+            {
+              get: (_target, prop) => {
+                if (prop === 'then') return undefined;
+                return vi.fn();
+              },
+            }
+          )
+        );
+      }
+      return stubs.get(key);
+    }),
+    _stubs: stubs,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+}
+
 describe('GameSceneEventBinder', () => {
-  beforeEach(() => {
+  // Dynamic import to ensure mocks are applied first
+  let GameSceneEventBinder: typeof import('../src/scenes/game/GameSceneEventBinder').GameSceneEventBinder;
+  let GameEvents: typeof import('../src/utils/EventBus').GameEvents;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
     listeners.clear();
+    const mod = await import('../src/scenes/game/GameSceneEventBinder');
+    GameSceneEventBinder = mod.GameSceneEventBinder;
+    const evtMod = await import('../src/utils/EventBus');
+    GameEvents = evtMod.GameEvents;
   });
 
-  it('binds events once and routes payloads to handlers', () => {
-    const onDishDestroyed = vi.fn();
-    const binder = new GameSceneEventBinder({
-      onDishDestroyed,
-      onDishDamaged: vi.fn(),
-      onComboMilestone: vi.fn(),
-      onWaveStarted: vi.fn(),
-      onWaveCompleted: vi.fn(),
-      onUpgradeSelected: vi.fn(),
-      onWaveCountdownTick: vi.fn(),
-      onWaveReady: vi.fn(),
-      onGameOver: vi.fn(),
-      onDishMissed: vi.fn(),
-      onHealthPackUpgraded: vi.fn(),
-      onHpChanged: vi.fn(),
-      onHealthPackPassing: vi.fn(),
-      onHealthPackCollected: vi.fn(),
-      onMonsterHpChanged: vi.fn(),
-      onGaugeUpdated: vi.fn(),
-      onPlayerAttack: vi.fn(),
-      onMonsterDied: vi.fn(),
-      onFallingBombDestroyed: vi.fn(),
-      onBlackHoleConsumed: vi.fn(),
-    });
+  it('binds events once and does not double-bind', () => {
+    const services = createMockServiceRegistry();
+    const scene = { onWaveCompleted: vi.fn(), onUpgradeSelected: vi.fn(), onGameOver: vi.fn() };
+    const binder = new GameSceneEventBinder(services, scene);
 
     binder.bind();
     const firstBindCalls = mockOn.mock.calls.length;
+    expect(firstBindCalls).toBeGreaterThan(0);
+
+    // Second bind should be a no-op
+    binder.bind();
+    expect(mockOn).toHaveBeenCalledTimes(firstBindCalls);
+  });
+
+  it('routes scene lifecycle events to SceneLifecycleCallbacks', () => {
+    const services = createMockServiceRegistry();
+    const scene = { onWaveCompleted: vi.fn(), onUpgradeSelected: vi.fn(), onGameOver: vi.fn() };
+    const binder = new GameSceneEventBinder(services, scene);
+
     binder.bind();
 
-    expect(mockOn).toHaveBeenCalledTimes(firstBindCalls);
+    // WAVE_COMPLETED → scene.onWaveCompleted
+    const waveCompletedListeners = listeners.get(GameEvents.WAVE_COMPLETED) ?? [];
+    expect(waveCompletedListeners.length).toBe(1);
+    waveCompletedListeners[0](5);
+    expect(scene.onWaveCompleted).toHaveBeenCalledWith(5);
 
-    const payload = { dish: { id: 'd1' }, x: 10, y: 20 };
+    // GAME_OVER → scene.onGameOver
+    const gameOverListeners = listeners.get(GameEvents.GAME_OVER) ?? [];
+    gameOverListeners[0]();
+    expect(scene.onGameOver).toHaveBeenCalled();
+
+    // UPGRADE_SELECTED → scene.onUpgradeSelected
+    const upgradeListeners = listeners.get(GameEvents.UPGRADE_SELECTED) ?? [];
+    upgradeListeners[0]();
+    expect(scene.onUpgradeSelected).toHaveBeenCalled();
+  });
+
+  it('resolves service dependencies from ServiceRegistry on event dispatch', () => {
+    const services = createMockServiceRegistry();
+    const scene = { onWaveCompleted: vi.fn(), onUpgradeSelected: vi.fn(), onGameOver: vi.fn() };
+    const binder = new GameSceneEventBinder(services, scene);
+
+    binder.bind();
+
+    // DISH_DESTROYED triggers services.get(DishLifecycleController)
     const dishDestroyedListeners = listeners.get(GameEvents.DISH_DESTROYED) ?? [];
     expect(dishDestroyedListeners.length).toBe(1);
-
-    dishDestroyedListeners[0](payload);
-    expect(onDishDestroyed).toHaveBeenCalledWith(payload);
+    dishDestroyedListeners[0]({ dish: { id: 'd1' }, x: 10, y: 20 });
+    expect(services.get).toHaveBeenCalled();
   });
 
   it('unbinds every subscription with the same handler references', () => {
-    const binder = new GameSceneEventBinder({
-      onDishDestroyed: vi.fn(),
-      onDishDamaged: vi.fn(),
-      onComboMilestone: vi.fn(),
-      onWaveStarted: vi.fn(),
-      onWaveCompleted: vi.fn(),
-      onUpgradeSelected: vi.fn(),
-      onWaveCountdownTick: vi.fn(),
-      onWaveReady: vi.fn(),
-      onGameOver: vi.fn(),
-      onDishMissed: vi.fn(),
-      onHealthPackUpgraded: vi.fn(),
-      onHpChanged: vi.fn(),
-      onHealthPackPassing: vi.fn(),
-      onHealthPackCollected: vi.fn(),
-      onMonsterHpChanged: vi.fn(),
-      onGaugeUpdated: vi.fn(),
-      onPlayerAttack: vi.fn(),
-      onMonsterDied: vi.fn(),
-      onFallingBombDestroyed: vi.fn(),
-      onBlackHoleConsumed: vi.fn(),
-    });
+    const services = createMockServiceRegistry();
+    const scene = { onWaveCompleted: vi.fn(), onUpgradeSelected: vi.fn(), onGameOver: vi.fn() };
+    const binder = new GameSceneEventBinder(services, scene);
 
     binder.bind();
     const bindCount = mockOn.mock.calls.length;

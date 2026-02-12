@@ -1,5 +1,5 @@
 {
-  "servicePlugins": ["core:services", "core:ecs"],
+  "servicePlugins": ["core:services", "core:ecs", "core:game_modules"],
   "systemPlugins": [
     "core:world_systems",
     "core:game_level_systems",
@@ -7,10 +7,11 @@
     "core:boss_reaction_system",
     "core:magnet_system",
     "core:cursor_attack_system",
+    "core:falling_bomb",
     "core:black_hole_system",
     "core:orb_system",
-    "core:falling_bomb",
-    "core:health_pack"
+    "core:health_pack",
+    "core:game_wrappers"
   ],
   "entityPipeline": [
     "core:wave",

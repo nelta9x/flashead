@@ -9,8 +9,10 @@ type ClassKey<T> = abstract new (...args: any[]) => T;
 
 export class ServiceRegistry {
   private services = new Map<unknown, unknown>();
+  /** Keys registered via resolveEntries — lifecycle managed by destroyAll(). */
+  private readonly managed = new Set<unknown>();
 
-  /** Register a value directly. */
+  /** Register a value directly (external — NOT lifecycle-managed). */
   set<T>(key: ClassKey<T>, value: T): void;
   set<T>(key: ServiceToken<T>, value: T): void;
   set(key: unknown, value: unknown): void {
@@ -45,12 +47,14 @@ export class ServiceRegistry {
     const inject: unknown[] = (cls as InjectableClass).inject ?? [];
     const deps = inject.map((dep) => this.get(dep as ClassKey<unknown>));
     const instance = new cls(...deps);
-    this.set(cls as ClassKey<T>, instance);
+    this.services.set(cls as ClassKey<T>, instance);
+    this.managed.add(cls);
     return instance;
   }
 
   /**
    * Resolve an array of ServiceEntry declarations in order.
+   * Entries become lifecycle-managed (destroyAll calls destroy/clear on them).
    */
   resolveEntries(entries: ServiceEntry[]): void {
     for (const entry of entries) {
@@ -58,9 +62,31 @@ export class ServiceRegistry {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.registerClass(entry as new (...args: any[]) => unknown);
       } else {
-        this.set(entry.key as ClassKey<unknown>, entry.factory(this));
+        const value = entry.factory(this);
+        this.services.set(entry.key, value);
+        this.managed.add(entry.key);
       }
     }
+  }
+
+  /**
+   * Destroy all managed services in reverse registration order.
+   * Calls destroy() / clear() / clearAll() if available.
+   * External values (registered via set()) are skipped.
+   */
+  destroyAll(): void {
+    const entries = Array.from(this.services.entries());
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const [key, value] = entries[i];
+      if (!this.managed.has(key)) continue;
+      if (value == null || typeof value === 'function') continue;
+      const obj = value as Record<string, unknown>;
+      if (typeof obj.destroy === 'function') (obj.destroy as () => void).call(obj);
+      if (typeof obj.clear === 'function') (obj.clear as () => void).call(obj);
+      if (typeof obj.clearAll === 'function') (obj.clearAll as () => void).call(obj);
+    }
+    this.managed.clear();
+    this.services.clear();
   }
 }
 

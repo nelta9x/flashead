@@ -99,8 +99,8 @@ describe('PlayerTickSystem', () => {
 
     it('활성 player 엔티티에 대해 smoothing을 수행해야 함', () => {
       const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
       const system = createSystem();
-      system.setPlayerId(playerId);
 
       const transformBefore = world.transform.getRequired(playerId);
       const initialX = transformBefore.x;
@@ -116,8 +116,8 @@ describe('PlayerTickSystem', () => {
 
     it('cursorTrail.update가 호출되어야 함', () => {
       const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
       const system = createSystem();
-      system.setPlayerId(playerId);
       system.tick(16);
 
       expect(cursorTrail.update).toHaveBeenCalledOnce();
@@ -125,8 +125,8 @@ describe('PlayerTickSystem', () => {
 
     it('cursorRenderer.renderAttackIndicator가 호출되어야 함', () => {
       const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
       const system = createSystem();
-      system.setPlayerId(playerId);
       system.tick(16);
 
       expect(cursorRenderer.renderAttackIndicator).toHaveBeenCalledOnce();
@@ -134,8 +134,8 @@ describe('PlayerTickSystem', () => {
 
     it('renderAttackIndicator에 올바른 인자를 전달해야 함', () => {
       const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
       const system = createSystem();
-      system.setPlayerId(playerId);
       system.tick(16);
 
       const call = (cursorRenderer.renderAttackIndicator as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -150,10 +150,10 @@ describe('PlayerTickSystem', () => {
     });
   });
 
-  describe('renderOnly', () => {
+  describe('renderTick', () => {
     it('비활성 player에서는 아무것도 하지 않아야 함', () => {
       const system = createSystem();
-      system.renderOnly(16);
+      system.renderTick(16);
 
       expect(cursorTrail.update).not.toHaveBeenCalled();
       expect(cursorRenderer.renderAttackIndicator).not.toHaveBeenCalled();
@@ -161,11 +161,11 @@ describe('PlayerTickSystem', () => {
 
     it('활성 player에서 trail + render만 수행해야 함 (smoothing 없음)', () => {
       const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
       const system = createSystem();
-      system.setPlayerId(playerId);
 
       const transformBefore = { ...world.transform.getRequired(playerId) };
-      system.renderOnly(16);
+      system.renderTick(16);
 
       const transformAfter = world.transform.getRequired(playerId);
       // Position should NOT change (no smoothing in renderOnly)
@@ -180,13 +180,13 @@ describe('PlayerTickSystem', () => {
   describe('updatePosition (smoothing)', () => {
     it('target과 현재가 가까우면 snap해야 함', () => {
       const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
       // Set target very close to current
       const input = world.playerInput.getRequired(playerId);
       input.targetX = 100.1;
       input.targetY = 200.1;
 
       const system = createSystem();
-      system.setPlayerId(playerId);
       system.tick(16);
 
       const transform = world.transform.getRequired(playerId);
@@ -196,8 +196,8 @@ describe('PlayerTickSystem', () => {
 
     it('target과 현재가 멀면 부분 보간해야 함', () => {
       const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
       const system = createSystem();
-      system.setPlayerId(playerId);
       system.tick(16);
 
       const transform = world.transform.getRequired(playerId);

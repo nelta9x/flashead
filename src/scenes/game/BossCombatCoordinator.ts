@@ -20,6 +20,7 @@ import type {
 import type { EntityDamageService } from '../../systems/EntityDamageService';
 import type { StatusEffectManager } from '../../systems/StatusEffectManager';
 import type { World } from '../../world';
+import type { GameEnvironment } from './GameEnvironment';
 import { BossContactDamageController } from './boss/BossContactDamageController';
 import { BossLaserController } from './boss/BossLaserController';
 import { BossRosterSync } from './boss/BossRosterSync';
@@ -38,8 +39,7 @@ interface BossCombatCoordinatorDeps {
   damageService: EntityDamageService;
   world: World;
   statusEffectManager: StatusEffectManager;
-  isGameOver: () => boolean;
-  isPaused: () => boolean;
+  gameEnv: GameEnvironment;
 }
 
 export class BossCombatCoordinator implements BossInteractionGateway {
@@ -52,8 +52,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
   private readonly laserRenderer: LaserRenderer;
   private readonly healthSystem: HealthSystem;
   private readonly upgradeSystem: UpgradeSystem;
-  private readonly isGameOver: () => boolean;
-  private readonly isPaused: () => boolean;
+  private readonly gameEnv: GameEnvironment;
 
   private readonly bosses = new Map<string, Entity>();
   private readonly laserNextTimeByBossId = new Map<string, number>();
@@ -80,8 +79,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
     this.laserRenderer = deps.laserRenderer;
     this.healthSystem = deps.healthSystem;
     this.upgradeSystem = deps.upgradeSystem;
-    this.isGameOver = deps.isGameOver;
-    this.isPaused = deps.isPaused;
+    this.gameEnv = deps.gameEnv;
 
     this.bossRosterSync = new BossRosterSync({
       scene: this.scene,
@@ -112,7 +110,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       laserRenderer: this.laserRenderer,
       healthSystem: this.healthSystem,
       upgradeSystem: this.upgradeSystem,
-      isGameOver: this.isGameOver,
+      isGameOver: () => this.gameEnv.isGameOver,
       damageService: deps.damageService,
       bosses: this.bosses,
       laserNextTimeByBossId: this.laserNextTimeByBossId,
@@ -143,7 +141,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
     this.currentGameTime = gameTime;
     this.lastCursor = { ...cursor };
 
-    if (this.isGameOver() || this.isPaused()) {
+    if (this.gameEnv.isGameOver || this.gameEnv.isPaused) {
       return;
     }
 
@@ -235,6 +233,14 @@ export class BossCombatCoordinator implements BossInteractionGateway {
 
   public cancelChargingLasers(bossId: string): void {
     this.bossLaserController.cancelChargingLasers(bossId, this.lastCursor);
+  }
+
+  public damageBoss(bossId: string, amount: number, sourceX: number, sourceY: number, isCritical: boolean): void {
+    this.monsterSystem.takeDamage(bossId, amount, sourceX, sourceY);
+    const bossTarget = this.getAliveBossTarget(bossId);
+    const textX = bossTarget?.x ?? sourceX;
+    const textY = bossTarget?.y ?? sourceY;
+    this.feedbackSystem.onBossContactDamaged(textX, textY, amount, isCritical);
   }
 
   public isAnyLaserFiring(): boolean {

@@ -170,7 +170,7 @@ describe('PlayerAttackController', () => {
         createSparkBurst: vi.fn(),
         createHitEffect: vi.fn(),
       } as never,
-      getCursor: () => ({ x: 100, y: 100 }),
+      gameEnv: { get isGameOver() { return isGameOver; }, getCursorPosition: () => ({ x: 100, y: 100 }) } as never,
       getPlayerAttackRenderer: () =>
         ({
           createChargeVisual: () => ({
@@ -187,7 +187,6 @@ describe('PlayerAttackController', () => {
           destroyProjectile: vi.fn(),
         }) as never,
       bossGateway: bossGateway as never,
-      isGameOver: () => isGameOver,
     });
   }
 

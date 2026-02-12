@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import type { Entity } from '../../entities/Entity';
+import { Entity } from '../../entities/Entity';
+import { deactivateEntity } from '../../entities/EntityLifecycle';
 import type { DamageText } from '../../ui/DamageText';
 import type { PlayerAttackRenderer } from '../../effects/PlayerAttackRenderer';
 import type { ObjectPool } from '../../utils/ObjectPool';
@@ -8,13 +9,17 @@ import type { EntityDamageService } from '../../systems/EntityDamageService';
 import type { FeedbackSystem } from '../../systems/FeedbackSystem';
 import type { HealthSystem } from '../../systems/HealthSystem';
 import type { SoundSystem } from '../../systems/SoundSystem';
+import type { StatusEffectManager } from '../../systems/StatusEffectManager';
 import type { UpgradeSystem } from '../../systems/UpgradeSystem';
+import { C_DishTag } from '../../world';
 import type { World } from '../../world';
 import type {
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
   DishMissedEventPayload,
 } from './GameSceneContracts';
+import type { GameEnvironment } from './GameEnvironment';
+import type { BossCombatCoordinator } from './BossCombatCoordinator';
 import { DishResolutionService } from './dish/DishResolutionService';
 import { DishSpawnService } from './dish/DishSpawnService';
 
@@ -29,23 +34,34 @@ interface DishLifecycleControllerDeps {
   soundSystem: SoundSystem;
   damageText: DamageText;
   damageService: EntityDamageService;
+  statusEffectManager: StatusEffectManager;
   getPlayerAttackRenderer: () => PlayerAttackRenderer;
-  isAnyLaserFiring: () => boolean;
-  isGameOver: () => boolean;
+  gameEnv: GameEnvironment;
+  bcc: BossCombatCoordinator;
 }
 
 export class DishLifecycleController {
   private readonly spawnService: DishSpawnService;
   private readonly resolutionService: DishResolutionService;
+  private readonly world: World;
+  private readonly dishPool: ObjectPool<Entity>;
+  private readonly statusEffectManager: StatusEffectManager;
+
+  public readonly dishes: Phaser.GameObjects.Group;
 
   constructor(deps: DishLifecycleControllerDeps) {
+    this.dishes = deps.dishes;
+    this.world = deps.world;
+    this.dishPool = deps.dishPool;
+    this.statusEffectManager = deps.statusEffectManager;
+
     this.spawnService = new DishSpawnService({
       dishPool: deps.dishPool,
       dishes: deps.dishes,
       upgradeSystem: deps.upgradeSystem,
       world: deps.world,
       getPlayerAttackRenderer: deps.getPlayerAttackRenderer,
-      isGameOver: deps.isGameOver,
+      isGameOver: () => deps.gameEnv.isGameOver,
     });
 
     this.resolutionService = new DishResolutionService({
@@ -59,7 +75,7 @@ export class DishLifecycleController {
       soundSystem: deps.soundSystem,
       damageText: deps.damageText,
       damageService: deps.damageService,
-      isAnyLaserFiring: deps.isAnyLaserFiring,
+      isAnyLaserFiring: () => deps.bcc.isAnyLaserFiring(),
     });
   }
 
@@ -77,5 +93,17 @@ export class DishLifecycleController {
 
   public onDishMissed(data: DishMissedEventPayload): void {
     this.resolutionService.onDishMissed(data);
+  }
+
+  public clearAll(): void {
+    for (const [entityId] of this.world.query(C_DishTag)) {
+      const node = this.world.phaserNode.get(entityId);
+      if (node) {
+        const entity = node.container as Entity;
+        deactivateEntity(entity, this.world, this.statusEffectManager);
+        this.dishes.remove(entity);
+        this.dishPool.release(entity);
+      }
+    }
   }
 }

@@ -3,64 +3,26 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT,
   COLORS,
-  SPAWN_AREA,
   INITIAL_HP,
   DEPTHS,
 } from '../data/constants';
 import { Data } from '../data/DataManager';
-import { Entity } from '../entities/Entity';
-import { deactivateEntity } from '../entities/EntityLifecycle';
 import { EventBus } from '../utils/EventBus';
-import { EntityPoolManager } from '../systems/EntityPoolManager';
-import { ComboSystem } from '../systems/ComboSystem';
-import { WaveSystem } from '../systems/WaveSystem';
 import { UpgradeSystem } from '../systems/UpgradeSystem';
-import { HealthSystem } from '../systems/HealthSystem';
-import type { HealthPackSystem } from '../systems/HealthPackSystem';
-import type { FallingBombSystem } from '../systems/FallingBombSystem';
-import { HUD } from '../ui/HUD';
-import { ParticleManager } from '../effects/ParticleManager';
-import { CursorTrail } from '../effects/CursorTrail';
-import { DamageText } from '../ui/DamageText';
-import { StarBackground } from '../effects/StarBackground';
-import { GridRenderer } from '../effects/GridRenderer';
-import { LaserRenderer } from '../effects/LaserRenderer';
-import { CursorRenderer } from '../effects/CursorRenderer';
-import { OrbRenderer } from '../effects/OrbRenderer';
-import { PlayerAttackRenderer } from '../effects/PlayerAttackRenderer';
-import { BlackHoleRenderer } from '../effects/BlackHoleRenderer';
-import { FeedbackSystem } from '../systems/FeedbackSystem';
-import { SoundSystem } from '../systems/SoundSystem';
-import { MonsterSystem } from '../systems/MonsterSystem';
-import { GaugeSystem } from '../systems/GaugeSystem';
-import type { OrbSystem } from '../systems/OrbSystem';
-import type { BlackHoleSystem } from '../systems/BlackHoleSystem';
+import { StatusEffectManager } from '../systems/StatusEffectManager';
 import { PlayerCursorInputController } from '../systems/PlayerCursorInputController';
-import { InGameUpgradeUI } from '../ui/InGameUpgradeUI';
-import { WaveCountdownUI } from '../ui/WaveCountdownUI';
-import { HudFrameContext } from '../ui/hud/types';
-import { BossCombatCoordinator } from './game/BossCombatCoordinator';
-import { PlayerAttackController } from './game/PlayerAttackController';
-import { DishLifecycleController } from './game/DishLifecycleController';
+import { GridRenderer } from '../effects/GridRenderer';
 import { GameSceneEventBinder } from './game/GameSceneEventBinder';
 import { SceneInputAdapter } from './game/SceneInputAdapter';
+import { GameSceneController } from './game/GameSceneController';
 import type { CursorSnapshot } from './game/GameSceneContracts';
-import { C_DishTag } from '../world';
-import type { TransformComponent, PlayerInputComponent } from '../world';
-import type { EntityId } from '../world/EntityId';
 import { AbilityManager } from '../systems/AbilityManager';
-import { StatusEffectManager } from '../systems/StatusEffectManager';
-import { EntityDamageService } from '../systems/EntityDamageService';
-import { EntityQueryService } from '../systems/EntityQueryService';
-import type { PlayerTickSystem } from '../systems/entity-systems';
-import { WaveTickSystem, BossCoordinatorSystem, ModTickSystem } from '../systems/entity-systems';
+import type { EntitySystem } from '../systems/entity-systems/EntitySystem';
 import { EntitySystemPipeline } from '../systems/EntitySystemPipeline';
 import { World } from '../world';
 import { PluginRegistry } from '../plugins/PluginRegistry';
 import { ServiceRegistry } from '../plugins/ServiceRegistry';
-import { GetCursorToken, GetBossSnapshotsToken, DamageBossToken } from '../plugins/ServiceTokens';
 import { ModSystemRegistry } from '../plugins/ModSystemRegistry';
-import type { ModSystemContext } from '../plugins/ModSystemRegistry';
 import { ModRegistry } from '../plugins/ModRegistry';
 import { registerBuiltinAbilities } from '../plugins/builtin/abilities';
 import { registerBuiltinEntityTypes } from '../plugins/builtin/entities';
@@ -70,71 +32,26 @@ import type { SystemPluginContext } from '../plugins/types/SystemPlugin';
 
 export class GameScene extends Phaser.Scene {
   private serviceRegistry!: ServiceRegistry;
-  private entityPoolManager!: EntityPoolManager;
-  private dishes!: Phaser.GameObjects.Group;
+  private entitySystemPipeline!: EntitySystemPipeline;
+  private controller!: GameSceneController;
 
-  // 시스템 (GameScene 직접 생성 — ServiceRegistry에 없음)
-  private waveSystem!: WaveSystem;
   private abilityManager!: AbilityManager;
-  private modSystemRegistry!: ModSystemRegistry;
   private modRegistry!: ModRegistry;
 
-  // ECS 핵심 인프라
-  private ecsWorld!: World;
-  private entitySystemPipeline!: EntitySystemPipeline;
-
-  // UI & 이펙트
-  private hud!: HUD;
-  private inGameUpgradeUI!: InGameUpgradeUI;
-  private waveCountdownUI!: WaveCountdownUI;
-  private starBackground!: StarBackground;
-
-  // 게임 상태
-  private gameTime = 0;
-  private isGameOver = false;
-  private isEscPaused = false;
-  private isDockPaused = false;
-  private isSimulationPaused = false;
-  private isUpgrading = false;
-  private maxSpawnedDishRadius = 0;
-
-  // 웨이브 전환 상태
-  private pendingWaveNumber = 1;
-
-  // 렌더러
   private gridRenderer!: GridRenderer;
-  private laserRenderer!: LaserRenderer;
-  private playerAttackRenderer: PlayerAttackRenderer | null = null;
-
-  // BGM
   private bgm: Phaser.Sound.BaseSound | null = null;
-
-  // 커서 시스템 (Player entity via ECS World)
-  private playerTickSystem!: PlayerTickSystem;
-  private inputController!: PlayerCursorInputController;
-
-  // Player entity ID (assigned by World at spawn)
-  private playerId!: EntityId;
-
-  // 기능 모듈
-  private bossCombatCoordinator!: BossCombatCoordinator;
-  private playerAttackController!: PlayerAttackController;
-  private dishLifecycleController!: DishLifecycleController;
   private eventBinder!: GameSceneEventBinder;
   private inputAdapter!: SceneInputAdapter;
+
+  // 물리/Tween 상태 (Phaser Scene API 전용)
+  private isSimulationPaused = false;
 
   constructor() {
     super({ key: 'GameScene' });
   }
 
   create(): void {
-    this.isGameOver = false;
-    this.isEscPaused = false;
-    this.isDockPaused = false;
     this.isSimulationPaused = false;
-    this.isUpgrading = false;
-    this.gameTime = 0;
-    this.pendingWaveNumber = 1;
     this.time.timeScale = 1;
     this.tweens.resumeAll();
 
@@ -144,17 +61,27 @@ export class GameScene extends Phaser.Scene {
       .setDepth(DEPTHS.background);
 
     this.gridRenderer = new GridRenderer(this);
-    this.dishes = this.add.group();
-
     this.initializeSystems();
-    this.initializeRenderers();
-    this.initializeGameModules();
+
+    this.eventBinder = new GameSceneEventBinder(this.serviceRegistry, {
+      onWaveCompleted: (waveNumber) => this.controller.onWaveCompleted(waveNumber),
+      onUpgradeSelected: () => this.controller.onUpgradeSelected(),
+      onGameOver: () => this.gameOver(),
+    });
+
+    this.inputAdapter = new SceneInputAdapter({
+      scene: this,
+      inputController: this.serviceRegistry.get(PlayerCursorInputController),
+      getInputTimestamp: () => this.getInputTimestamp(),
+      applyCursorPosition: (x, y) => this.controller.applyCursorPosition(x, y),
+      resetMovementInput: () => this.controller.resetMovementInput(this.getInputTimestamp()),
+      isGameOver: () => this.controller.isGameOver,
+      togglePause: () => this.togglePause(),
+    });
 
     this.eventBinder.bind();
     this.inputAdapter.setup();
-
-    // 초기 커서 위치 동기화 (스무딩 없이 즉시 반영)
-    this.snapPlayerToTarget();
+    this.controller.snapPlayerToTarget();
 
     this.cameras.main.fadeIn(500);
     this.input.setDefaultCursor('none');
@@ -166,87 +93,47 @@ export class GameScene extends Phaser.Scene {
     });
     this.bgm.play();
 
-    this.waveSystem.startWave(1);
+    this.controller.startGame();
   }
 
   private initializeSystems(): void {
     EventBus.getInstance().clear();
 
-    // ── 1. ServicePlugin resolve (declarative) ──
+    // ── 1. ServiceRegistry ──
     this.serviceRegistry = new ServiceRegistry();
     this.serviceRegistry.set(Phaser.Scene, this as Phaser.Scene);
+
+    // ── 2. ServicePlugin resolve (core:services → core:ecs → core:game_modules) ──
     registerBuiltinServicePlugins();
     for (const pluginId of Data.gameConfig.servicePlugins) {
       const plugin = PluginRegistry.getInstance().getServicePlugin(pluginId);
       this.serviceRegistry.resolveEntries(plugin.services);
     }
 
-    // ── 2. Local references (핵심 인프라만) ──
-    this.ecsWorld = this.serviceRegistry.get(World);
-    this.entityPoolManager = this.serviceRegistry.get(EntityPoolManager);
-
-    // ── 3. GameScene-only services (not plugin targets) ──
-    this.maxSpawnedDishRadius = this.calculateMaxSpawnedDishRadius();
-
-    this.inGameUpgradeUI = new InGameUpgradeUI(
-      this,
-      this.serviceRegistry.get(UpgradeSystem),
-      this.serviceRegistry.get(ParticleManager),
-    );
-
-    this.waveSystem = new WaveSystem(
-      this,
-      () => this.entityPoolManager.getPool('dish')!,
-      () => {
-        const baseMaxY = this.inGameUpgradeUI.isVisible()
-          ? this.inGameUpgradeUI.getBlockedYArea()
-          : SPAWN_AREA.maxY;
-        return this.getDockSafeSpawnMaxY(baseMaxY);
-      },
-      () => this.bossCombatCoordinator?.getVisibleBossSnapshots() ?? []
-    );
-
-    this.modSystemRegistry = new ModSystemRegistry();
-
-    // ── 4. Late-bind callback tokens ──
-    this.serviceRegistry.set(GetCursorToken, () => this.getCursorSnapshot());
-    this.serviceRegistry.set(GetBossSnapshotsToken,
-      () => this.bossCombatCoordinator?.getAliveVisibleBossSnapshotsWithRadius() ?? []);
-    this.serviceRegistry.set(DamageBossToken,
-      (bossId: string, amount: number, sourceX: number, sourceY: number, isCritical: boolean) => {
-        this.serviceRegistry.get(MonsterSystem).takeDamage(bossId, amount, sourceX, sourceY);
-        const bossTarget = this.bossCombatCoordinator?.getAliveBossTarget(bossId);
-        const textX = bossTarget?.x ?? sourceX;
-        const textY = bossTarget?.y ?? sourceY;
-        this.serviceRegistry.get(FeedbackSystem).onBossContactDamaged(textX, textY, amount, isCritical);
-      });
-
-    // ── 5. SystemPlugin pipeline (data-driven) ──
+    // ── 3. SystemPlugin pipeline ──
+    const world = this.serviceRegistry.get(World);
     this.entitySystemPipeline = new EntitySystemPipeline(Data.gameConfig.entityPipeline);
     registerBuiltinSystemPlugins();
     const ctx: SystemPluginContext = {
       scene: this,
-      world: this.ecsWorld,
+      world,
       services: this.serviceRegistry,
     };
     for (const pluginId of Data.gameConfig.systemPlugins) {
       const plugin = PluginRegistry.getInstance().getSystemPlugin(pluginId);
       for (const system of plugin.createSystems(ctx)) {
         this.entitySystemPipeline.register(system);
+        this.serviceRegistry.set(
+          system.constructor as abstract new (...args: unknown[]) => EntitySystem,
+          system,
+        );
       }
     }
+    this.entitySystemPipeline.startAll({ services: this.serviceRegistry });
 
-    // ── 6. Cross-system wiring ──
-    const fallingBombSystem = this.entitySystemPipeline.getSystem('core:falling_bomb') as FallingBombSystem;
-    const orbSystem = this.entitySystemPipeline.getSystem('core:orb') as OrbSystem;
-    const blackHoleSystem = this.entitySystemPipeline.getSystem('core:black_hole') as BlackHoleSystem;
-    this.playerTickSystem = this.entitySystemPipeline.getSystem('core:player') as PlayerTickSystem;
-    orbSystem.setFallingBombSystem(fallingBombSystem);
-    blackHoleSystem.setFallingBombSystem(fallingBombSystem);
-
-    // ── 7. Player entity (archetype-based) ──
-    const playerArchetype = this.ecsWorld.archetypeRegistry.getRequired('player');
-    this.playerId = this.ecsWorld.spawnFromArchetype(playerArchetype, {
+    // ── 4. Player entity ──
+    const playerArchetype = world.archetypeRegistry.getRequired('player');
+    const playerId = world.spawnFromArchetype(playerArchetype, {
       identity: { entityId: 0, entityType: 'player', isGatekeeper: false },
       transform: { x: 0, y: 0, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 },
       health: { currentHp: INITIAL_HP, maxHp: INITIAL_HP, isDead: false },
@@ -257,529 +144,127 @@ export class GameScene extends Phaser.Scene {
       },
       playerRender: { gaugeRatio: 0, gameTime: 0 },
     });
-    const identityComp = this.ecsWorld.identity.get(this.playerId);
-    if (identityComp) identityComp.entityId = this.playerId;
-    this.ecsWorld.context.playerId = this.playerId;
-    this.playerTickSystem.setPlayerId(this.playerId);
+    const identityComp = world.identity.get(playerId);
+    if (identityComp) identityComp.entityId = playerId;
+    world.context.playerId = playerId;
 
-    // ── 8. Plugin registry reset + ability/entity registration ──
+    // ── 5. GameSceneController ──
+    this.controller = new GameSceneController(this, this.serviceRegistry);
+
+    // ── 6. Plugin registry + ability/mod lifecycle ──
     PluginRegistry.resetInstance();
     registerBuiltinAbilities();
     registerBuiltinEntityTypes();
 
-    // MOD 라이프사이클
     this.modRegistry = new ModRegistry(
       PluginRegistry.getInstance(),
-      this.modSystemRegistry,
+      this.serviceRegistry.get(ModSystemRegistry),
       this.entitySystemPipeline,
       this.serviceRegistry.get(StatusEffectManager),
       EventBus.getInstance(),
-      this.ecsWorld,
+      world,
     );
 
     this.abilityManager = new AbilityManager();
     this.abilityManager.init({
       scene: this,
       upgradeSystem: this.serviceRegistry.get(UpgradeSystem),
-      getCursor: () => this.getCursorSnapshot(),
-    });
-
-    this.hud = new HUD(
-      this,
-      this.waveSystem,
-      this.serviceRegistry.get(HealthSystem),
-      this.serviceRegistry.get(UpgradeSystem),
-    );
-    this.waveCountdownUI = new WaveCountdownUI(this);
-  }
-
-  private initializeRenderers(): void {
-    // OrbRenderer and BlackHoleRenderer are now created by CoreServicesPlugin in ServiceRegistry
-    this.laserRenderer = new LaserRenderer(this);
-
-    this.starBackground = new StarBackground(this, Data.gameConfig.stars);
-    this.starBackground.setDepth(DEPTHS.starBackground);
-  }
-
-  private initializeGameModules(): void {
-    const playerInputConfig = Data.gameConfig.player.input;
-    this.inputController = new PlayerCursorInputController({
-      pointerPriorityMs: playerInputConfig.pointerPriorityMs,
-      keyboardAxisRampUpMs: playerInputConfig.keyboardAxisRampUpMs,
-      keyboardEaseInPower: playerInputConfig.keyboardEaseInPower,
-      keyboardMinAxisSpeed: playerInputConfig.keyboardMinAxisSpeed,
-    });
-
-    this.bossCombatCoordinator = new BossCombatCoordinator({
-      scene: this,
-      waveSystem: this.waveSystem,
-      monsterSystem: this.serviceRegistry.get(MonsterSystem),
-      feedbackSystem: this.serviceRegistry.get(FeedbackSystem),
-      soundSystem: this.serviceRegistry.get(SoundSystem),
-      damageText: this.serviceRegistry.get(DamageText),
-      laserRenderer: this.laserRenderer,
-      healthSystem: this.serviceRegistry.get(HealthSystem),
-      upgradeSystem: this.serviceRegistry.get(UpgradeSystem),
-      damageService: this.serviceRegistry.get(EntityDamageService),
-      world: this.ecsWorld,
-      statusEffectManager: this.serviceRegistry.get(StatusEffectManager),
-      isGameOver: () => this.isGameOver,
-      isPaused: () => this.isDockPaused,
-    });
-
-    this.dishLifecycleController = new DishLifecycleController({
-      world: this.ecsWorld,
-      dishPool: this.entityPoolManager.getPool('dish')!,
-      dishes: this.dishes,
-      healthSystem: this.serviceRegistry.get(HealthSystem),
-      comboSystem: this.serviceRegistry.get(ComboSystem),
-      upgradeSystem: this.serviceRegistry.get(UpgradeSystem),
-      feedbackSystem: this.serviceRegistry.get(FeedbackSystem),
-      soundSystem: this.serviceRegistry.get(SoundSystem),
-      damageText: this.serviceRegistry.get(DamageText),
-      damageService: this.serviceRegistry.get(EntityDamageService),
-      getPlayerAttackRenderer: () => this.getPlayerAttackRenderer(),
-      isAnyLaserFiring: () => this.bossCombatCoordinator.isAnyLaserFiring(),
-      isGameOver: () => this.isGameOver,
-    });
-
-    this.playerAttackController = new PlayerAttackController({
-      scene: this,
-      world: this.ecsWorld,
-      damageService: this.serviceRegistry.get(EntityDamageService),
-      upgradeSystem: this.serviceRegistry.get(UpgradeSystem),
-      waveSystem: this.waveSystem,
-      monsterSystem: this.serviceRegistry.get(MonsterSystem),
-      feedbackSystem: this.serviceRegistry.get(FeedbackSystem),
-      soundSystem: this.serviceRegistry.get(SoundSystem),
-      particleManager: this.serviceRegistry.get(ParticleManager),
-      getCursor: () => this.getCursorSnapshot(),
-      getPlayerAttackRenderer: () => this.getPlayerAttackRenderer(),
-      bossGateway: this.bossCombatCoordinator,
-      isGameOver: () => this.isGameOver,
-    });
-
-    this.eventBinder = new GameSceneEventBinder({
-      onDishDestroyed: (payload) => this.dishLifecycleController.onDishDestroyed(payload),
-      onDishDamaged: (payload) => this.dishLifecycleController.onDishDamaged(payload),
-      onComboMilestone: (milestone) => this.serviceRegistry.get(FeedbackSystem).onComboMilestone(milestone),
-      onWaveStarted: (_waveNumber) => this.bossCombatCoordinator.syncBossesForCurrentWave(),
-      onWaveCompleted: (waveNumber) => this.onWaveCompleted(waveNumber),
-      onUpgradeSelected: () => this.onUpgradeSelected(),
-      onWaveCountdownTick: (seconds) => this.waveCountdownUI.updateCountdown(seconds),
-      onWaveReady: () => this.waveCountdownUI.hide(),
-      onGameOver: () => this.gameOver(),
-      onDishMissed: (payload) => this.dishLifecycleController.onDishMissed(payload),
-      onHealthPackUpgraded: (payload) => this.onHealthPackUpgraded(payload.hpBonus),
-      onHpChanged: (payload) => this.onHpChanged(payload),
-      onHealthPackPassing: (payload) => this.onHealthPackPassing(payload.x, payload.y),
-      onHealthPackCollected: (payload) => this.onHealthPackCollected(payload.x, payload.y),
-      onMonsterHpChanged: () => {
-        // 보스 엔티티가 내부적으로 MONSTER_HP_CHANGED 이벤트를 직접 구독한다.
-      },
-      onGaugeUpdated: (payload) => {
-        const pr = this.ecsWorld.playerRender.get(this.playerId);
-        if (pr) pr.gaugeRatio = payload.ratio;
-      },
-      onPlayerAttack: () => this.playerAttackController.performPlayerAttack(),
-      onMonsterDied: () => {
-        if (this.serviceRegistry.get(MonsterSystem).areAllDead()) {
-          this.waveSystem.forceCompleteWave();
-        }
-      },
-      onFallingBombDestroyed: (payload) => {
-        if (!payload.byAbility) {
-          this.serviceRegistry.get(HealthSystem).takeDamage(Data.fallingBomb.playerDamage);
-          if (Data.fallingBomb.resetCombo) {
-            this.serviceRegistry.get(ComboSystem).reset();
-          }
-        } else {
-          this.serviceRegistry.get(DamageText).showText(payload.x, payload.y - 40, Data.t('feedback.bomb_removed'), COLORS.CYAN);
-        }
-        this.serviceRegistry.get(FeedbackSystem).onBombExploded(payload.x, payload.y, !!payload.byAbility);
-      },
-      onBlackHoleConsumed: (payload) => {
-        this.serviceRegistry.get(DamageText).showText(payload.x, payload.y - 40, Data.t('feedback.black_hole_consumed'), COLORS.CYAN);
-      },
-    });
-
-    this.inputAdapter = new SceneInputAdapter({
-      scene: this,
-      inputController: this.inputController,
-      getInputTimestamp: () => this.getInputTimestamp(),
-      applyCursorPosition: (x, y) => {
-        const input = this.ecsWorld.playerInput.get(this.playerId);
-        if (input) {
-          input.targetX = Phaser.Math.Clamp(x, 0, GAME_WIDTH);
-          input.targetY = Phaser.Math.Clamp(y, 0, GAME_HEIGHT);
-        }
-      },
-      resetMovementInput: () => this.resetMovementInput(),
-      isGameOver: () => this.isGameOver,
-      togglePause: () => this.togglePause(),
-    });
-
-    // EntityQueryService에 보스 프로바이더 연결
-    this.serviceRegistry.get(EntityQueryService).setBossProvider(() => {
-      const bosses: Entity[] = [];
-      this.bossCombatCoordinator.forEachBoss((boss) => bosses.push(boss));
-      return bosses;
-    });
-
-    // ── Late-bind wrapper systems (depend on GameScene-only instances) ──
-    this.entitySystemPipeline.register(
-      new WaveTickSystem(this.waveSystem, this.ecsWorld),
-    );
-    this.entitySystemPipeline.register(
-      new BossCoordinatorSystem(this.bossCombatCoordinator, this.ecsWorld),
-    );
-    this.entitySystemPipeline.register(
-      new ModTickSystem(this.modSystemRegistry, () => this.getModSystemContext()),
-    );
-  }
-
-  private onWaveCompleted(waveNumber: number): void {
-    this.hud.showWaveComplete(waveNumber);
-    this.clearAllDishes();
-    this.bossCombatCoordinator.clearForWaveTransition();
-
-    this.pendingWaveNumber = waveNumber + 1;
-    this.time.delayedCall(500, () => {
-      if (this.isGameOver) return;
-      this.isUpgrading = true;
-      this.inGameUpgradeUI.show();
+      getCursor: () => this.controller.getCursorPosition(),
     });
   }
 
-  private onUpgradeSelected(): void {
-    if (this.isGameOver) return;
+  // === CursorPositionProvider (duck-typed for InGameUpgradeUI/ParticleManager) ===
 
-    this.isUpgrading = false;
-
-    this.time.delayedCall(300, () => {
-      if (this.isGameOver) return;
-      this.waveSystem.startCountdown(this.pendingWaveNumber);
-      this.waveCountdownUI.show(this.pendingWaveNumber);
-    });
+  public getCursorPosition(): CursorSnapshot {
+    return this.controller.getCursorPosition();
   }
 
-  private onHealthPackUpgraded(hpBonus: number): void {
-    const hs = this.serviceRegistry.get(HealthSystem);
-    hs.setMaxHp(INITIAL_HP + hpBonus);
-    hs.heal(hpBonus);
-  }
+  // === Update ===
 
-  private onHpChanged(data: { hp: number; maxHp: number; delta: number; isFullHeal?: boolean }): void {
-    if (data.isFullHeal) {
-      this.serviceRegistry.get(HealthSystem).reset();
-      this.serviceRegistry.get(FeedbackSystem).onHealthPackCollected(GAME_WIDTH / 2, GAME_HEIGHT / 2);
+  update(_time: number, delta: number): void {
+    if (this.controller.isGameOver) return;
+
+    this.controller.processKeyboardInput(delta, this.getInputTimestamp());
+
+    if (this.controller.isUpgrading) {
+      this.controller.snapPlayerToTarget();
+      this.controller.setDockPaused(false);
+      this.syncSimulationPauseState(false);
+      this.controller.updateHudInteraction(delta);
+      this.controller.renderFrame(delta, _time);
+      this.gridRenderer.update(delta);
+      this.entitySystemPipeline.runRenderOnly(delta);
       return;
     }
 
-    if (data.delta < 0) {
-      this.hud.showHpLoss();
-      this.serviceRegistry.get(FeedbackSystem).onHpLost();
-    }
-  }
+    const hudInteraction = this.controller.updateHudInteraction(delta);
+    const shouldPause = hudInteraction.shouldPauseGame || this.controller.isEscPaused;
+    this.controller.setDockPaused(shouldPause);
+    this.syncSimulationPauseState(shouldPause);
 
-  private onHealthPackCollected(x: number, y: number): void {
-    this.serviceRegistry.get(HealthSystem).heal(1);
-    this.serviceRegistry.get(FeedbackSystem).onHealthPackCollected(x, y);
-  }
-
-  private onHealthPackPassing(x: number, y: number): void {
-    this.serviceRegistry.get(FeedbackSystem).onHealthPackPassing(x, y);
-  }
-
-  private getPlayerAttackRenderer(): PlayerAttackRenderer {
-    if (!this.playerAttackRenderer) {
-      this.playerAttackRenderer = new PlayerAttackRenderer(this);
-    }
-    return this.playerAttackRenderer;
-  }
-
-  private getDockSafeSpawnMaxY(baseMaxY: number): number {
-    const dockHoverArea = this.hud.getDockHoverArea();
-    if (!dockHoverArea) {
-      return baseMaxY;
+    if (this.controller.isPaused) {
+      this.controller.snapPlayerToTarget();
+      this.controller.renderHud();
+      this.entitySystemPipeline.runRenderOnly(delta);
+      return;
     }
 
-    const dockSafeMaxY = Math.floor(dockHoverArea.y - this.maxSpawnedDishRadius);
-    return Math.max(SPAWN_AREA.minY, Math.min(baseMaxY, dockSafeMaxY));
+    this.controller.tickGameTime(delta);
+    this.controller.syncWorldContext();
+    this.entitySystemPipeline.run(delta);
+
+    this.controller.renderFrame(delta, _time);
+    this.gridRenderer.update(delta);
   }
 
-  private calculateMaxSpawnedDishRadius(): number {
-    const waveDishTypes = Data.waves.waves.flatMap((wave) => wave.dishTypes.map((dish) => dish.type));
-    const feverDishTypes = Data.waves.fever.dishTypes.map((dish) => dish.type);
-    const uniqueDishTypes = new Set<string>([...waveDishTypes, ...feverDishTypes]);
-
-    let maxRadius = 0;
-    uniqueDishTypes.forEach((type) => {
-      const dishData = Data.getDishData(type);
-      if (dishData) {
-        maxRadius = Math.max(maxRadius, dishData.size);
-      }
-    });
-
-    return maxRadius;
-  }
-
-  public spawnDish(type: string, x: number, y: number, speedMultiplier: number = 1): void {
-    this.dishLifecycleController.spawnDish(type, x, y, speedMultiplier);
-  }
+  // === Scene lifecycle ===
 
   private togglePause(): void {
-    if (this.isUpgrading) return;
-    this.isEscPaused = !this.isEscPaused;
-    if (this.isEscPaused) {
-      this.resetMovementInput();
-    }
+    if (this.controller.isUpgrading) return;
+    this.controller.toggleEscPause(this.getInputTimestamp());
   }
 
   private gameOver(): void {
-    this.isGameOver = true;
-    this.isEscPaused = false;
-    this.isDockPaused = false;
-    this.syncSimulationPauseState();
+    this.controller.setGameOver();
+    this.syncSimulationPauseState(false);
     this.physics.pause();
 
-    if (this.bgm) {
-      this.bgm.stop();
-    }
+    if (this.bgm) this.bgm.stop();
 
     this.cameras.main.fadeOut(1000, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.cleanup();
-      this.scene.start('GameOverScene', {
-        maxCombo: this.serviceRegistry.get(ComboSystem).getMaxCombo(),
-        wave: this.waveSystem.getCurrentWave(),
-        time: this.gameTime,
-      });
+      this.scene.start('GameOverScene', this.controller.getGameOverData());
     });
   }
 
   private cleanup(): void {
-    this.resetMovementInput();
+    this.controller.resetMovementInput(this.getInputTimestamp());
     this.eventBinder?.unbind();
     this.inputAdapter?.teardown();
     this.modRegistry?.unloadAll();
     EventBus.getInstance().clear();
 
-    this.bossCombatCoordinator?.destroy();
-    this.playerAttackController?.destroy();
-
-    this.entityPoolManager.clearAll();
-
-    const healthPackSystem = this.entitySystemPipeline?.getSystem('core:health_pack') as HealthPackSystem | undefined;
-    healthPackSystem?.destroy();
-    healthPackSystem?.clear();
-
-    const fallingBombSystem = this.entitySystemPipeline?.getSystem('core:falling_bomb') as FallingBombSystem | undefined;
-    fallingBombSystem?.destroy();
-    fallingBombSystem?.clear();
-
-    this.serviceRegistry?.get(MonsterSystem)?.destroy();
-    this.inGameUpgradeUI.destroy();
-    this.waveCountdownUI.destroy();
-
-    this.ecsWorld?.clear();
-    this.serviceRegistry?.get(StatusEffectManager)?.clear();
-    this.modSystemRegistry?.clear();
-    this.entitySystemPipeline?.clear();
-
-    this.starBackground?.destroy();
-    this.gridRenderer?.destroy();
-    this.serviceRegistry?.get(CursorRenderer)?.destroy();
-    this.laserRenderer?.destroy();
-    this.serviceRegistry?.get(CursorTrail)?.destroy();
-    this.serviceRegistry?.get(GaugeSystem)?.destroy();
-
-    // Renderers managed by ServiceRegistry
-    if (this.serviceRegistry?.has(OrbRenderer)) {
-      this.serviceRegistry.get(OrbRenderer).destroy();
-    }
-    if (this.serviceRegistry?.has(BlackHoleRenderer)) {
-      this.serviceRegistry.get(BlackHoleRenderer).destroy();
-    }
-
-    const blackHoleSystem = this.entitySystemPipeline?.getSystem('core:black_hole') as BlackHoleSystem | undefined;
-    blackHoleSystem?.clear();
+    this.entitySystemPipeline?.destroyAll();
     this.abilityManager?.destroy();
-
-    this.playerAttackRenderer?.destroy();
-    this.playerAttackRenderer = null;
+    this.gridRenderer?.destroy();
+    this.serviceRegistry?.destroyAll();
   }
 
-  update(_time: number, delta: number): void {
-    if (this.isGameOver) return;
-
-    // 1. 입력 처리
-    this.processKeyboardInput(delta);
-
-    // 2. Pause/upgrade 경로
-    if (this.isUpgrading) {
-      this.snapPlayerToTarget();
-      this.setDockPaused(false);
-      this.inGameUpgradeUI.update(delta);
-      this.hud.update(this.gameTime, this.getHudFrameContext(), delta);
-      this.updateSceneVisuals(delta, _time);
-      this.playerTickSystem.renderOnly(delta);
-      return;
-    }
-
-    const hudInteraction = this.hud.updateInteractionState(this.getHudFrameContext(), delta);
-    this.setDockPaused(hudInteraction.shouldPauseGame || this.isEscPaused);
-    if (this.isDockPaused) {
-      this.snapPlayerToTarget();
-      this.hud.render(this.gameTime);
-      this.playerTickSystem.renderOnly(delta);
-      return;
-    }
-
-    // 3. Active 경로: pipeline.run()이 모든 tick 로직 실행
-    this.gameTime += delta;
-    this.syncWorldContext();
-    this.entitySystemPipeline.run(delta);
-
-    // 4. Scene 비주얼
-    this.hud.render(this.gameTime);
-    this.inGameUpgradeUI.update(delta);
-    this.updateSceneVisuals(delta, _time);
-  }
-
-  private processKeyboardInput(delta: number): void {
-    if (!this.inputController) return;
-
-    const playerT = this.getPlayerTransform();
-    const playerI = this.getPlayerInput();
-    const now = this.getInputTimestamp();
-    const shouldUseKeyboard = this.shouldUseKeyboardMovement(now);
-    const axis = this.inputController.getKeyboardAxis(delta, now);
-    const speed = Data.gameConfig.player.cursorSpeed;
-    const moveDistance = (speed * delta) / 1000;
-    if (shouldUseKeyboard && axis.isMoving) {
-      const newX = Phaser.Math.Clamp(playerT.x + axis.x * moveDistance, 0, GAME_WIDTH);
-      const newY = Phaser.Math.Clamp(playerT.y + axis.y * moveDistance, 0, GAME_HEIGHT);
-      playerT.x = newX;
-      playerT.y = newY;
-      playerI.targetX = newX;
-      playerI.targetY = newY;
-    }
-  }
-
-  private syncWorldContext(): void {
-    this.ecsWorld.context.gameTime = this.gameTime;
-    this.ecsWorld.context.currentWave = this.waveSystem.getCurrentWave();
-    const pr = this.ecsWorld.playerRender.get(this.playerId);
-    if (pr) pr.gameTime = this.gameTime;
-  }
-
-  private updateSceneVisuals(delta: number, time: number): void {
-    this.gridRenderer.update(delta);
-    this.starBackground.update(delta, time, Data.gameConfig.gameGrid.speed);
-  }
-
-  private getModSystemContext(): ModSystemContext {
-    return {
-      entities: this.serviceRegistry.get(EntityQueryService),
-      statusEffectManager: this.serviceRegistry.get(StatusEffectManager),
-      eventBus: EventBus.getInstance(),
-    };
-  }
-
-  private clearAllDishes(): void {
-    const statusEffectManager = this.serviceRegistry.get(StatusEffectManager);
-    for (const [entityId] of this.ecsWorld.query(C_DishTag)) {
-      const node = this.ecsWorld.phaserNode.get(entityId);
-      if (node) {
-        const entity = node.container as Entity;
-        deactivateEntity(entity, this.ecsWorld, statusEffectManager);
-        this.dishes.remove(entity);
-        this.entityPoolManager.release('dish', entity);
-      }
-    }
-  }
-
-  public getCursorPosition(): CursorSnapshot {
-    return this.getCursorSnapshot();
-  }
-
-  private isUpgradeSelectionVisible(): boolean {
-    return this.isUpgrading && this.inGameUpgradeUI.isVisible();
-  }
-
-  // === Player entity helpers ===
-
-  private getPlayerTransform(): TransformComponent {
-    return this.ecsWorld.transform.getRequired(this.playerId);
-  }
-
-  private getPlayerInput(): PlayerInputComponent {
-    return this.ecsWorld.playerInput.getRequired(this.playerId);
-  }
-
-  private snapPlayerToTarget(): void {
-    const input = this.getPlayerInput();
-    const transform = this.getPlayerTransform();
-    transform.x = input.targetX;
-    transform.y = input.targetY;
-  }
-
-  private getHudFrameContext(): HudFrameContext {
-    const t = this.getPlayerTransform();
-    return {
-      cursorX: t.x,
-      cursorY: t.y,
-      isUpgradeSelectionVisible: this.isUpgradeSelectionVisible(),
-      isEscPaused: this.isEscPaused,
-    };
-  }
+  // === Internal helpers ===
 
   private getInputTimestamp(): number {
     const sceneNow = this.time?.now;
-    if (typeof sceneNow === 'number' && Number.isFinite(sceneNow)) {
-      return sceneNow;
-    }
-    if (typeof performance !== 'undefined') {
-      return performance.now();
-    }
+    if (typeof sceneNow === 'number' && Number.isFinite(sceneNow)) return sceneNow;
+    if (typeof performance !== 'undefined') return performance.now();
     return Date.now();
   }
 
-  private resetMovementInput(): void {
-    this.inputController?.resetMovementInput(this.getInputTimestamp());
-  }
+  private syncSimulationPauseState(shouldPause: boolean): void {
+    if (this.isSimulationPaused === shouldPause) return;
+    this.isSimulationPaused = shouldPause;
 
-  private shouldUseKeyboardMovement(timestamp: number = this.getInputTimestamp()): boolean {
-    if (!this.inputController) {
-      return false;
-    }
-    return this.inputController.shouldUseKeyboardMovement(timestamp);
-  }
-
-  private getCursorSnapshot(): CursorSnapshot {
-    const t = this.getPlayerTransform();
-    return { x: t.x, y: t.y };
-  }
-
-  private setDockPaused(paused: boolean): void {
-    if (this.isDockPaused === paused) {
-      return;
-    }
-
-    this.isDockPaused = paused;
-    this.syncSimulationPauseState();
-  }
-
-  private syncSimulationPauseState(): void {
-    const shouldPauseSimulation = this.isDockPaused;
-    if (this.isSimulationPaused === shouldPauseSimulation) {
-      return;
-    }
-
-    this.isSimulationPaused = shouldPauseSimulation;
-
-    if (shouldPauseSimulation) {
+    if (shouldPause) {
       this.physics.pause();
       this.time.timeScale = 0;
       this.tweens.pauseAll();
@@ -788,9 +273,6 @@ export class GameScene extends Phaser.Scene {
 
     this.time.timeScale = 1;
     this.tweens.resumeAll();
-
-    if (!this.isGameOver) {
-      this.physics.resume();
-    }
+    if (!this.controller.isGameOver) this.physics.resume();
   }
 }

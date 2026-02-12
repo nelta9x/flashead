@@ -1,36 +1,24 @@
+import { COLORS, GAME_HEIGHT, GAME_WIDTH, INITIAL_HP } from '../../data/constants';
+import { Data } from '../../data/DataManager';
+import { FeedbackSystem } from '../../systems/FeedbackSystem';
+import { HealthSystem } from '../../systems/HealthSystem';
+import { MonsterSystem } from '../../systems/MonsterSystem';
+import { ComboSystem } from '../../systems/ComboSystem';
+import { WaveSystem } from '../../systems/WaveSystem';
+import { DamageText } from '../../ui/DamageText';
+import { HUD } from '../../ui/HUD';
+import { WaveCountdownUI } from '../../ui/WaveCountdownUI';
+import { World } from '../../world';
+import { PlayerAttackController } from './PlayerAttackController';
+import { BossCombatCoordinator } from './BossCombatCoordinator';
+import { DishLifecycleController } from './DishLifecycleController';
 import { EventBus, GameEvents } from '../../utils/EventBus';
+import type { ServiceRegistry } from '../../plugins/ServiceRegistry';
 import type {
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
   DishMissedEventPayload,
 } from './GameSceneContracts';
-
-interface HealthPackUpgradedPayload {
-  hpBonus: number;
-}
-
-interface HpChangedPayload {
-  hp: number;
-  maxHp: number;
-  delta: number;
-  isFullHeal?: boolean;
-}
-
-interface HealthPackCollectedPayload {
-  x: number;
-  y: number;
-}
-
-interface HealthPackPassingPayload {
-  x: number;
-  y: number;
-}
-
-interface GaugeUpdatedPayload {
-  current: number;
-  max: number;
-  ratio: number;
-}
 
 interface FallingBombDestroyedPayload {
   x: number;
@@ -43,27 +31,17 @@ interface BlackHoleConsumedPayload {
   y: number;
 }
 
-export interface GameSceneEventBinderHandlers {
-  onDishDestroyed: (payload: DishDestroyedEventPayload) => void;
-  onDishDamaged: (payload: DishDamagedEventPayload) => void;
-  onComboMilestone: (milestone: number) => void;
-  onWaveStarted: (waveNumber: number) => void;
+interface GaugeUpdatedPayload {
+  current: number;
+  max: number;
+  ratio: number;
+}
+
+/** Scene-state callbacks that only GameScene can provide. */
+export interface SceneLifecycleCallbacks {
   onWaveCompleted: (waveNumber: number) => void;
   onUpgradeSelected: () => void;
-  onWaveCountdownTick: (seconds: number) => void;
-  onWaveReady: () => void;
   onGameOver: () => void;
-  onDishMissed: (payload: DishMissedEventPayload) => void;
-  onHealthPackUpgraded: (payload: HealthPackUpgradedPayload) => void;
-  onHpChanged: (payload: HpChangedPayload) => void;
-  onHealthPackPassing: (payload: HealthPackPassingPayload) => void;
-  onHealthPackCollected: (payload: HealthPackCollectedPayload) => void;
-  onMonsterHpChanged: () => void;
-  onGaugeUpdated: (payload: GaugeUpdatedPayload) => void;
-  onPlayerAttack: () => void;
-  onMonsterDied: () => void;
-  onFallingBombDestroyed: (payload: FallingBombDestroyedPayload) => void;
-  onBlackHoleConsumed: (payload: BlackHoleConsumedPayload) => void;
 }
 
 interface EventSubscription {
@@ -72,112 +50,123 @@ interface EventSubscription {
 }
 
 export class GameSceneEventBinder {
-  private readonly handlers: GameSceneEventBinderHandlers;
+  private readonly services: ServiceRegistry;
+  private readonly scene: SceneLifecycleCallbacks;
   private readonly subscriptions: EventSubscription[] = [];
   private isBound = false;
 
-  constructor(handlers: GameSceneEventBinderHandlers) {
-    this.handlers = handlers;
+  constructor(services: ServiceRegistry, scene: SceneLifecycleCallbacks) {
+    this.services = services;
+    this.scene = scene;
   }
 
   public bind(): void {
-    if (this.isBound) {
-      return;
-    }
+    if (this.isBound) return;
+    const s = this.services;
 
-    this.addSubscription(GameEvents.DISH_DESTROYED, (...args: unknown[]) => {
-      const payload = args[0] as DishDestroyedEventPayload;
-      this.handlers.onDishDestroyed(payload);
+    // ── Pure delegations (resolved from ServiceRegistry) ──
+    this.on(GameEvents.DISH_DESTROYED, (payload: DishDestroyedEventPayload) => {
+      s.get(DishLifecycleController).onDishDestroyed(payload);
     });
-    this.addSubscription(GameEvents.DISH_DAMAGED, (...args: unknown[]) => {
-      const payload = args[0] as DishDamagedEventPayload;
-      this.handlers.onDishDamaged(payload);
+    this.on(GameEvents.DISH_DAMAGED, (payload: DishDamagedEventPayload) => {
+      s.get(DishLifecycleController).onDishDamaged(payload);
     });
-    this.addSubscription(GameEvents.COMBO_MILESTONE, (...args: unknown[]) => {
-      const milestone = args[0] as number;
-      this.handlers.onComboMilestone(milestone);
+    this.on(GameEvents.DISH_MISSED, (payload: DishMissedEventPayload) => {
+      s.get(DishLifecycleController).onDishMissed(payload);
     });
-    this.addSubscription(GameEvents.WAVE_STARTED, (...args: unknown[]) => {
-      const waveNumber = args[0] as number;
-      this.handlers.onWaveStarted(waveNumber);
+    this.on(GameEvents.COMBO_MILESTONE, (milestone: number) => {
+      s.get(FeedbackSystem).onComboMilestone(milestone);
     });
-    this.addSubscription(GameEvents.WAVE_COMPLETED, (...args: unknown[]) => {
-      const waveNumber = args[0] as number;
-      this.handlers.onWaveCompleted(waveNumber);
+    this.on(GameEvents.WAVE_STARTED, (_waveNumber: number) => {
+      s.get(BossCombatCoordinator).syncBossesForCurrentWave();
     });
-    this.addSubscription(GameEvents.UPGRADE_SELECTED, () => {
-      this.handlers.onUpgradeSelected();
+    this.on(GameEvents.WAVE_COUNTDOWN_TICK, (seconds: number) => {
+      s.get(WaveCountdownUI).updateCountdown(seconds);
     });
-    this.addSubscription(GameEvents.WAVE_COUNTDOWN_TICK, (...args: unknown[]) => {
-      const seconds = args[0] as number;
-      this.handlers.onWaveCountdownTick(seconds);
+    this.on(GameEvents.WAVE_READY, () => {
+      s.get(WaveCountdownUI).hide();
     });
-    this.addSubscription(GameEvents.WAVE_READY, () => {
-      this.handlers.onWaveReady();
+    this.on(GameEvents.PLAYER_ATTACK, () => {
+      s.get(PlayerAttackController).performPlayerAttack();
     });
-    this.addSubscription(GameEvents.GAME_OVER, () => {
-      this.handlers.onGameOver();
+    this.on(GameEvents.MONSTER_DIED, () => {
+      if (s.get(MonsterSystem).areAllDead()) {
+        s.get(WaveSystem).forceCompleteWave();
+      }
     });
-    this.addSubscription(GameEvents.DISH_MISSED, (...args: unknown[]) => {
-      const payload = args[0] as DishMissedEventPayload;
-      this.handlers.onDishMissed(payload);
+    this.on(GameEvents.HEALTH_PACK_UPGRADED, (payload: { hpBonus: number }) => {
+      const hs = s.get(HealthSystem);
+      hs.setMaxHp(INITIAL_HP + payload.hpBonus);
+      hs.heal(payload.hpBonus);
     });
-    this.addSubscription(GameEvents.HEALTH_PACK_UPGRADED, (...args: unknown[]) => {
-      const payload = args[0] as HealthPackUpgradedPayload;
-      this.handlers.onHealthPackUpgraded(payload);
+    this.on(GameEvents.HP_CHANGED, (data: { hp: number; maxHp: number; delta: number; isFullHeal?: boolean }) => {
+      if (data.isFullHeal) {
+        s.get(HealthSystem).reset();
+        s.get(FeedbackSystem).onHealthPackCollected(GAME_WIDTH / 2, GAME_HEIGHT / 2);
+        return;
+      }
+      if (data.delta < 0) {
+        s.get(HUD).showHpLoss();
+        s.get(FeedbackSystem).onHpLost();
+      }
     });
-    this.addSubscription(GameEvents.HP_CHANGED, (...args: unknown[]) => {
-      const payload = args[0] as HpChangedPayload;
-      this.handlers.onHpChanged(payload);
+    this.on(GameEvents.HEALTH_PACK_PASSING, (payload: { x: number; y: number }) => {
+      s.get(FeedbackSystem).onHealthPackPassing(payload.x, payload.y);
     });
-    this.addSubscription(GameEvents.HEALTH_PACK_PASSING, (...args: unknown[]) => {
-      const payload = args[0] as HealthPackPassingPayload;
-      this.handlers.onHealthPackPassing(payload);
+    this.on(GameEvents.HEALTH_PACK_COLLECTED, (payload: { x: number; y: number }) => {
+      s.get(HealthSystem).heal(1);
+      s.get(FeedbackSystem).onHealthPackCollected(payload.x, payload.y);
     });
-    this.addSubscription(GameEvents.HEALTH_PACK_COLLECTED, (...args: unknown[]) => {
-      const payload = args[0] as HealthPackCollectedPayload;
-      this.handlers.onHealthPackCollected(payload);
+    this.on(GameEvents.GAUGE_UPDATED, (payload: GaugeUpdatedPayload) => {
+      const world = s.get(World);
+      const pr = world.playerRender.get(world.context.playerId);
+      if (pr) pr.gaugeRatio = payload.ratio;
     });
-    this.addSubscription(GameEvents.MONSTER_HP_CHANGED, () => {
-      this.handlers.onMonsterHpChanged();
+    this.on(GameEvents.FALLING_BOMB_DESTROYED, (payload: FallingBombDestroyedPayload) => {
+      if (!payload.byAbility) {
+        s.get(HealthSystem).takeDamage(Data.fallingBomb.playerDamage);
+        if (Data.fallingBomb.resetCombo) {
+          s.get(ComboSystem).reset();
+        }
+      } else {
+        s.get(DamageText).showText(payload.x, payload.y - 40, Data.t('feedback.bomb_removed'), COLORS.CYAN);
+      }
+      s.get(FeedbackSystem).onBombExploded(payload.x, payload.y, !!payload.byAbility);
     });
-    this.addSubscription(GameEvents.GAUGE_UPDATED, (...args: unknown[]) => {
-      const payload = args[0] as GaugeUpdatedPayload;
-      this.handlers.onGaugeUpdated(payload);
+    this.on(GameEvents.BLACK_HOLE_CONSUMED, (payload: BlackHoleConsumedPayload) => {
+      s.get(DamageText).showText(payload.x, payload.y - 40, Data.t('feedback.black_hole_consumed'), COLORS.CYAN);
     });
-    this.addSubscription(GameEvents.PLAYER_ATTACK, () => {
-      this.handlers.onPlayerAttack();
+    this.on(GameEvents.MONSTER_HP_CHANGED, () => {
+      // 보스 엔티티가 내부적으로 MONSTER_HP_CHANGED 이벤트를 직접 구독한다.
     });
-    this.addSubscription(GameEvents.MONSTER_DIED, () => {
-      this.handlers.onMonsterDied();
+
+    // ── Scene lifecycle (only GameScene can handle) ──
+    this.on(GameEvents.WAVE_COMPLETED, (waveNumber: number) => {
+      this.scene.onWaveCompleted(waveNumber);
     });
-    this.addSubscription(GameEvents.FALLING_BOMB_DESTROYED, (...args: unknown[]) => {
-      const payload = args[0] as FallingBombDestroyedPayload;
-      this.handlers.onFallingBombDestroyed(payload);
+    this.on(GameEvents.UPGRADE_SELECTED, () => {
+      this.scene.onUpgradeSelected();
     });
-    this.addSubscription(GameEvents.BLACK_HOLE_CONSUMED, (...args: unknown[]) => {
-      const payload = args[0] as BlackHoleConsumedPayload;
-      this.handlers.onBlackHoleConsumed(payload);
+    this.on(GameEvents.GAME_OVER, () => {
+      this.scene.onGameOver();
     });
 
     this.isBound = true;
   }
 
   public unbind(): void {
-    if (!this.isBound) {
-      return;
-    }
-
+    if (!this.isBound) return;
     const eventBus = EventBus.getInstance();
-    this.subscriptions.forEach((subscription) => {
-      eventBus.off(subscription.event, subscription.handler);
-    });
+    for (const sub of this.subscriptions) {
+      eventBus.off(sub.event, sub.handler);
+    }
     this.subscriptions.length = 0;
     this.isBound = false;
   }
 
-  private addSubscription(event: string, handler: (...args: unknown[]) => void): void {
-    EventBus.getInstance().on(event, handler);
-    this.subscriptions.push({ event, handler });
+  private on<T>(event: string, handler: (payload: T) => void): void {
+    const wrapped = (...args: unknown[]) => handler(args[0] as T);
+    EventBus.getInstance().on(event, wrapped);
+    this.subscriptions.push({ event, handler: wrapped });
   }
 }

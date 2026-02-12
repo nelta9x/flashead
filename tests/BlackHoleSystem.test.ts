@@ -146,14 +146,23 @@ describe('BlackHoleSystem', () => {
     } as unknown as UpgradeSystem;
 
     damageBoss = vi.fn();
+    const mockBcc = {
+      getAliveVisibleBossSnapshotsWithRadius: () => bosses,
+      damageBoss,
+    };
     system = new BlackHoleSystem(
       upgradeSystem,
       mockWorld as never,
       mockDamageService as never,
-      () => bosses,
-      damageBoss,
-      { render: vi.fn() } as never
+      mockBcc as never,
+      { render: vi.fn() } as never,
     );
+    // Simulate start() with a mock FallingBombSystem via ServiceRegistry
+    system.start({
+      services: {
+        get: () => ({ tryDestroyBomb: vi.fn(), forceDestroy: vi.fn() }),
+      } as never,
+    });
   };
 
   beforeEach(() => {

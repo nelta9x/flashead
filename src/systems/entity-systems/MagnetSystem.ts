@@ -6,13 +6,14 @@ import type { World } from '../../world';
 import type { EntityDamageService } from '../EntityDamageService';
 import type { UpgradeSystem } from '../UpgradeSystem';
 import type { ParticleManager } from '../../effects/ParticleManager';
+import type { GameEnvironment } from '../../scenes/game/GameEnvironment';
 
 interface MagnetSystemDeps {
   world: World;
   damageService: EntityDamageService;
   upgradeSystem: UpgradeSystem;
   particleManager: ParticleManager;
-  getCursor: () => { x: number; y: number };
+  gameEnv: GameEnvironment;
 }
 
 export class MagnetSystem implements EntitySystem {
@@ -23,19 +24,19 @@ export class MagnetSystem implements EntitySystem {
   private readonly damageService: EntityDamageService;
   private readonly upgradeSystem: UpgradeSystem;
   private readonly particleManager: ParticleManager;
-  private readonly getCursor: () => { x: number; y: number };
+  private readonly gameEnv: GameEnvironment;
 
   constructor(deps: MagnetSystemDeps) {
     this.world = deps.world;
     this.damageService = deps.damageService;
     this.upgradeSystem = deps.upgradeSystem;
     this.particleManager = deps.particleManager;
-    this.getCursor = deps.getCursor;
+    this.gameEnv = deps.gameEnv;
   }
 
   tick(delta: number): void {
     const magnetLevel = this.upgradeSystem.getMagnetLevel();
-    const cursor = this.getCursor();
+    const cursor = this.gameEnv.getCursorPosition();
 
     if (magnetLevel <= 0) {
       for (const [entityId] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {

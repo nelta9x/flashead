@@ -4,11 +4,12 @@ import { Data } from '../data/DataManager';
 import type { BlackHoleLevelData } from '../data/types';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import type { EntityDamageService } from './EntityDamageService';
-import type { FallingBombSystem } from './FallingBombSystem';
+import { FallingBombSystem } from './FallingBombSystem';
 import type { UpgradeSystem } from './UpgradeSystem';
 import type { BlackHoleRenderer } from '../effects/BlackHoleRenderer';
+import type { BossCombatCoordinator } from '../scenes/game/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_FallingBomb } from '../world';
-import type { EntitySystem } from './entity-systems/EntitySystem';
+import type { EntitySystem, SystemStartContext } from './entity-systems/EntitySystem';
 import type { World } from '../world';
 
 export interface BlackHoleSnapshot {
@@ -23,29 +24,15 @@ interface ActiveBlackHole extends BlackHoleSnapshot {
   remainingDuration: number;
 }
 
-interface BossSnapshot {
-  id: string;
-  x: number;
-  y: number;
-  radius: number;
-}
-
 export class BlackHoleSystem implements EntitySystem {
   readonly id = 'core:black_hole';
   enabled = true;
   private readonly upgradeSystem: UpgradeSystem;
   private readonly world: World;
   private readonly damageService: EntityDamageService;
-  private readonly getBosses: () => BossSnapshot[];
-  private readonly damageBoss: (
-    bossId: string,
-    amount: number,
-    sourceX: number,
-    sourceY: number,
-    isCritical: boolean
-  ) => void;
+  private readonly bcc: BossCombatCoordinator;
   private readonly renderer: BlackHoleRenderer;
-  private fallingBombSystem?: FallingBombSystem;
+  private fallingBombSystem!: FallingBombSystem;
 
   private blackHoles: ActiveBlackHole[] = [];
   private timeSinceLastSpawn = 0;
@@ -56,26 +43,18 @@ export class BlackHoleSystem implements EntitySystem {
     upgradeSystem: UpgradeSystem,
     world: World,
     damageService: EntityDamageService,
-    getBosses: () => BossSnapshot[],
-    damageBoss: (
-      bossId: string,
-      amount: number,
-      sourceX: number,
-      sourceY: number,
-      isCritical: boolean
-    ) => void,
+    bcc: BossCombatCoordinator,
     renderer: BlackHoleRenderer,
   ) {
     this.upgradeSystem = upgradeSystem;
     this.world = world;
     this.damageService = damageService;
-    this.getBosses = getBosses;
-    this.damageBoss = damageBoss;
+    this.bcc = bcc;
     this.renderer = renderer;
   }
 
-  setFallingBombSystem(system: FallingBombSystem): void {
-    this.fallingBombSystem = system;
+  start(ctx: SystemStartContext): void {
+    this.fallingBombSystem = ctx.services.get(FallingBombSystem);
   }
 
   tick(delta: number): void {
@@ -329,14 +308,14 @@ export class BlackHoleSystem implements EntitySystem {
       }
     }
 
-    const bosses = this.getBosses();
+    const bosses = this.bcc.getAliveVisibleBossSnapshotsWithRadius();
     for (const boss of bosses) {
       for (const hole of this.blackHoles) {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, boss.x, boss.y);
         if (distance > hole.radius + boss.radius) continue;
 
         const criticalResult = this.resolveCriticalDamage(hole.damage, criticalChanceBonus);
-        this.damageBoss(boss.id, criticalResult.damage, hole.x, hole.y, criticalResult.isCritical);
+        this.bcc.damageBoss(boss.id, criticalResult.damage, hole.x, hole.y, criticalResult.isCritical);
         break;
       }
     }

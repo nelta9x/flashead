@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
 import type { UpgradeSystem } from './UpgradeSystem';
 import type { EntityDamageService } from './EntityDamageService';
-import type { FallingBombSystem } from './FallingBombSystem';
 import type { OrbRenderer } from '../effects/OrbRenderer';
 import type { SystemUpgradeData } from '../data/types';
 import type { BossRadiusSnapshot } from '../scenes/game/GameSceneContracts';
+import type { BossCombatCoordinator } from '../scenes/game/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_Lifetime, C_FallingBomb } from '../world';
 import { Data } from '../data/DataManager';
-import type { EntitySystem } from './entity-systems/EntitySystem';
+import { FallingBombSystem } from './FallingBombSystem';
+import type { EntitySystem, SystemStartContext } from './entity-systems/EntitySystem';
 import type { World } from '../world';
 import type { EntityId } from '../world/EntityId';
 
@@ -30,14 +31,7 @@ export class OrbSystem implements EntitySystem {
   private readonly upgradeSystem: UpgradeSystem;
   private readonly world: World;
   private readonly damageService: EntityDamageService;
-  private readonly getBossSnapshots: () => BossRadiusSnapshot[];
-  private readonly damageBoss: (
-    bossId: string,
-    amount: number,
-    sourceX: number,
-    sourceY: number,
-    isCritical: boolean
-  ) => void;
+  private readonly bcc: BossCombatCoordinator;
   private readonly renderer: OrbRenderer;
   private currentAngle: number = 0;
 
@@ -48,32 +42,24 @@ export class OrbSystem implements EntitySystem {
   private orbPositions: OrbPosition[] = [];
   private overclockStacks: number = 0;
   private overclockExpireAt: number = 0;
-  private fallingBombSystem?: FallingBombSystem;
+  private fallingBombSystem!: FallingBombSystem;
 
   constructor(
     upgradeSystem: UpgradeSystem,
     world: World,
     damageService: EntityDamageService,
-    getBossSnapshots: () => BossRadiusSnapshot[],
-    damageBoss: (
-      bossId: string,
-      amount: number,
-      sourceX: number,
-      sourceY: number,
-      isCritical: boolean
-    ) => void,
+    bcc: BossCombatCoordinator,
     renderer: OrbRenderer,
   ) {
     this.upgradeSystem = upgradeSystem;
     this.world = world;
     this.damageService = damageService;
-    this.getBossSnapshots = getBossSnapshots;
-    this.damageBoss = damageBoss;
+    this.bcc = bcc;
     this.renderer = renderer;
   }
 
-  setFallingBombSystem(system: FallingBombSystem): void {
-    this.fallingBombSystem = system;
+  start(ctx: SystemStartContext): void {
+    this.fallingBombSystem = ctx.services.get(FallingBombSystem);
   }
 
   tick(delta: number): void {
@@ -81,12 +67,13 @@ export class OrbSystem implements EntitySystem {
     const playerT = this.world.transform.get(ctx.playerId);
     if (!playerT) return;
     this.update(delta, ctx.gameTime, playerT.x, playerT.y,
-      this.getBossSnapshots, this.onBossDamage);
+      () => this.bcc.getAliveVisibleBossSnapshotsWithRadius(),
+      this.onBossDamage);
     this.renderer.render(this.orbPositions);
   }
 
   private onBossDamage = (bossId: string, damage: number, x: number, y: number): void => {
-    this.damageBoss(bossId, damage, x, y, false);
+    this.bcc.damageBoss(bossId, damage, x, y, false);
   };
 
   update(

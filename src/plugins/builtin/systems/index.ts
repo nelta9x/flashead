@@ -9,6 +9,7 @@ import { OrbSystemPlugin } from './OrbSystemPlugin';
 import { FallingBombSystemPlugin } from './FallingBombSystemPlugin';
 import { HealthPackSystemPlugin } from './HealthPackSystemPlugin';
 import { GameLevelSystemsPlugin } from './GameLevelSystemsPlugin';
+import { GameWrappersSystemPlugin } from './GameWrappersSystemPlugin';
 
 export function registerBuiltinSystemPlugins(): void {
   const registry = PluginRegistry.getInstance();
@@ -22,4 +23,5 @@ export function registerBuiltinSystemPlugins(): void {
   registry.registerSystemPlugin(new FallingBombSystemPlugin());
   registry.registerSystemPlugin(new HealthPackSystemPlugin());
   registry.registerSystemPlugin(new GameLevelSystemsPlugin());
+  registry.registerSystemPlugin(new GameWrappersSystemPlugin());
 }

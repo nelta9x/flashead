@@ -189,12 +189,13 @@ describe('DishLifecycleController', () => {
         showText: vi.fn(),
       } as never,
       damageService: damageService as never,
+      statusEffectManager: { clearEntity: vi.fn() } as never,
       getPlayerAttackRenderer: () =>
         ({
           showBombWarning,
         }) as never,
-      isAnyLaserFiring: () => false,
-      isGameOver: () => isGameOver,
+      gameEnv: { get isGameOver() { return isGameOver; }, getCursorPosition: () => ({ x: 0, y: 0 }) } as never,
+      bcc: { isAnyLaserFiring: () => false } as never,
     });
   }
 

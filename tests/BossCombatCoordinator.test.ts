@@ -321,8 +321,7 @@ describe('BossCombatCoordinator', () => {
         destroyEntity: vi.fn(),
       } as never,
       statusEffectManager: { clearEntity: vi.fn() } as never,
-      isGameOver: () => isGameOver,
-      isPaused: () => isPaused,
+      gameEnv: { get isGameOver() { return isGameOver; }, get isPaused() { return isPaused; }, getCursorPosition: () => ({ x: 0, y: 0 }) } as never,
     });
   }
 

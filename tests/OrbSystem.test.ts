@@ -160,14 +160,23 @@ describe('OrbSystem', () => {
       applyUpgradeDamage: vi.fn(),
     };
 
+    const mockBcc = {
+      getAliveVisibleBossSnapshotsWithRadius: () => [],
+      damageBoss: vi.fn(),
+    };
     system = new OrbSystem(
       mockUpgradeSystem as unknown as UpgradeSystem,
       mockWorld as never,
       mockDamageService as never,
-      () => [],
-      vi.fn(),
-      { render: vi.fn() } as never
+      mockBcc as never,
+      { render: vi.fn() } as never,
     );
+    // Simulate start() with a mock FallingBombSystem
+    system.start({
+      services: {
+        get: () => ({ tryDestroyBomb: vi.fn(), forceDestroy: vi.fn() }),
+      } as never,
+    });
   });
 
   it('should not spawn orbs if level is 0', () => {

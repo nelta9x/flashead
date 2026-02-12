@@ -1,4 +1,4 @@
-import type { EntitySystem } from './entity-systems/EntitySystem';
+import type { EntitySystem, SystemStartContext } from './entity-systems/EntitySystem';
 
 /**
  * EntitySystemPipeline: data-driven 엔티티 시스템 실행 파이프라인.
@@ -28,6 +28,23 @@ export class EntitySystemPipeline {
     const system = this.systems.get(id);
     if (system) {
       system.enabled = enabled;
+    }
+  }
+
+  startAll(ctx: SystemStartContext): void {
+    if (this.dirty) this.rebuild();
+    for (const system of this.sorted) {
+      system.start?.(ctx);
+    }
+  }
+
+  /** pause/upgrade 시 visual-only 업데이트 — renderTick() 구현 시스템만 호출 */
+  runRenderOnly(delta: number): void {
+    if (this.dirty) this.rebuild();
+    for (const system of this.sorted) {
+      if (system.enabled && system.renderTick) {
+        system.renderTick(delta);
+      }
     }
   }
 
@@ -65,6 +82,16 @@ export class EntitySystemPipeline {
     this.systems.clear();
     this.sorted = [];
     this.dirty = false;
+  }
+
+  /** Calls destroy() / clear() on each system, then clears the pipeline. */
+  destroyAll(): void {
+    for (const system of this.systems.values()) {
+      const obj = system as unknown as Record<string, unknown>;
+      if (typeof obj.destroy === 'function') (obj.destroy as () => void).call(obj);
+      if (typeof obj.clear === 'function') (obj.clear as () => void).call(obj);
+    }
+    this.clear();
   }
 
   private rebuild(): void {

@@ -12,7 +12,8 @@ import type { EntityDamageService } from '../../systems/EntityDamageService';
 import { C_DishTag, C_DishProps, C_Transform, C_Lifetime } from '../../world';
 import type { World } from '../../world';
 import type { EntityId } from '../../world/EntityId';
-import type { BossInteractionGateway, CursorSnapshot } from './GameSceneContracts';
+import type { BossInteractionGateway } from './GameSceneContracts';
+import type { GameEnvironment } from './GameEnvironment';
 
 interface PlayerAttackControllerDeps {
   scene: Phaser.Scene;
@@ -24,10 +25,9 @@ interface PlayerAttackControllerDeps {
   feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   particleManager: ParticleManager;
-  getCursor: () => CursorSnapshot;
+  gameEnv: GameEnvironment;
   getPlayerAttackRenderer: () => PlayerAttackRenderer;
   bossGateway: BossInteractionGateway;
-  isGameOver: () => boolean;
 }
 
 export class PlayerAttackController {
@@ -40,10 +40,9 @@ export class PlayerAttackController {
   private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly particleManager: ParticleManager;
-  private readonly getCursor: () => CursorSnapshot;
+  private readonly gameEnv: GameEnvironment;
   private readonly getPlayerAttackRenderer: () => PlayerAttackRenderer;
   private readonly bossGateway: BossInteractionGateway;
-  private readonly isGameOver: () => boolean;
 
   constructor(deps: PlayerAttackControllerDeps) {
     this.scene = deps.scene;
@@ -55,14 +54,13 @@ export class PlayerAttackController {
     this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.particleManager = deps.particleManager;
-    this.getCursor = deps.getCursor;
+    this.gameEnv = deps.gameEnv;
     this.getPlayerAttackRenderer = deps.getPlayerAttackRenderer;
     this.bossGateway = deps.bossGateway;
-    this.isGameOver = deps.isGameOver;
   }
 
   public performPlayerAttack(): void {
-    if (this.isGameOver()) return;
+    if (this.gameEnv.isGameOver) return;
 
     const config = Data.feedback.bossAttack;
     const attackWave = this.waveSystem.getCurrentWave();
@@ -87,12 +85,12 @@ export class PlayerAttackController {
       ease: 'Linear',
       onUpdate: (_tween, target) => {
         const p = target.progress;
-        const cursor = this.getCursor();
+        const cursor = this.gameEnv.getCursorPosition();
         chargeVisual.update(p, cursor.x, cursor.y, this.getCursorRadius());
       },
       onComplete: () => {
         chargeVisual.destroy();
-        if (this.isGameOver()) return;
+        if (this.gameEnv.isGameOver) return;
         if (this.waveSystem.getCurrentWave() !== attackWave) return;
 
         const baseAttack = Data.gameConfig.playerAttack;
@@ -103,10 +101,10 @@ export class PlayerAttackController {
 
         for (let i = 0; i < missileCount; i++) {
           this.scene.time.delayedCall(i * config.fire.missileInterval, () => {
-            if (this.isGameOver()) return;
+            if (this.gameEnv.isGameOver) return;
             if (this.waveSystem.getCurrentWave() !== attackWave) return;
 
-            const cursor = this.getCursor();
+            const cursor = this.gameEnv.getCursorPosition();
             const nearestBoss = this.bossGateway.findNearestAliveBoss(cursor.x, cursor.y);
             if (!nearestBoss) return;
 
@@ -134,7 +132,7 @@ export class PlayerAttackController {
     total: number,
     initialTargetBossId: string
   ): void {
-    if (this.isGameOver()) return;
+    if (this.gameEnv.isGameOver) return;
     const missileWave = this.waveSystem.getCurrentWave();
 
     const config = Data.feedback.bossAttack;
@@ -187,7 +185,7 @@ export class PlayerAttackController {
       duration: speed,
       ease: 'Expo.In',
       onUpdate: (_tween, target) => {
-        if (this.isGameOver()) return;
+        if (this.gameEnv.isGameOver) return;
         if (this.waveSystem.getCurrentWave() !== missileWave) return;
 
         const p = target.progress;
@@ -237,7 +235,7 @@ export class PlayerAttackController {
       },
       onComplete: () => {
         this.getPlayerAttackRenderer().destroyProjectile(missile);
-        if (this.isGameOver()) return;
+        if (this.gameEnv.isGameOver) return;
         if (this.waveSystem.getCurrentWave() !== missileWave) return;
 
         let finalTargetBoss = this.bossGateway.getAliveBossTarget(targetBossId);
