@@ -10,9 +10,11 @@ import { FallingBombSystemPlugin } from './FallingBombSystemPlugin';
 import { HealthPackSystemPlugin } from './HealthPackSystemPlugin';
 import { GameLevelSystemsPlugin } from './GameLevelSystemsPlugin';
 import { GameWrappersSystemPlugin } from './GameWrappersSystemPlugin';
+import { InitialSpawnSystemPlugin } from './InitialSpawnSystemPlugin';
 
 export function registerBuiltinSystemPlugins(): void {
   const registry = PluginRegistry.getInstance();
+  registry.registerSystemPlugin(new InitialSpawnSystemPlugin());
   registry.registerSystemPlugin(new CoreWorldSystemsPlugin());
   registry.registerSystemPlugin(new PlayerSystemPlugin());
   registry.registerSystemPlugin(new BossReactionSystemPlugin());

@@ -212,7 +212,22 @@
 
 ---
 
-## 13. 엔진 마이그레이션 (Phaser 3 → 4) `occurrences: 1`
+## 13. Data-driven 초기 엔티티 스폰 `occurrences: 1`
+
+### 원칙
+- Scene에서 특정 엔티티 타입 ID(`'player'`)를 하드코딩하여 spawn하지 않는다.
+- 초기 스폰 대상은 `game-config.json`의 `initialEntities` 배열로 data-driven 정의.
+- `InitialEntitySpawnSystem.start()`에서 EntityTypePlugin.spawn()을 호출하여 ECS 라이프사이클에 통합.
+- `PluginRegistry.resetInstance()`로 레지스트리를 통째로 초기화하고 재등록하는 패턴은 지양 — entity type/ability 등록을 system plugin 생성 **전**으로 이동하면 reset 불필요.
+- entity type/ability가 SystemPlugin.createSystems()에서 참조되는 경우, 등록 순서를 보장해야 한다.
+
+### 사례 요약
+- GameScene에서 `PluginRegistry.getEntityType('player')!.spawn!(world)` 하드코딩을 InitialEntitySpawnSystem으로 이전
+- `PluginRegistry.resetInstance()` → entity type/ability 재등록 순서를 제거하고, 단일 등록 후 SystemPlugin 구성으로 단순화
+
+---
+
+## 14. 엔진 마이그레이션 (Phaser 3 → 4) `occurrences: 1`
 
 ### 원칙
 - Phaser 4에서 `fillPoints`/`strokePoints`는 `{x,y}` 리터럴 대신 `Phaser.Math.Vector2` 인스턴스를 요구한다.

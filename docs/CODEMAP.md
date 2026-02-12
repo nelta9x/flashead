@@ -40,6 +40,7 @@
 - **`src/scenes/BootScene.ts`**: 초기 로딩 화면. 에셋 프리로딩(오디오, SVG 아이콘), 프로그레스 바 표시.
 - **`src/scenes/MenuScene.ts`**: 메인 메뉴 오케스트레이터. 타이틀/시작 UI와 배경 렌더러를 구성하고, 언어 위젯/입력/앰비언트 시뮬레이션은 보조 모듈에 위임합니다.
 - **`src/scenes/GameScene.ts`**: **핵심 게임 루프 오케스트레이터**. 시스템/렌더러를 초기화하고 `update()`에서 파이프라인을 실행합니다.
+  - **initializeSystems() 순서**: ServiceRegistry → ServicePlugins → entity type/ability 등록 → SystemPlugin 파이프라인 구성(includes `core:initial_spawn`) → `startAll()` (player 등 초기 엔티티 data-driven 스폰) → GameSceneController 생성.
   - **update() 4단계 구조**: 입력 처리(`processKeyboardInput`) → pause 체크 → `entitySystemPipeline.run(delta)` → scene 비주얼(`updateSceneVisuals`).
   - **World.context 동기화**: `syncWorldContext()`에서 gameTime/currentWave/playerId를 한 번만 갱신. 시스템은 `world.context`에서 직접 읽음.
   - **모든 tick 로직은 파이프라인 안**: 개별 시스템의 tick/update를 Scene에서 직접 호출하지 않음. 게임 레벨 시스템(Wave/Combo/StatusEffect/BossCoordinator/Mod)도 래퍼 EntitySystem으로 파이프라인에 통합.
@@ -97,8 +98,9 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 - **`StatusEffectManager.ts`** (`src/systems/`): 엔티티별 상태효과 관리. `applyEffect(entityId, effect)`, `removeEffect(entityId, effectId)`, `tick(delta)` (만료 자동 제거 + `onExpire` 콜백), `clearEntity(entityId)` (엔티티 비활성화 시 전체 제거). **내장 효과**: `freeze` (Infinity 지속, 수동 제거), `slow` (유한 지속, factor 데이터). MOD가 커스텀 `StatusEffect` 구현체를 등록하여 새로운 상태효과를 추가할 수 있다.
 - **`EntityQueryService.ts`** (`src/systems/`): dishPool(`ObjectPool<Entity>`)을 감싸는 읽기 전용 쿼리 파사드. `getActiveEntities()`, `forEachActive(cb)`, `getEntitiesInRadius(x, y, r)`, `getEntitiesWithCondition(pred)`. `setBossProvider(provider)` 호출 시 보스 엔티티도 포함하여 조회. MOD에 엔티티 접근을 제공한다.
 - **`ModSystemRegistry.ts`** (`src/plugins/`): MOD 커스텀 시스템 등록/실행 레지스트리. `registerSystem(id, tickFn, priority?)` → `runAll(delta, context)`. context로 `{ entities: EntityQueryService, statusEffectManager, eventBus }` 제공. GameScene.update() 끝에서 호출.
-- **`entity-systems/`** (`src/systems/entity-systems/`): 13개 독립 ECS 시스템으로 분리. 각 시스템은 `EntitySystem` 인터페이스(`id`, `enabled`, `tick(delta)`)를 구현하며 World 스토어를 직접 쿼리하여 단일 관심사만 처리.
+- **`entity-systems/`** (`src/systems/entity-systems/`): 14개 독립 ECS 시스템으로 분리. 각 시스템은 `EntitySystem` 인터페이스(`id`, `enabled`, `tick(delta)`)를 구현하며 World 스토어를 직접 쿼리하여 단일 관심사만 처리.
   - `EntitySystem.ts`: 공통 인터페이스 (`id: string`, `enabled: boolean`, `tick(delta): void`)
+  - `InitialEntitySpawnSystem` (`core:initial_spawn`): data-driven 초기 엔티티 스폰. `game-config.json`의 `initialEntities` 배열 순서대로 `EntityTypePlugin.spawn()` 호출. `start()`만 사용, `tick()`은 no-op.
   - `EntityStatusSystem` (`core:entity_status`): SEM → freeze/slow 캐시 파생
   - `EntityTimingSystem` (`core:entity_timing`): effectiveDelta, 시간 누적, lifetime 만료
   - **`PlayerTickSystem` (`core:player`)**: Player entity의 위치 보간(smoothing), 커서 트레일, 커서 렌더링 처리. World store에서 읽고 CursorRenderer/CursorTrail에 위임. `renderOnly(delta)` 메서드로 pause 시 visual만 실행.
@@ -119,9 +121,9 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
   - `StatusEffectTickSystem` (`core:status_effect_tick`): StatusEffectManager.tick()
   - `BossCoordinatorSystem` (`core:boss_coordinator`): BossCombatCoordinator.update()
   - `ModTickSystem` (`core:mod_tick`): ModSystemRegistry.runAll()
-- **`EntitySystemPipeline.ts`** (`src/systems/`): data-driven 엔티티 시스템 실행 파이프라인. `game-config.json`의 `entityPipeline` 배열이 실행 순서의 SSOT (18개 시스템). `register(system)`, `unregister(id)`, `setEnabled(id, enabled)`, `run(delta)`. config 순서대로 배치 → config에 없는 등록 시스템은 끝에 추가. `getMissingSystems()`, `getUnmappedSystems()`, `getRegisteredIds()` 진단 메서드 제공.
-  - GameScene 호출 순서: `syncWorldContext()` → `entitySystemPipeline.run(delta)` (18개 시스템 순차, 모든 tick 로직 포함)
-  - 파이프라인 순서: wave → combo → status_effect_tick → entity_status → entity_timing → player → entity_movement → boss_reaction → boss_coordinator → magnet → cursor_attack → black_hole → orb → falling_bomb → health_pack → entity_visual → entity_render → mod_tick
+- **`EntitySystemPipeline.ts`** (`src/systems/`): data-driven 엔티티 시스템 실행 파이프라인. `game-config.json`의 `entityPipeline` 배열이 실행 순서의 SSOT (19개 시스템). `register(system)`, `unregister(id)`, `setEnabled(id, enabled)`, `run(delta)`. config 순서대로 배치 → config에 없는 등록 시스템은 끝에 추가. `getMissingSystems()`, `getUnmappedSystems()`, `getRegisteredIds()` 진단 메서드 제공.
+  - GameScene 호출 순서: `syncWorldContext()` → `entitySystemPipeline.run(delta)` (19개 시스템 순차, 모든 tick 로직 포함)
+  - 파이프라인 순서: initial_spawn → wave → combo → status_effect_tick → entity_status → entity_timing → player → entity_movement → boss_reaction → boss_coordinator → magnet → cursor_attack → black_hole → orb → falling_bomb → health_pack → entity_visual → entity_render → mod_tick
 - **`builtin/systems/GameLevelSystemsPlugin.ts`**: ComboTickSystem + StatusEffectTickSystem을 파이프라인에 등록하는 SystemPlugin.
 - **`Entity.ts` 연동**: 경량 Phaser wrapper (~182줄). `deactivate()` 시 `StatusEffectManager.clearEntity()` 및 `World.destroyEntity()` 자동 호출로 풀 반환 시 잔류 효과/컴포넌트 방지. `spawn()` 시 `EntitySpawnInitializer`를 통해 World 컴포넌트를 초기화. freeze/slow는 StatusEffectManager로 위임. 모든 tick 로직은 외부 ECS 시스템이 World 스토어를 직접 읽어 처리.
 
@@ -140,7 +142,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 - **`World.ts`**: 동적 스토어 레지스트리 + entity lifecycle 관리 + `context: GameContext` (gameTime/currentWave/playerId 글로벌 상태). `register(def)`/`store(def)`/`getStoreByName()`/`unregisterStore()` + `spawnFromArchetype()` + `archetypeRegistry` + `query()` 제너레이터. 빌트인 17개 스토어는 typed property로 직접 접근 가능 (기존 호환). `query(C_DishTag, C_DishProps, C_Transform)` → `[id, ...components]` 튜플 제너레이터.
 - **`GameContext.ts`**: `GameContext` 인터페이스 정의. 시스템이 `setContext()` 대신 `world.context`에서 글로벌 게임 상태를 직접 읽음.
 - **시스템 파이프라인**: 13개 시스템이 World 스토어를 직접 읽음 (Entity tick 메서드 없음). 모든 컴포넌트는 순수 데이터 (클래스 인스턴스 없음). `MovementComponent`는 `{type, homeX, homeY, drift}` 순수 데이터.
-- **GameScene 연결**: `initializeSystems()`에서 World 생성 + `spawnFromArchetype()` 기반 player 등록, `cleanup()`에서 `world.clear()` 호출. 커서 위치는 `world.transform.get('player')` 에서 읽음.
+- **GameScene 연결**: `initializeSystems()`에서 World 생성, entity type/ability 등록 후 SystemPlugin 파이프라인 구성 → `startAll()`에서 `InitialEntitySpawnSystem.start()`가 `game-config.json`의 `initialEntities` 순서대로 플레이어 등 초기 엔티티를 data-driven 스폰. `cleanup()`에서 `world.clear()` 호출. 커서 위치는 `world.transform.get('player')` 에서 읽음.
 
 ### 2.6 플러그인 아키텍처
 
@@ -216,7 +218,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 - **`src/data/constants.ts`**: JSON 기반 데이터 중 코드에서 자주 쓰이는 물리/기하학적 상수.
 - **`src/data/game.config.ts`**: Phaser 엔진 기술 설정 (물리, 렌더링, 스케일, 오디오 등).
 - **데이터 파일 목록 (`data/*.json`)**:
-  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT. **`entityPipeline`**: 18개 엔티티 시스템 실행 순서 배열 (게임 레벨 5개 + 엔티티 13개). **`systemPlugins`**: 서비스/시스템 플러그인 활성화 목록.
+  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT. **`entityPipeline`**: 19개 엔티티 시스템 실행 순서 배열 (초기 스폰 1개 + 게임 레벨 5개 + 엔티티 13개). **`systemPlugins`**: 서비스/시스템 플러그인 활성화 목록. **`initialEntities`**: 게임 시작 시 data-driven 스폰할 엔티티 타입 ID 배열.
   - `locales.json`: 다국어(EN, KO) 번역 데이터 및 업그레이드 설명/카드 라벨 템플릿 (`upgrade.stat.*`, `upgrade.card.*`).
   - `main-menu.json`: 메인 메뉴 씬 설정 (별 배경, 보스 애니메이션, 메뉴 접시 스폰, 언어 UI 설정).
   - `colors.json`: 게임 내 모든 색상 팔레트 및 테마 (숫자값/hex).

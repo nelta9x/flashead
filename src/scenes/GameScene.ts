@@ -109,7 +109,11 @@ export class GameScene extends Phaser.Scene {
       this.serviceRegistry.resolveEntries(plugin.services);
     }
 
-    // ── 3. SystemPlugin pipeline ──
+    // ── 3. Entity types & abilities (InitialEntitySpawnSystem.start()에서 참조) ──
+    registerBuiltinAbilities();
+    registerBuiltinEntityTypes();
+
+    // ── 4. SystemPlugin pipeline (includes core:initial_spawn) ──
     const world = this.serviceRegistry.get(World);
     this.entitySystemPipeline = new EntitySystemPipeline(Data.gameConfig.entityPipeline);
     registerBuiltinSystemPlugins();
@@ -128,17 +132,10 @@ export class GameScene extends Phaser.Scene {
         );
       }
     }
+    // startAll() → InitialEntitySpawnSystem.start()에서 player spawn (world.context.playerId 설정)
     this.entitySystemPipeline.startAll({ services: this.serviceRegistry });
 
-    // ── 4. Plugin registry (service/system 플러그인은 이미 소비됨, reset 안전) ──
-    PluginRegistry.resetInstance();
-    registerBuiltinAbilities();
-    registerBuiltinEntityTypes();
-
-    // ── 5. Player entity ──
-    PluginRegistry.getInstance().getEntityType('player')!.spawn!(world);
-
-    // ── 6. GameSceneController ──
+    // ── 5. GameSceneController ──
     this.controller = new GameSceneController(this, this.serviceRegistry);
 
     this.modRegistry = new ModRegistry(

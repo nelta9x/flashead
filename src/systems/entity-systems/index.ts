@@ -13,3 +13,4 @@ export { ComboTickSystem } from './ComboTickSystem';
 export { StatusEffectTickSystem } from './StatusEffectTickSystem';
 export { BossCoordinatorSystem } from './BossCoordinatorSystem';
 export { ModTickSystem } from './ModTickSystem';
+export { InitialEntitySpawnSystem } from './InitialEntitySpawnSystem';

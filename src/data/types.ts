@@ -523,6 +523,7 @@ export interface GameConfig {
   servicePlugins: readonly string[];
   systemPlugins: readonly string[];
   entityPipeline: readonly string[];
+  initialEntities: readonly string[];
   screen: ScreenConfig;
   defaultLanguage: string;
   player: PlayerConfig;

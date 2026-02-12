@@ -1,6 +1,7 @@
 {
   "servicePlugins": ["core:services", "core:ecs", "core:game_modules"],
   "systemPlugins": [
+    "core:initial_spawn",
     "core:world_systems",
     "core:game_level_systems",
     "core:player_system",
@@ -14,6 +15,7 @@
     "core:game_wrappers"
   ],
   "entityPipeline": [
+    "core:initial_spawn",
     "core:wave",
     "core:combo",
     "core:status_effect_tick",
@@ -33,6 +35,7 @@
     "core:entity_render",
     "core:mod_tick"
   ],
+  "initialEntities": ["player"],
   "screen": {
     "width": 1280,
     "height": 720
