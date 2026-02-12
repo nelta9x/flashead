@@ -14,6 +14,13 @@
     "core:health_pack",
     "core:game_wrappers"
   ],
+  "entityTypes": [
+    "player", "basic", "golden", "crystal", "mini", "amber", "bomb", "boss_standard"
+  ],
+  "abilities": [
+    "cursor_size", "critical_chance", "missile", "health_pack",
+    "magnet", "electric_shock", "orbiting_orb", "black_hole"
+  ],
   "entityPipeline": [
     "core:initial_spawn",
     "core:wave",

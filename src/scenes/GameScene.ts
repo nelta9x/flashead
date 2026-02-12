@@ -109,9 +109,9 @@ export class GameScene extends Phaser.Scene {
       this.serviceRegistry.resolveEntries(plugin.services);
     }
 
-    // ── 3. Entity types & abilities (InitialEntitySpawnSystem.start()에서 참조) ──
-    registerBuiltinAbilities();
-    registerBuiltinEntityTypes();
+    // ── 3. Entity types & abilities (game-config.json 기반 동적 등록) ──
+    registerBuiltinAbilities(Data.gameConfig.abilities);
+    registerBuiltinEntityTypes(Data.gameConfig.entityTypes);
 
     // ── 4. SystemPlugin pipeline (includes core:initial_spawn) ──
     const world = this.serviceRegistry.get(World);
