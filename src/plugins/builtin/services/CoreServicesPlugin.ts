@@ -16,8 +16,8 @@ import { SoundSystem } from '../../../systems/SoundSystem';
 import { FeedbackSystem } from '../../../systems/FeedbackSystem';
 import { GaugeSystem } from '../../../systems/GaugeSystem';
 import { CursorRenderer } from '../../../effects/CursorRenderer';
-import { OrbRenderer } from '../../../effects/OrbRenderer';
-import { BlackHoleRenderer } from '../../../effects/BlackHoleRenderer';
+import { OrbRenderer } from '../abilities/OrbRenderer';
+import { BlackHoleRenderer } from '../abilities/BlackHoleRenderer';
 
 export class CoreServicesPlugin implements ServicePlugin {
   readonly id = 'core:services';

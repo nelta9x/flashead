@@ -3,7 +3,7 @@ import { GAME_WIDTH, CURSOR_HITBOX, HEAL_PACK } from '../data/constants';
 import { Data } from '../data/DataManager';
 import type { HealthPackLevelData } from '../data/types';
 import type { Entity } from '../entities/Entity';
-import { HealthPackRenderer } from '../effects/HealthPackRenderer';
+import { HealthPackRenderer } from '../plugins/builtin/abilities/HealthPackRenderer';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { C_HealthPack, C_Transform } from '../world';
 import type { EntityId } from '../world/EntityId';

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { DEPTHS } from '../data/constants';
-import { Data } from '../data/DataManager';
+import { DEPTHS } from '../../../data/constants';
+import { Data } from '../../../data/DataManager';
 
 export class LaserRenderer {
   private graphics: Phaser.GameObjects.Graphics;

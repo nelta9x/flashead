@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Mock DishRenderer
-vi.mock('../../src/effects/DishRenderer', () => ({
+vi.mock('../../src/plugins/builtin/entities/DishRenderer', () => ({
   DishRenderer: {
     renderDish: vi.fn(),
     renderDangerDish: vi.fn(),

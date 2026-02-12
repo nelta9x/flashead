@@ -1,7 +1,7 @@
 import { Data } from '../data/DataManager';
 import { EventBus, GameEvents } from '../utils/EventBus';
-import { DishDamageResolver } from '../entities/dish/DishDamageResolver';
-import { DishEventPayloadFactory } from '../entities/dish/DishEventPayloadFactory';
+import { DishDamageResolver } from './DishDamageResolver';
+import { DishEventPayloadFactory } from './DishEventPayloadFactory';
 import { createEntitySnapshot } from '../entities/EntitySnapshot';
 import { deactivateEntity } from '../entities/EntityLifecycle';
 import type { EntityId } from '../world/EntityId';

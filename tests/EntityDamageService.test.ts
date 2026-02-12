@@ -29,14 +29,14 @@ vi.mock('../src/utils/EventBus', () => {
   };
 });
 
-vi.mock('../src/entities/dish/DishDamageResolver', () => ({
+vi.mock('../src/systems/DishDamageResolver', () => ({
   DishDamageResolver: {
     resolveCursorDamage: vi.fn(() => ({ damage: 10, isCritical: false })),
     resolveUpgradeDamage: vi.fn(() => ({ damage: 25, isCritical: true })),
   },
 }));
 
-vi.mock('../src/entities/dish/DishEventPayloadFactory', () => ({
+vi.mock('../src/systems/DishEventPayloadFactory', () => ({
   DishEventPayloadFactory: {
     createDishDamagedPayload: vi.fn((p: Record<string, unknown>) => p),
     createDishDestroyedPayload: vi.fn((p: Record<string, unknown>) => p),

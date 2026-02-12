@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Entity } from '../../entities/Entity';
 import { deactivateEntity } from '../../entities/EntityLifecycle';
 import type { DamageText } from '../../ui/DamageText';
-import type { PlayerAttackRenderer } from '../../effects/PlayerAttackRenderer';
+import type { PlayerAttackRenderer } from '../../plugins/builtin/abilities/PlayerAttackRenderer';
 import type { ObjectPool } from '../../utils/ObjectPool';
 import type { ComboSystem } from '../../systems/ComboSystem';
 import type { EntityDamageService } from '../../systems/EntityDamageService';

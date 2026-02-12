@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Phaser from 'phaser';
-import { ChargeVisualConfig, PlayerAttackRenderer } from '../src/effects/PlayerAttackRenderer';
+import { ChargeVisualConfig, PlayerAttackRenderer } from '../src/plugins/builtin/abilities/PlayerAttackRenderer';
 
 vi.mock('phaser', () => ({
   default: {

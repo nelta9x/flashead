@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Data } from '../../data/DataManager';
 import { COLORS } from '../../data/constants';
-import { BossRenderer } from '../../effects/BossRenderer';
+import { BossRenderer } from '../../plugins/builtin/entities/BossRenderer';
 import { resolveBossHpSegmentState } from '../../entities/bossHpSegments';
 import type { EntitySystem } from './EntitySystem';
 import type { World, BossStateComponent } from '../../world';

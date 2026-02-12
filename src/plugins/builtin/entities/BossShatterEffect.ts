@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, DEPTHS } from '../data/constants';
-import { Data } from '../data/DataManager';
+import { COLORS, DEPTHS } from '../../../data/constants';
+import { Data } from '../../../data/DataManager';
 
 export class BossShatterEffect {
   private readonly scene: Phaser.Scene;

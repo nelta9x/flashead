@@ -1,4 +1,4 @@
-import type { EntitySnapshot } from '../EntitySnapshot';
+import type { EntitySnapshot } from '../entities/EntitySnapshot';
 
 interface DishDamagedPayloadParams {
   snapshot: EntitySnapshot;

@@ -71,7 +71,7 @@ vi.mock('../src/utils/EventBus', () => ({
   },
 }));
 
-vi.mock('../src/effects/HealthPackRenderer', () => ({
+vi.mock('../src/plugins/builtin/abilities/HealthPackRenderer', () => ({
   HealthPackRenderer: {
     render: vi.fn(),
   },

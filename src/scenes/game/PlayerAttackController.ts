@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Data } from '../../data/DataManager';
 import { COLORS, CURSOR_HITBOX } from '../../data/constants';
 import type { ParticleManager } from '../../effects/ParticleManager';
-import type { PlayerAttackRenderer } from '../../effects/PlayerAttackRenderer';
+import type { PlayerAttackRenderer } from '../../plugins/builtin/abilities/PlayerAttackRenderer';
 import type { FeedbackSystem } from '../../systems/FeedbackSystem';
 import type { MonsterSystem } from '../../systems/MonsterSystem';
 import type { SoundSystem } from '../../systems/SoundSystem';

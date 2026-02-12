@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS } from '../data/constants';
+import { COLORS } from '../../../data/constants';
 
 export class OrbRenderer {
   private graphics: Phaser.GameObjects.Graphics;

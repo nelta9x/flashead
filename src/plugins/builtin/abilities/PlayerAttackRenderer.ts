@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, DEPTHS } from '../data/constants';
+import { COLORS, DEPTHS } from '../../../data/constants';
 
 export interface ChargeVisualConfig {
   initialRadius: number;

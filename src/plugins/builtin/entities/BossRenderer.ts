@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { Data } from '../data/DataManager';
-import { COLORS } from '../data/constants';
+import { Data } from '../../../data/DataManager';
+import { COLORS } from '../../../data/constants';
 
 export interface BossRendererState {
   hpRatio: number;

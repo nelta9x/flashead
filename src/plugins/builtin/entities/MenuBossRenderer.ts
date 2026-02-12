@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../data/constants';
-import { Data } from '../data/DataManager';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../../../data/constants';
+import { Data } from '../../../data/DataManager';
 
 export class MenuBossRenderer {
   private graphics: Phaser.GameObjects.Graphics;

@@ -4,7 +4,7 @@ import { Entity } from '../../../entities/Entity';
 import { initializeEntitySpawn } from '../../../entities/EntitySpawnInitializer';
 import { deactivateEntity } from '../../../entities/EntityLifecycle';
 import { PluginRegistry } from '../../../plugins/PluginRegistry';
-import type { LaserRenderer } from '../../../effects/LaserRenderer';
+import type { LaserRenderer } from '../../../plugins/builtin/entities/LaserRenderer';
 import type { MonsterSystem } from '../../../systems/MonsterSystem';
 import type { StatusEffectManager } from '../../../systems/StatusEffectManager';
 import type { WaveSystem } from '../../../systems/WaveSystem';

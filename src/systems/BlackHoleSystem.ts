@@ -6,7 +6,7 @@ import { EventBus, GameEvents } from '../utils/EventBus';
 import type { EntityDamageService } from './EntityDamageService';
 import { FallingBombSystem } from './FallingBombSystem';
 import type { UpgradeSystem } from './UpgradeSystem';
-import type { BlackHoleRenderer } from '../effects/BlackHoleRenderer';
+import type { BlackHoleRenderer } from '../plugins/builtin/abilities/BlackHoleRenderer';
 import type { BossCombatCoordinator } from '../scenes/game/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_FallingBomb } from '../world';
 import type { EntitySystem, SystemStartContext } from './entity-systems/EntitySystem';

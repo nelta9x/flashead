@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, CURSOR_HITBOX, FALLING_BOMB } from '../data/constants';
 import { Data } from '../data/DataManager';
 import type { Entity } from '../entities/Entity';
-import { DishRenderer } from '../effects/DishRenderer';
+import { DishRenderer } from '../plugins/builtin/entities/DishRenderer';
 import { EventBus, GameEvents } from '../utils/EventBus';
 import { C_FallingBomb, C_Transform } from '../world';
 import type { EntityId } from '../world/EntityId';

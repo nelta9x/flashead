@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { UpgradeSystem } from './UpgradeSystem';
 import type { EntityDamageService } from './EntityDamageService';
-import type { OrbRenderer } from '../effects/OrbRenderer';
+import type { OrbRenderer } from '../plugins/builtin/abilities/OrbRenderer';
 import type { SystemUpgradeData } from '../data/types';
 import type { BossRadiusSnapshot } from '../scenes/game/GameSceneContracts';
 import type { BossCombatCoordinator } from '../scenes/game/BossCombatCoordinator';

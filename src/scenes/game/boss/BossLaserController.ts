@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Data } from '../../../data/DataManager';
 import { COLORS, CURSOR_HITBOX, GAME_HEIGHT, GAME_WIDTH } from '../../../data/constants';
 import type { Entity } from '../../../entities/Entity';
-import type { LaserRenderer } from '../../../effects/LaserRenderer';
+import type { LaserRenderer } from '../../../plugins/builtin/entities/LaserRenderer';
 import type { DamageText } from '../../../ui/DamageText';
 import type { FeedbackSystem } from '../../../systems/FeedbackSystem';
 import type { HealthSystem } from '../../../systems/HealthSystem';

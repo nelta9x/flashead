@@ -1,7 +1,7 @@
 import { BlackHoleSystem } from '../../../systems/BlackHoleSystem';
 import { UpgradeSystem } from '../../../systems/UpgradeSystem';
 import { EntityDamageService } from '../../../systems/EntityDamageService';
-import { BlackHoleRenderer } from '../../../effects/BlackHoleRenderer';
+import { BlackHoleRenderer } from '../abilities/BlackHoleRenderer';
 import { BossCombatCoordinator } from '../../../scenes/game/BossCombatCoordinator';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import type { SystemPlugin, SystemPluginContext } from '../../types/SystemPlugin';

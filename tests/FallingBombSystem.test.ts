@@ -63,7 +63,7 @@ vi.mock('../src/utils/EventBus', () => ({
   },
 }));
 
-vi.mock('../src/effects/DishRenderer', () => ({
+vi.mock('../src/plugins/builtin/entities/DishRenderer', () => ({
   DishRenderer: {
     renderDangerDish: vi.fn(),
   },

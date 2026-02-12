@@ -1,6 +1,6 @@
 import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
-import { DishRenderer } from '../../effects/DishRenderer';
+import { DishRenderer } from '../../plugins/builtin/entities/DishRenderer';
 
 export class EntityRenderSystem implements EntitySystem {
   readonly id = 'core:entity_render';

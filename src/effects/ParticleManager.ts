@@ -6,7 +6,7 @@ import {
   CursorPositionProvider,
   resolveCursorPosition,
 } from '../scenes/game/CursorPositionProvider';
-import { BossShatterEffect } from './BossShatterEffect';
+import { BossShatterEffect } from '../plugins/builtin/entities/BossShatterEffect';
 import { UpgradeAbsorptionEffect } from './UpgradeAbsorptionEffect';
 
 export class ParticleManager {

@@ -1,4 +1,4 @@
-import type { BossRenderer } from '../effects/BossRenderer';
+import type { BossRenderer } from '../plugins/builtin/entities/BossRenderer';
 import type { DishUpgradeOptions } from '../entities/EntityTypes';
 import type { CursorInteractionType, EntityTypePlugin } from '../plugins/types';
 import type { CursorSmoothingConfig } from '../data/types';

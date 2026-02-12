@@ -6,7 +6,7 @@ import { CursorTrail } from '../effects/CursorTrail';
 import { ParticleManager } from '../effects/ParticleManager';
 import { StarBackground } from '../effects/StarBackground';
 import { GridRenderer } from '../effects/GridRenderer';
-import { MenuBossRenderer } from '../effects/MenuBossRenderer';
+import { MenuBossRenderer } from '../plugins/builtin/entities/MenuBossRenderer';
 import { CursorRenderer } from '../effects/CursorRenderer';
 import { LanguageSelectorWidget } from './menu/LanguageSelectorWidget';
 import { MenuAmbientController } from './menu/MenuAmbientController';
