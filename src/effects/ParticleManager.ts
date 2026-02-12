@@ -1,22 +1,31 @@
 import Phaser from 'phaser';
 import { COLORS, DEPTHS, RAINBOW_COLORS } from '../data/constants';
 import { Data } from '../data/DataManager';
-import { SoundSystem } from '../systems/SoundSystem';
+import type { SoundSystem } from '../systems/SoundSystem';
 import {
   CursorPositionProvider,
   resolveCursorPosition,
 } from '../scenes/game/CursorPositionProvider';
-
+import { BossShatterEffect } from './BossShatterEffect';
+import { UpgradeAbsorptionEffect } from './UpgradeAbsorptionEffect';
 
 export class ParticleManager {
-  static inject = [Phaser.Scene] as const;
   private scene: Phaser.Scene;
   private emitters: Map<string, Phaser.GameObjects.Particles.ParticleEmitter> = new Map();
   private readonly cursorProvider?: CursorPositionProvider;
+  private readonly bossShatter: BossShatterEffect;
+  private readonly upgradeAbsorption: UpgradeAbsorptionEffect;
 
-  constructor(scene: Phaser.Scene, cursorProvider?: CursorPositionProvider) {
+  constructor(scene: Phaser.Scene, cursorProvider?: CursorPositionProvider, soundSystem?: SoundSystem) {
     this.scene = scene;
     this.cursorProvider = cursorProvider;
+    this.bossShatter = new BossShatterEffect(scene);
+    this.upgradeAbsorption = new UpgradeAbsorptionEffect(
+      scene,
+      () => this.getCursorPosition(),
+      (x, y, color) => this.createStarburst(x, y, color),
+      soundSystem,
+    );
     this.createEmitters();
   }
 
@@ -128,117 +137,12 @@ export class ParticleManager {
   createUpgradeAbsorption(
     startX: number,
     startY: number,
-    _endX: number, // 실시간 추적을 위해 무시
-    _endY: number, // 실시간 추적을 위해 무시
+    endX: number,
+    endY: number,
     color: number,
     onComplete?: () => void
   ): void {
-    const config = Data.feedback.upgradeAbsorption;
-    const { 
-      particleCount, 
-      duration, 
-      particleSizeMin, 
-      particleSizeMax, 
-      startSpread,
-      spreadDuration,
-      spreadEase,
-      suctionEase,
-      suctionDelayMax
-    } = config;
-
-    // 1. 입자 생성 및 확산 연출 (Slow Spread)
-    let completedCount = 0;
-
-    for (let i = 0; i < particleCount; i++) {
-      const size = Phaser.Math.Between(particleSizeMin, particleSizeMax);
-      const particle = this.scene.add.circle(startX, startY, size, color, 1);
-      particle.setDepth(DEPTHS.explosionParticle);
-
-      // 시작 위치 랜덤 오프셋 (스프레드)
-      const spreadAngle = Math.random() * Math.PI * 2;
-      const spreadDist = Math.random() * startSpread;
-      const spreadX = startX + Math.cos(spreadAngle) * spreadDist;
-      const spreadY = startY + Math.sin(spreadAngle) * spreadDist;
-
-      // 1단계: 천천히 퍼지기
-      this.scene.tweens.add({
-        targets: particle,
-        x: spreadX,
-        y: spreadY,
-        alpha: 0.8,
-        duration: spreadDuration + Math.random() * 200,
-        ease: spreadEase,
-        onComplete: () => {
-          // 2단계: 커서의 "현재" 위치로 빠르게 흡수되기 (Dynamic Suction)
-          const delay = Math.random() * suctionDelayMax;
-          const currentSpreadX = particle.x;
-          const currentSpreadY = particle.y;
-
-          this.scene.tweens.add({
-            targets: { progress: 0 },
-            progress: 1,
-            duration: duration,
-            delay: delay,
-            ease: suctionEase,
-            onUpdate: (_tween, target) => {
-              const p = target.progress;
-              const cursorPos = this.getCursorPosition();
-              particle.x = currentSpreadX + (cursorPos.x - currentSpreadX) * p;
-              particle.y = currentSpreadY + (cursorPos.y - currentSpreadY) * p;
-              particle.alpha = 0.8 + 0.2 * p;
-              particle.scale = 1 - p;
-            },
-            onComplete: () => {
-              particle.destroy();
-              completedCount++;
-              if (completedCount === particleCount) {
-                const finalPos = this.getCursorPosition();
-                this.createUpgradeImpact(finalPos.x, finalPos.y, color);
-                if (onComplete) onComplete();
-              }
-            },
-          });
-        }
-      });
-    }
-  }
-
-  private createUpgradeImpact(x: number, y: number, color: number): void {
-    // 사운드 재생 (완전히 흡수된 시점)
-    SoundSystem.getInstance().playUpgradeSound();
-
-    const config = Data.feedback.upgradeAbsorption;
-    
-    const ring = this.scene.add.graphics();
-    ring.lineStyle(5, color, 1);
-    ring.strokeCircle(0, 0, config.impactRingSize);
-    ring.setPosition(x, y);
-    ring.setDepth(DEPTHS.explosionRing);
-
-    this.scene.tweens.add({
-      targets: ring,
-      scaleX: config.impactRingScale,
-      scaleY: config.impactRingScale,
-      alpha: 0,
-      duration: config.impactRingDuration,
-      ease: config.impactRingEase,
-      onComplete: () => ring.destroy(),
-    });
-
-    this.createStarburst(x, y, color);
-
-    const glow = this.scene.add.circle(x, y, config.impactGlowSize, color, 0.8);
-    glow.setDepth(DEPTHS.explosionGlow);
-    glow.setBlendMode(Phaser.BlendModes.ADD);
-
-    this.scene.tweens.add({
-      targets: glow,
-      scale: config.impactGlowScale,
-      alpha: 0,
-      duration: config.impactGlowDuration,
-      ease: config.impactGlowEase,
-      onComplete: () => glow.destroy(),
-    });
+    this.upgradeAbsorption.createUpgradeAbsorption(startX, startY, endX, endY, color, onComplete);
   }
 
   createEnergyEffect(x: number, y: number, combo: number, cursorRadius: number): void {
@@ -656,107 +560,6 @@ export class ParticleManager {
     outerRadius: number,
     bodyColor: number
   ): void {
-    const config = Data.boss.visual.shatter;
-    this.createShatterShards(x, y, innerRadius, outerRadius, bodyColor, config);
-    this.createShatterSparks(x, y, outerRadius, config);
-  }
-
-  private createShatterShards(
-    x: number,
-    y: number,
-    innerRadius: number,
-    outerRadius: number,
-    bodyColor: number,
-    config: typeof Data.boss.visual.shatter
-  ): void {
-    for (let i = 0; i < config.shardCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = Phaser.Math.Between(innerRadius, outerRadius);
-      const startX = x + Math.cos(angle) * radius;
-      const startY = y + Math.sin(angle) * radius;
-
-      const shard = this.scene.add.graphics();
-      shard.setDepth(DEPTHS.bossShatterShard);
-
-      const size = Phaser.Math.Between(config.minSize, config.maxSize);
-      const isEnergy = Math.random() < config.energyShardRatio;
-      const color = isEnergy ? COLORS.RED : bodyColor;
-      const alpha = isEnergy ? 1 : 0.8;
-
-      shard.fillStyle(color, alpha);
-
-      const points: Phaser.Math.Vector2[] = [];
-      const numPoints = Phaser.Math.Between(3, 5);
-      for (let j = 0; j < numPoints; j++) {
-        const pAngle = (j / numPoints) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-        const pRadius = (size / 2) * (0.5 + Math.random() * 0.5);
-        points.push(new Phaser.Math.Vector2(Math.cos(pAngle) * pRadius, Math.sin(pAngle) * pRadius));
-      }
-
-      shard.fillPoints(points, true);
-
-      if (isEnergy) {
-        shard.lineStyle(1, 0xffffff, 0.5);
-        shard.strokePoints(points, true);
-      }
-
-      shard.setPosition(startX, startY);
-      shard.setRotation(Math.random() * Math.PI * 2);
-
-      const velocityX =
-        (Math.cos(angle) * 0.5 + (Math.random() - 0.5)) *
-        Phaser.Math.Between(config.minVelocity, config.maxVelocity);
-      const velocityY =
-        (Math.sin(angle) * 0.5 + (Math.random() - 0.5)) *
-          Phaser.Math.Between(config.minVelocity, config.maxVelocity) -
-        config.upwardForce;
-      const gravity = config.gravity;
-      const rotationSpeed = (Math.random() - 0.5) * config.rotationSpeedRange;
-      const duration = Phaser.Math.Between(config.minDuration, config.maxDuration);
-
-      this.scene.tweens.add({
-        targets: shard,
-        alpha: 0,
-        duration: duration,
-        ease: 'Cubic.easeIn',
-        onUpdate: (_tween) => {
-          const t = _tween.elapsed / 1000;
-          const curX = startX + velocityX * t;
-          const curY = startY + velocityY * t + 0.5 * gravity * t * t;
-          shard.setPosition(curX, curY);
-          shard.setRotation(shard.rotation + rotationSpeed * 0.016);
-        },
-        onComplete: () => shard.destroy(),
-      });
-    }
-  }
-
-  private createShatterSparks(
-    x: number,
-    y: number,
-    outerRadius: number,
-    config: typeof Data.boss.visual.shatter
-  ): void {
-    for (let i = 0; i < config.sparkCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spark = this.scene.add.circle(
-        x + Math.cos(angle) * outerRadius,
-        y + Math.sin(angle) * outerRadius,
-        2,
-        0xffffff,
-        0.8
-      );
-      spark.setDepth(DEPTHS.explosionSpark);
-
-      this.scene.tweens.add({
-        targets: spark,
-        x: spark.x + Math.cos(angle) * config.sparkTravelDistance,
-        y: spark.y + Math.sin(angle) * config.sparkTravelDistance,
-        alpha: 0,
-        scale: 0,
-        duration: config.sparkDuration,
-        onComplete: () => spark.destroy(),
-      });
-    }
+    this.bossShatter.createBossGaugeShatter(x, y, innerRadius, outerRadius, bodyColor);
   }
 }

@@ -176,7 +176,9 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 ### 4. 시각 효과 및 UI (Effects & UI)
 
 - **`src/effects/`**:
-  - `ParticleManager`: 폭발 및 피격 파티클 생성.
+  - `ParticleManager`: 폭발 및 피격 파티클 생성. 보스 파편/업그레이드 흡수 이펙트는 전용 클래스로 위임.
+  - **`BossShatterEffect.ts`**: 보스 아머 파괴 시 파편·스파크 연출 (ParticleManager에서 분리).
+  - **`UpgradeAbsorptionEffect.ts`**: 업그레이드 흡수 파티클·임팩트 연출 (ParticleManager에서 분리).
   - `ScreenShake`: 카메라 흔들림 효과.
   - `CursorTrail`: 커서의 움직임을 따라가는 잔상 효과.
   - `StarBackground`: 별 배경 애니메이션 (반짝임, 수직 스크롤).
@@ -190,7 +192,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
   - **`HealthPackRenderer.ts`**: 힐팩 외형 렌더링 전담 클래스.
   - **`PlayerAttackRenderer.ts`**: 플레이어 필살기(충전 글로우/커서 외곽 백색 에너지 수렴/발사 직전 커서 글로우/전기 스파크/미사일 트레일/폭탄 경고) 연출 렌더러.
   - **`CursorRenderer.ts`**: 메뉴/인게임 커서 외형, 공격 게이지, 자기장/전기 충격 범위, 그리고 플레이어 HP 세그먼트 링을 통합 렌더링.
-  - **`ParticleManager.ts`**: 커서 좌표 조회를 `CursorPositionProvider` 기반으로 통합해 Scene duck-typing 중복을 제거.
+  - **`ParticleManager.ts`**: 기본 이펙트 관리 + `BossShatterEffect`·`UpgradeAbsorptionEffect` 위임. 커서 좌표 조회를 `CursorPositionProvider` 기반으로 통합.
 - **`src/ui/`**:
   - `HUD`: HUD 오케스트레이터. 매 프레임 컨텍스트(커서 위치, 업그레이드 선택 상태)를 받아 표시 정책을 적용하며, 도크바 hover 진행도(기본 1.2초 누적 정지)를 씬에 제공합니다.
   - `hud/AbilitySummaryWidget`: 보유 어빌리티 슬롯 렌더링, 도크 영역(맥OS 스타일 오버레이/게이지/재개 힌트) 렌더링, hover 영역 계산(기본 폭 또는 어빌리티 수에 따라 확장), 슬롯 hover 툴팁 카드(아이콘/이름/레벨/설명) 렌더링을 담당합니다. 도크가 열린 동안에만 슬롯과 슬롯 툴팁을 표시합니다.

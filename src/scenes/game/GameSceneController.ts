@@ -55,9 +55,11 @@ export class GameSceneController {
     this.hud.showWaveComplete(waveNumber);
     this.dishLifecycleController.clearAll();
     this.bcc.clearForWaveTransition();
-    this.gameEnv.pendingWaveNumber = waveNumber + 1;
+    const expectedWave = waveNumber + 1;
+    this.gameEnv.pendingWaveNumber = expectedWave;
     this.scene.time.delayedCall(500, () => {
       if (this.gameEnv.isGameOver) return;
+      if (this.gameEnv.pendingWaveNumber !== expectedWave) return;
       this.gameEnv.isUpgrading = true;
       this.inGameUpgradeUI.show();
     });
@@ -66,10 +68,12 @@ export class GameSceneController {
   onUpgradeSelected(): void {
     if (this.gameEnv.isGameOver) return;
     this.gameEnv.isUpgrading = false;
+    const pendingWave = this.gameEnv.pendingWaveNumber;
     this.scene.time.delayedCall(300, () => {
       if (this.gameEnv.isGameOver) return;
-      this.waveSystem.startCountdown(this.gameEnv.pendingWaveNumber);
-      this.waveCountdownUI.show(this.gameEnv.pendingWaveNumber);
+      if (this.gameEnv.pendingWaveNumber !== pendingWave) return;
+      this.waveSystem.startCountdown(pendingWave);
+      this.waveCountdownUI.show(pendingWave);
     });
   }
 

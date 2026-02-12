@@ -29,13 +29,7 @@ export class CoreServicesPlugin implements ServicePlugin {
     MonsterSystem,
     StatusEffectManager,
 
-    // auto-inject (inject = [Phaser.Scene])
-    ParticleManager,
-    ScreenShake,
-    DamageText,
-    CursorTrail,
-
-    // custom factory (singleton)
+    // custom factory (singleton — needed before ParticleManager)
     {
       key: SoundSystem,
       factory: (r) => {
@@ -44,6 +38,15 @@ export class CoreServicesPlugin implements ServicePlugin {
         return s;
       },
     },
+
+    // auto-inject / custom factory (inject = [Phaser.Scene])
+    {
+      key: ParticleManager,
+      factory: (r) => new ParticleManager(r.get(Phaser.Scene), undefined, r.get(SoundSystem)),
+    },
+    ScreenShake,
+    DamageText,
+    CursorTrail,
 
     // auto-inject (complex deps)
     FeedbackSystem,
