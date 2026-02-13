@@ -24,6 +24,8 @@ vi.mock('../src/utils/EventBus', () => {
       DISH_DAMAGED: 'DISH_DAMAGED',
       DISH_DESTROYED: 'DISH_DESTROYED',
       DISH_MISSED: 'DISH_MISSED',
+      BOMB_DESTROYED: 'BOMB_DESTROYED',
+      BOMB_MISSED: 'BOMB_MISSED',
       MONSTER_DIED: 'MONSTER_DIED',
     },
   };
@@ -82,7 +84,7 @@ function setupEntity(world: World, id: EntityId): void {
   world.identity.set(id, { entityId: id, entityType: 'basic', isGatekeeper: false });
   world.health.set(id, { currentHp: 100, maxHp: 100, isDead: false });
   world.dishProps.set(id, {
-    dangerous: false, invulnerable: false, color: 0x00ffff, size: 30,
+    color: 0x00ffff, size: 30,
     interactiveRadius: 40, upgradeOptions: {}, destroyedByAbility: false,
   });
   world.cursorInteraction.set(id, {
@@ -140,12 +142,6 @@ describe('EntityDamageService', () => {
       expect(mockEntity.active).toBe(false);
     });
 
-    it('does nothing for invulnerable entities', () => {
-      world.dishProps.getRequired(e1).invulnerable = true;
-      service.applyDamage(e1, 50);
-      expect(world.health.getRequired(e1).currentHp).toBe(100);
-    });
-
     it('does nothing for inactive entities', () => {
       mockEntity.active = false;
       service.applyDamage(e1, 50);
@@ -174,6 +170,23 @@ describe('EntityDamageService', () => {
       const bus = EventBus.getInstance();
       expect(bus.emit).toHaveBeenCalledWith(GameEvents.DISH_DESTROYED, expect.anything());
     });
+
+    it('emits BOMB_DESTROYED with playerDamage and resetCombo for bomb entity', () => {
+      world.bombProps.set(e1, {
+        color: 0xff0000, size: 30,
+        playerDamage: 2, resetCombo: false, destroyedByAbility: false,
+      });
+      world.transform.set(e1, { x: 70, y: 80, baseX: 70, baseY: 80, alpha: 1, scaleX: 1, scaleY: 1 });
+      service.forceDestroy(e1, true);
+      expect(mockEntity.active).toBe(false);
+      const bus = EventBus.getInstance();
+      expect(bus.emit).toHaveBeenCalledWith(GameEvents.BOMB_DESTROYED, expect.objectContaining({
+        entityId: e1,
+        byAbility: true,
+        playerDamage: 2,
+        resetCombo: false,
+      }));
+    });
   });
 
   describe('handleTimeout', () => {
@@ -182,6 +195,22 @@ describe('EntityDamageService', () => {
       expect(mockEntity.active).toBe(false);
       const bus = EventBus.getInstance();
       expect(bus.emit).toHaveBeenCalledWith(GameEvents.DISH_MISSED, expect.anything());
+    });
+
+    it('emits BOMB_MISSED for bomb entity before deactivation', () => {
+      world.bombProps.set(e1, {
+        color: 0xff0000, size: 30,
+        playerDamage: 1, resetCombo: true, destroyedByAbility: false,
+      });
+      world.transform.set(e1, { x: 50, y: 60, baseX: 50, baseY: 60, alpha: 1, scaleX: 1, scaleY: 1 });
+      service.handleTimeout(e1);
+      expect(mockEntity.active).toBe(false);
+      const bus = EventBus.getInstance();
+      expect(bus.emit).toHaveBeenCalledWith(GameEvents.BOMB_MISSED, expect.objectContaining({
+        entityId: e1,
+        x: 50,
+        y: 60,
+      }));
     });
   });
 
@@ -323,12 +352,21 @@ describe('EntityDamageService', () => {
   });
 
   describe('explode', () => {
-    it('deactivates entity and emits DISH_DESTROYED', () => {
+    it('deactivates entity and emits BOMB_DESTROYED', () => {
+      world.bombProps.set(e1, {
+        color: 0xff0000, size: 30,
+        playerDamage: 1, resetCombo: true, destroyedByAbility: false,
+      });
       service.explode(e1);
       expect(mockEntity.active).toBe(false);
       expect(mockEntity.disableInteractive).toHaveBeenCalled();
       const bus = EventBus.getInstance();
-      expect(bus.emit).toHaveBeenCalledWith(GameEvents.DISH_DESTROYED, expect.anything());
+      expect(bus.emit).toHaveBeenCalledWith(GameEvents.BOMB_DESTROYED, expect.objectContaining({
+        entityId: e1,
+        byAbility: false,
+        playerDamage: 1,
+        resetCombo: true,
+      }));
     });
   });
 });

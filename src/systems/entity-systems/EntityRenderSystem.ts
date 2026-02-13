@@ -45,6 +45,8 @@ export class EntityRenderSystem implements EntitySystem {
       const bossState = this.world.bossState.get(entityId);
       const lifetime = this.world.lifetime.get(entityId);
 
+      const bombProps = this.world.bombProps.get(entityId);
+
       if (identity?.isGatekeeper && bossState && node.bossRenderer) {
         const hpRatio = health && health.maxHp > 0 ? health.currentHp / health.maxHp : 1;
         node.bossRenderer.render({
@@ -53,9 +55,9 @@ export class EntityRenderSystem implements EntitySystem {
           armorPieceCount: bossState.armorPieceCount,
           filledArmorPieceCount: bossState.currentArmorCount,
         });
-      } else if (dishProps?.dangerous) {
+      } else if (bombProps) {
         DishRenderer.renderDangerDish(node.graphics, {
-          size: dishProps.size,
+          size: bombProps.size,
           blinkPhase: visualState?.blinkPhase ?? 0,
         });
       } else if (dishProps && health && visualState) {

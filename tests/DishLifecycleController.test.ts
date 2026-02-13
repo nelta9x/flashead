@@ -34,6 +34,10 @@ const dishDataByType: Record<string, { playerDamage: number; resetCombo: boolean
 vi.mock('../src/data/DataManager', () => ({
   Data: {
     getDishData: (type: string) => dishDataByType[type] ?? null,
+    getBombData: (type: string) => {
+      if (type === 'bomb') return { bombWarning: { duration: 500, radius: 50, blinkInterval: 100 }, playerDamage: 2, resetCombo: true };
+      return undefined;
+    },
     gameConfig: {
       monsterAttack: {
         laser: {
@@ -55,7 +59,6 @@ function makeSnapshot(overrides: Partial<EntitySnapshot> = {}): EntitySnapshot {
     x: 100,
     y: 200,
     entityType: 'basic',
-    dangerous: false,
     color: 0xffffff,
     size: 30,
     currentHp: 10,
@@ -100,7 +103,7 @@ describe('DishLifecycleController', () => {
 
   // World store mocks — supports phaserNode, dishProps, dishTag, transform, and query()
   const phaserNodeStore = new Map<number, { container: unknown }>();
-  const dishPropsStore = new Map<number, { dangerous: boolean }>();
+  const dishPropsStore = new Map<number, Record<string, unknown>>();
   const dishTagStore = new Map<number, Record<string, never>>();
   const transformStore = new Map<number, { x: number; y: number }>();
   const activeEntities = new Set<number>();
@@ -142,10 +145,10 @@ describe('DishLifecycleController', () => {
   };
 
   /** Add a dish entity to the World stores for query-based iteration */
-  function addDishToWorld(id: number, x: number, y: number, dangerous: boolean): void {
+  function addDishToWorld(id: number, x: number, y: number): void {
     activeEntities.add(id);
     dishTagStore.set(id, {} as Record<string, never>);
-    dishPropsStore.set(id, { dangerous });
+    dishPropsStore.set(id, {});
     transformStore.set(id, { x, y });
   }
 
@@ -209,22 +212,21 @@ describe('DishLifecycleController', () => {
     activeEntities.clear();
   });
 
-  it('handles dangerous dish destruction with penalty and release', () => {
+  it('handles normal dish destruction with combo increment and release', () => {
     const controller = createController();
-    const bombEntity = { getDishType: () => 'bomb' };
-    phaserNodeStore.set(10, { container: bombEntity });
+    const dishEntity = { getDishType: () => 'basic' };
+    phaserNodeStore.set(10, { container: dishEntity });
 
     controller.onDishDestroyed({
-      snapshot: makeSnapshot({ entityId: 10, entityType: 'bomb', dangerous: true }),
+      snapshot: makeSnapshot({ entityId: 10, entityType: 'basic' }),
       x: 100,
       y: 200,
     });
 
-    expect(healthSystem.takeDamage).toHaveBeenCalledWith(2);
-    expect(comboSystem.reset).toHaveBeenCalledTimes(1);
-    expect(feedbackSystem.onBombExploded).toHaveBeenCalledWith(100, 200, false);
-    expect(dishes.remove).toHaveBeenCalledWith(bombEntity);
-    expect(dishPool.release).toHaveBeenCalledWith(bombEntity);
+    expect(comboSystem.increment).toHaveBeenCalled();
+    expect(feedbackSystem.onDishDestroyed).toHaveBeenCalled();
+    expect(dishes.remove).toHaveBeenCalledWith(dishEntity);
+    expect(dishPool.release).toHaveBeenCalledWith(dishEntity);
   });
 
   it('applies electric shock only to normal dishes within radius on cursor hit', () => {
@@ -237,10 +239,9 @@ describe('DishLifecycleController', () => {
     });
 
     // Set up entities in the World stores for query-based iteration
-    addDishToWorld(100, 100, 100, false);
-    addDishToWorld(101, 110, 120, false);
-    addDishToWorld(102, 115, 115, true);
-    addDishToWorld(103, 500, 500, false);
+    addDishToWorld(100, 100, 100);
+    addDishToWorld(101, 110, 120);
+    addDishToWorld(103, 500, 500);
 
     controller.onDishDamaged({
       snapshot: makeSnapshot({ entityId: 100, entityType: 'basic' }),
@@ -256,7 +257,6 @@ describe('DishLifecycleController', () => {
     });
 
     expect(damageService.applyUpgradeDamage).toHaveBeenCalledWith(101, 5, 0, 0);
-    expect(damageService.applyUpgradeDamage).not.toHaveBeenCalledWith(102, expect.anything(), expect.anything(), expect.anything());
     expect(damageService.applyUpgradeDamage).not.toHaveBeenCalledWith(103, expect.anything(), expect.anything(), expect.anything());
     expect(feedbackSystem.onElectricShock).toHaveBeenCalledWith(100, 100, [{ x: 110, y: 120 }]);
   });
@@ -297,8 +297,8 @@ describe('DishLifecycleController', () => {
     });
 
     // Set up entities in the World stores for query-based iteration
-    addDishToWorld(300, 100, 100, false);
-    addDishToWorld(301, 110, 120, false);
+    addDishToWorld(300, 100, 100);
+    addDishToWorld(301, 110, 120);
 
     const snap = makeSnapshot({ entityId: 300, entityType: 'basic' });
     controller.onDishDamaged({

@@ -227,7 +227,22 @@
 
 ---
 
-## 14. 엔진 마이그레이션 (Phaser 3 → 4) `occurrences: 1`
+## 14. ECS 엔티티 타입 구분: boolean 플래그 vs 별도 컴포넌트 `occurrences: 1`
+
+### 원칙
+- 공유 컴포넌트의 boolean 플래그(`DishProps.dangerous`)로 엔티티 타입을 구분하면, 모든 소비자(쿼리/이벤트 핸들러/해상도 로직)에 분기가 전파된다.
+- 별도 컴포넌트(`C_BombProps` vs `C_DishProps`)로 분리하면 World query가 자연스럽게 필터하므로 소비자 분기가 제거된다.
+- 동일 행동을 공유하는 엔티티(웨이브 폭탄/낙하 폭탄)는 공통 컴포넌트(`C_BombProps`) + 통합 이벤트(`BOMB_DESTROYED`)로 중복을 제거한다.
+- 식별 방법: `world.bombProps.has(id)`(모든 폭탄), `world.fallingBomb.has(id)`(낙하 폭탄), `world.bombProps.has(id) && !world.fallingBomb.has(id)`(웨이브 폭탄).
+
+### 사례 요약
+- `DishProps.dangerous`/`invulnerable`로 폭탄을 구분 → 접시 쿼리 전체에 `if (dp.dangerous)` 분기 산재
+- `C_BombProps` 분리 + `BOMB_DESTROYED`/`BOMB_MISSED` 통합 → OrbSystem/BlackHoleSystem/PlayerAttackController에서 접시/폭탄 쿼리를 독립적으로 실행, `DishResolutionService`에서 폭탄 분기 전부 제거
+- `FALLING_BOMB_DESTROYED`/`FALLING_BOMB_MISSED` 제거 → `GameSceneEventBinder`에서 단일 `BOMB_DESTROYED` 핸들러로 웨이브+낙하 폭탄 통합 처리
+
+---
+
+## 15. 엔진 마이그레이션 (Phaser 3 → 4) `occurrences: 1`
 
 ### 원칙
 - Phaser 4에서 `fillPoints`/`strokePoints`는 `{x,y}` 리터럴 대신 `Phaser.Math.Vector2` 인스턴스를 요구한다.

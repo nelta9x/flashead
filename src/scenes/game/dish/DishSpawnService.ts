@@ -37,9 +37,9 @@ export class DishSpawnService {
   }
 
   public spawnDish(type: string, x: number, y: number, speedMultiplier: number = 1): void {
-    const dishData = Data.getDishData(type);
-    if (dishData?.bombWarning) {
-      this.showBombWarningAndSpawn(type, x, y, speedMultiplier, dishData.bombWarning);
+    const bombData = Data.getBombData(type);
+    if (bombData?.bombWarning) {
+      this.showBombWarningAndSpawn(type, x, y, speedMultiplier, bombData.bombWarning);
       return;
     }
 
@@ -61,7 +61,8 @@ export class DishSpawnService {
       return;
     }
 
-    const dishData = Data.getDishData(type);
+    const bombData = Data.getBombData(type);
+    const dishData = bombData ? undefined : Data.getDishData(type);
     const options = {
       cursorSizeBonus: this.upgradeSystem.getCursorSizeBonus(),
       damageBonus: this.upgradeSystem.getCursorDamageBonus(),
@@ -71,10 +72,10 @@ export class DishSpawnService {
     const config = {
       entityId: INVALID_ENTITY_ID,
       entityType: type,
-      hp: dishData?.hp ?? 10,
-      lifetime: dishData?.lifetime ?? 7000,
+      hp: bombData?.hp ?? dishData?.hp ?? 10,
+      lifetime: bombData?.lifetime ?? dishData?.lifetime ?? 7000,
       isGatekeeper: false,
-      spawnAnimation: dishData?.spawnAnimation,
+      spawnAnimation: bombData?.spawnAnimation ?? dishData?.spawnAnimation,
       upgradeOptions: options,
     };
 

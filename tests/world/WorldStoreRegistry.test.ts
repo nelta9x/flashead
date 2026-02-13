@@ -10,7 +10,7 @@ describe('World Store Registry', () => {
   });
 
   describe('빌트인 스토어', () => {
-    it('17개 빌트인 스토어가 등록되어야 함', () => {
+    it('18개 빌트인 스토어가 등록되어야 함', () => {
       const names = world.getStoreNames();
       expect(names).toContain('dishTag');
       expect(names).toContain('bossTag');
@@ -20,6 +20,7 @@ describe('World Store Registry', () => {
       expect(names).toContain('statusCache');
       expect(names).toContain('lifetime');
       expect(names).toContain('dishProps');
+      expect(names).toContain('bombProps');
       expect(names).toContain('cursorInteraction');
       expect(names).toContain('visualState');
       expect(names).toContain('movement');
@@ -29,7 +30,7 @@ describe('World Store Registry', () => {
       expect(names).toContain('playerRender');
       expect(names).toContain('fallingBomb');
       expect(names).toContain('healthPack');
-      expect(names).toHaveLength(17);
+      expect(names).toHaveLength(18);
     });
 
     it('getStoreByName으로 빌트인 스토어에 접근할 수 있어야 함', () => {

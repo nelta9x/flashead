@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CURSOR_HITBOX } from '../../data/constants';
-import { C_DishTag, C_DishProps, C_Transform } from '../../world';
+import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../world';
 import type { EntitySystem } from './EntitySystem';
 import type { World } from '../../world';
 import type { EntityDamageService } from '../EntityDamageService';
@@ -39,6 +39,17 @@ export class CursorAttackSystem implements EntitySystem {
       const size = dp.size;
       const dist = Phaser.Math.Distance.Between(cursor.x, cursor.y, t.x, t.y);
       this.damageService.setInCursorRange(entityId, dist <= cursorRadius + size);
+    }
+
+    // 웨이브 폭탄도 커서 충돌 감지 (explode 인터랙션)
+    for (const [bombId, bp, bt] of this.world.query(C_BombProps, C_Transform)) {
+      // 낙하 폭탄은 FallingBombSystem이 자체 충돌 처리
+      if (this.world.fallingBomb.has(bombId)) continue;
+      const lt = this.world.lifetime.get(bombId);
+      if (lt && lt.elapsedTime < lt.spawnDuration) continue;
+      const size = bp.size;
+      const dist = Phaser.Math.Distance.Between(cursor.x, cursor.y, bt.x, bt.y);
+      this.damageService.setInCursorRange(bombId, dist <= cursorRadius + size);
     }
   }
 }

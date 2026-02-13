@@ -18,13 +18,9 @@ import type {
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
   DishMissedEventPayload,
+  BombDestroyedEventPayload,
+  BombMissedEventPayload,
 } from './GameSceneContracts';
-
-interface FallingBombDestroyedPayload {
-  x: number;
-  y: number;
-  byAbility: boolean;
-}
 
 interface BlackHoleConsumedPayload {
   x: number;
@@ -122,16 +118,26 @@ export class GameSceneEventBinder {
       const pr = world.playerRender.get(world.context.playerId);
       if (pr) pr.gaugeRatio = payload.ratio;
     });
-    this.on(GameEvents.FALLING_BOMB_DESTROYED, (payload: FallingBombDestroyedPayload) => {
+    this.on(GameEvents.BOMB_DESTROYED, (payload: BombDestroyedEventPayload) => {
       if (!payload.byAbility) {
-        s.get(HealthSystem).takeDamage(Data.fallingBomb.playerDamage);
-        if (Data.fallingBomb.resetCombo) {
+        s.get(HealthSystem).takeDamage(payload.playerDamage);
+        if (payload.resetCombo) {
           s.get(ComboSystem).reset();
         }
       } else {
         s.get(DamageText).showText(payload.x, payload.y - 40, Data.t('feedback.bomb_removed'), COLORS.CYAN);
       }
       s.get(FeedbackSystem).onBombExploded(payload.x, payload.y, !!payload.byAbility);
+      // 웨이브 폭탄만 풀 해제 (낙하 폭탄은 FallingBombSystem이 자체 해제)
+      if (!s.get(World).fallingBomb.has(payload.entityId)) {
+        s.get(DishLifecycleController).removeEntityFromPool(payload.entityId);
+      }
+    });
+    this.on(GameEvents.BOMB_MISSED, (payload: BombMissedEventPayload) => {
+      // 웨이브 폭탄만 풀 해제 (낙하 폭탄은 자체 해제)
+      if (!s.get(World).fallingBomb.has(payload.entityId)) {
+        s.get(DishLifecycleController).removeEntityFromPool(payload.entityId);
+      }
     });
     this.on(GameEvents.BLACK_HOLE_CONSUMED, (payload: BlackHoleConsumedPayload) => {
       s.get(DamageText).showText(payload.x, payload.y - 40, Data.t('feedback.black_hole_consumed'), COLORS.CYAN);

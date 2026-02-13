@@ -41,9 +41,8 @@ export class DishFieldEffectService {
     const magnetForce = this.upgradeSystem.getMagnetForce();
     const deltaSeconds = delta / 1000;
 
-    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
+    for (const [entityId, , , t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
       this.damageService.setBeingPulled(entityId, false);
-      if (dp.dangerous) continue;
 
       const dist = Phaser.Math.Distance.Between(cursor.x, cursor.y, t.x, t.y);
       if (dist > magnetRadius || dist < MAGNET.MIN_PULL_DISTANCE) continue;

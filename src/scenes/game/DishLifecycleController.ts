@@ -11,8 +11,9 @@ import type { HealthSystem } from '../../systems/HealthSystem';
 import type { SoundSystem } from '../../systems/SoundSystem';
 import type { StatusEffectManager } from '../../systems/StatusEffectManager';
 import type { UpgradeSystem } from '../../systems/UpgradeSystem';
-import { C_DishTag } from '../../world';
+import { C_DishTag, C_BombProps } from '../../world';
 import type { World } from '../../world';
+import type { EntityId } from '../../world/EntityId';
 import type {
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
@@ -95,8 +96,28 @@ export class DishLifecycleController {
     this.resolutionService.onDishMissed(data);
   }
 
+  public removeEntityFromPool(entityId: EntityId): void {
+    const node = this.world.phaserNode.get(entityId);
+    if (node) {
+      this.dishes.remove(node.container as unknown as Phaser.GameObjects.GameObject);
+      this.dishPool.release(node.container as unknown as Entity);
+    }
+  }
+
   public clearAll(): void {
     for (const [entityId] of this.world.query(C_DishTag)) {
+      const node = this.world.phaserNode.get(entityId);
+      if (node) {
+        const entity = node.container as Entity;
+        deactivateEntity(entity, this.world, this.statusEffectManager);
+        this.dishes.remove(entity);
+        this.dishPool.release(entity);
+      }
+    }
+    // 웨이브 폭탄도 동일 풀을 사용하므로 정리
+    for (const [entityId] of this.world.query(C_BombProps)) {
+      // 낙하 폭탄은 FallingBombSystem이 관리하므로 건너뜀
+      if (this.world.fallingBomb.has(entityId)) continue;
       const node = this.world.phaserNode.get(entityId);
       if (node) {
         const entity = node.container as Entity;

@@ -32,78 +32,13 @@ vi.mock('../src/utils/EventBus', async () => {
 });
 
 import { OrbSystem } from '../src/systems/OrbSystem';
-
-let entityIdCounter = 0;
-
-// Helper: minimal mock World that supports query() for tests
-function createMockWorld() {
-  const dishTagStore = new Map<string, Record<string, never>>();
-  const dishPropsStore = new Map<string, { dangerous: boolean; size: number; invulnerable?: boolean; color?: number; interactiveRadius?: number; upgradeOptions?: unknown; destroyedByAbility?: boolean }>();
-  const transformStore = new Map<string, { x: number; y: number; baseX?: number; baseY?: number; alpha?: number; scaleX?: number; scaleY?: number }>();
-  const lifetimeStore = new Map<string, { elapsedTime: number; spawnDuration: number; movementTime?: number; lifetime?: number | null; globalSlowPercent?: number }>();
-  const activeEntities = new Set<string>();
-
-  const world = {
-    dishTag: {
-      get: (id: string) => dishTagStore.get(id),
-      has: (id: string) => dishTagStore.has(id),
-      set: (id: string, val: Record<string, never>) => dishTagStore.set(id, val),
-      size: () => dishTagStore.size,
-      entries: () => dishTagStore.entries(),
-    },
-    dishProps: {
-      get: (id: string) => dishPropsStore.get(id),
-      has: (id: string) => dishPropsStore.has(id),
-      set: (id: string, val: { dangerous: boolean; size: number }) => dishPropsStore.set(id, val),
-      size: () => dishPropsStore.size,
-      entries: () => dishPropsStore.entries(),
-    },
-    transform: {
-      get: (id: string) => transformStore.get(id),
-      has: (id: string) => transformStore.has(id),
-      set: (id: string, val: { x: number; y: number }) => transformStore.set(id, val),
-      size: () => transformStore.size,
-      entries: () => transformStore.entries(),
-    },
-    lifetime: {
-      get: (id: string) => lifetimeStore.get(id),
-      has: (id: string) => lifetimeStore.has(id),
-      set: (id: string, val: { elapsedTime: number; spawnDuration: number }) => lifetimeStore.set(id, val),
-      size: () => lifetimeStore.size,
-      entries: () => lifetimeStore.entries(),
-    },
-    createEntity: (id: string) => activeEntities.add(id),
-    isActive: (id: string) => activeEntities.has(id),
-    query: vi.fn(function* (..._defs: unknown[]) {
-      // Iterate over dishTag as pivot, yield tuples matching query(C_DishTag, C_DishProps, C_Transform, C_Lifetime)
-      for (const [entityId] of dishTagStore) {
-        if (!activeEntities.has(entityId)) continue;
-        const dp = dishPropsStore.get(entityId);
-        const t = transformStore.get(entityId);
-        const lt = lifetimeStore.get(entityId);
-        if (!dp || !t || !lt) continue;
-        yield [entityId, dishTagStore.get(entityId), dp, t, lt];
-      }
-    }),
-    _stores: { dishTagStore, dishPropsStore, transformStore, lifetimeStore, activeEntities },
-  };
-
-  // Re-implement query as a function that returns a fresh generator each call
-  world.query = vi.fn(function () {
-    return (function* () {
-      for (const [entityId] of dishTagStore) {
-        if (!activeEntities.has(entityId)) continue;
-        const dp = dishPropsStore.get(entityId);
-        const t = transformStore.get(entityId);
-        const lt = lifetimeStore.get(entityId);
-        if (!dp || !t || !lt) continue;
-        yield [entityId, dishTagStore.get(entityId), dp, t, lt];
-      }
-    })();
-  });
-
-  return world;
-}
+import {
+  createMockWorldStores,
+  createMockWorldApi,
+  addDishToWorld as addDish,
+  addBombToWorld as addBomb,
+  resetEntityIdCounter,
+} from './helpers/mockWorldFactory';
 
 describe('OrbSystem', () => {
   let system: OrbSystem;
@@ -115,7 +50,8 @@ describe('OrbSystem', () => {
     getSystemUpgrade: ReturnType<typeof vi.fn>;
   };
 
-  let mockWorld: ReturnType<typeof createMockWorld>;
+  let mockWorld: ReturnType<typeof createMockWorldApi>;
+  let mockStores: ReturnType<typeof createMockWorldStores>;
 
   // DamageService mock
   let mockDamageService: {
@@ -123,23 +59,17 @@ describe('OrbSystem', () => {
     applyUpgradeDamage: ReturnType<typeof vi.fn>;
   };
 
-  const addDishToWorld = (x: number, y: number, opts: { dangerous?: boolean; size?: number; spawnDuration?: number; elapsedTime?: number } = {}): string => {
-    const id = `dish_${entityIdCounter++}`;
-    const stores = mockWorld._stores;
-    stores.activeEntities.add(id);
-    stores.dishTagStore.set(id, {} as Record<string, never>);
-    stores.dishPropsStore.set(id, { dangerous: opts.dangerous ?? false, size: opts.size ?? 10 });
-    stores.transformStore.set(id, { x, y });
-    stores.lifetimeStore.set(id, {
-      elapsedTime: opts.elapsedTime ?? 9999,
-      spawnDuration: opts.spawnDuration ?? 0,
-    });
-    return id;
+  const addDishToWorld = (x: number, y: number, opts: { size?: number } = {}): string => {
+    return addDish(mockStores, x, y, opts);
+  };
+
+  const addBombToWorld = (x: number, y: number, opts: { size?: number; spawnDuration?: number; elapsedTime?: number } = {}): string => {
+    return addBomb(mockStores, x, y, opts);
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    entityIdCounter = 0;
+    resetEntityIdCounter();
 
     mockUpgradeSystem = {
       getOrbitingOrbLevel: vi.fn(),
@@ -154,7 +84,8 @@ describe('OrbSystem', () => {
       }),
     };
 
-    mockWorld = createMockWorld();
+    mockStores = createMockWorldStores();
+    mockWorld = createMockWorldApi(mockStores);
     mockDamageService = {
       forceDestroy: vi.fn(),
       applyUpgradeDamage: vi.fn(),
@@ -320,7 +251,7 @@ describe('OrbSystem', () => {
     expect(orb.size).toBe(20);
   });
 
-  it('should hit dangerous dishes only when fully spawned', () => {
+  it('should hit bombs only when fully spawned', () => {
     mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
     mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
       count: 1,
@@ -330,22 +261,21 @@ describe('OrbSystem', () => {
       size: 10,
     });
 
-    // Dangerous bomb dish with spawn tracking via lifetime store
-    const bombId = addDishToWorld(100, 0, { dangerous: true, size: 10, spawnDuration: 500, elapsedTime: 100 });
+    // Bomb with spawn tracking via lifetime store
+    const bombId = addBombToWorld(100, 0, { size: 10, spawnDuration: 500, elapsedTime: 100 });
 
-    // Case 1: Dangerous and NOT fully spawned (elapsedTime < spawnDuration)
+    // Case 1: NOT fully spawned (elapsedTime < spawnDuration)
     system.update(100, 1000, 0, 0);
     expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
 
-    // Case 2: Dangerous and fully spawned but TOO FAR
-    // Update lifetime to be fully spawned
-    mockWorld._stores.lifetimeStore.set(bombId, { elapsedTime: 9999, spawnDuration: 500 });
-    mockWorld._stores.transformStore.set(bombId, { x: 200, y: 0 }); // Orb is at x=100. Distance = 100. (10+10)*1.5 = 30.
+    // Case 2: Fully spawned but TOO FAR
+    mockStores.lifetimeStore.set(bombId, { elapsedTime: 9999, spawnDuration: 500 });
+    mockStores.transformStore.set(bombId, { x: 200, y: 0 }); // Orb is at x=100. Distance = 100. (10+10)*1.5 = 30.
     system.update(100, 2000, 0, 0);
     expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
 
     // Case 3: Within 1.5x range
-    mockWorld._stores.transformStore.set(bombId, { x: 125, y: 0 }); // Distance = 25. <= 30.
+    mockStores.transformStore.set(bombId, { x: 125, y: 0 }); // Distance = 25. <= 30.
     system.update(100, 3000, 0, 0);
     expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombId, true);
   });
@@ -366,7 +296,7 @@ describe('OrbSystem', () => {
       overclockMaxStacks: 3,
     });
 
-    addDishToWorld(0, 100);
+    addDishToWorld(0, 100, { size: 10 });
 
     system.update(1000, 1000, 0, 0);
     system.update(1000, 2000, 0, 0);
@@ -392,10 +322,10 @@ describe('OrbSystem', () => {
       overclockMaxStacks: 3,
     });
 
-    const bombId = addDishToWorld(0, 100, { dangerous: true, size: 10, spawnDuration: 0, elapsedTime: 9999 });
+    const bombId = addBombToWorld(0, 100, { size: 10, spawnDuration: 0, elapsedTime: 9999 });
     mockDamageService.forceDestroy.mockImplementation(() => {
       // Simulate destruction by removing from active entities
-      mockWorld._stores.activeEntities.delete(bombId);
+      mockStores.activeEntities.delete(bombId);
     });
 
     system.update(1000, 1000, 0, 0); // stack 1
@@ -428,9 +358,9 @@ describe('OrbSystem', () => {
     });
 
     const makeBombInWorld = (x: number, y: number) => {
-      const id = addDishToWorld(x, y, { dangerous: true, size: 10, spawnDuration: 0, elapsedTime: 9999 });
+      const id = addBombToWorld(x, y, { size: 10, spawnDuration: 0, elapsedTime: 9999 });
       mockDamageService.forceDestroy.mockImplementationOnce(() => {
-        mockWorld._stores.activeEntities.delete(id);
+        mockStores.activeEntities.delete(id);
       });
       return id;
     };
@@ -525,5 +455,23 @@ describe('OrbSystem', () => {
     );
 
     expect(onBossDamage).not.toHaveBeenCalled();
+  });
+
+  it('should skip falling bombs that are not fully spawned', () => {
+    mockUpgradeSystem.getOrbitingOrbLevel.mockReturnValue(1);
+    mockUpgradeSystem.getOrbitingOrbData.mockReturnValue({
+      count: 1,
+      damage: 10,
+      speed: 0,
+      radius: 100,
+      size: 10,
+    });
+
+    // Falling bomb that is NOT fully spawned — should be skipped by OrbSystem bomb loop
+    const bombId = addBombToWorld(100, 0, { size: 10, spawnDuration: 500, elapsedTime: 9999 });
+    mockStores.fallingBombStore.set(bombId, { fullySpawned: false });
+
+    system.update(100, 1000, 0, 0);
+    expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
   });
 });

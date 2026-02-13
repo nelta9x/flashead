@@ -275,8 +275,6 @@ import { COLORS, FONTS } from '../data/constants';
     "hp": 10,               // 체력 (플레이어 데미지로 깎임)
     "color": "#00ffff",     // 색상 (hex)
     "size": 30,             // 접시 크기 (px)
-    "dangerous": false,     // 접촉 시 플레이어 데미지 여부
-    "invulnerable": false,  // 무적 여부
     "lifetime": 2000,       // 생존 시간 (ms). 시간 내 파괴 못하면 사라짐
     "spawnAnimation": {
       "duration": 150,      // 스폰 애니메이션 시간 (ms)
@@ -293,9 +291,10 @@ import { COLORS, FONTS } from '../data/constants';
 | `basic` | 기본 접시. 밸런스 기준점 |
 | `golden` | 높은 HP의 중후반 탱커 타입 |
 | `crystal` | 높은 HP의 고위협 접시 |
-| `bomb` | `dangerous: true`, `invulnerable: true` - 접촉 시 플레이어 피해, 파괴 불가 |
 | `mini` | 낮은 HP, 빠른 소멸 |
 | `amber` | 주황색 상위 접시. 무한 웨이브(15+)에서 점진 도입 |
+
+> **폭탄**: 접시에서 분리됨 — `data/entities.json`의 `bombWarning` 타입 참조. `C_BombProps` 컴포넌트로 별도 관리.
 
 #### 데미지 설정
 

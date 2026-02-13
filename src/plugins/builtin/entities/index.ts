@@ -1,7 +1,7 @@
 import type { EntityTypePlugin } from '../../types';
 import { PluginRegistry } from '../../PluginRegistry';
 import { BasicDishPlugin } from './BasicDish';
-import { BombDishPlugin } from './BombDish';
+import { BombEntityPlugin } from './BombEntity';
 import { StandardBossPlugin } from './StandardBoss';
 import { PlayerEntityPlugin } from './PlayerEntity';
 import entitiesJson from '../../../../data/entities.json';
@@ -25,7 +25,7 @@ const ENTITY_TYPE_FACTORIES: Record<string, () => EntityTypePlugin> = {
   crystal: () => createBasicDish('crystal'),
   mini: () => createBasicDish('mini'),
   amber: () => createBasicDish('amber'),
-  bomb: () => new BombDishPlugin(),
+  bomb: () => new BombEntityPlugin(),
   boss_standard: () => {
     const d = entitiesJson.types.boss_standard;
     const mc = 'movement' in d ? d.movement : undefined;

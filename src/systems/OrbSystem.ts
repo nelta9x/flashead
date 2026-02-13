@@ -5,8 +5,7 @@ import type { OrbRenderer } from '../plugins/builtin/abilities/OrbRenderer';
 import type { SystemUpgradeData } from '../data/types';
 import type { BossRadiusSnapshot } from '../scenes/game/GameSceneContracts';
 import type { BossCombatCoordinator } from '../scenes/game/BossCombatCoordinator';
-import { C_DishTag, C_DishProps, C_Transform, C_Lifetime, C_FallingBomb } from '../world';
-import { Data } from '../data/DataManager';
+import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../world';
 import { FallingBombSystem } from './FallingBombSystem';
 import type { EntitySystem, SystemStartContext } from './entity-systems/EntitySystem';
 import type { World } from '../world';
@@ -155,14 +154,10 @@ export class OrbSystem implements EntitySystem {
     getBossSnapshots: () => BossRadiusSnapshot[],
     onBossDamage: (bossId: string, damage: number, x: number, y: number) => void,
   ): void {
-    for (const [entityId, , dp, t, lt] of this.world.query(C_DishTag, C_DishProps, C_Transform, C_Lifetime)) {
-      const dangerous = dp.dangerous;
+    // 접시 충돌 (bomb 제외 — C_DishTag 쿼리)
+    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
       const size = dp.size;
 
-      // 폭탄(dangerous)은 완전히 스폰된 후에만 타격 가능
-      if (dangerous && lt.elapsedTime < lt.spawnDuration) continue;
-
-      // Collision Check (Circle vs Circle)
       let hit = false;
       for (const orb of this.orbPositions) {
         const dist = Phaser.Math.Distance.Between(orb.x, orb.y, t.x, t.y);
@@ -175,14 +170,37 @@ export class OrbSystem implements EntitySystem {
       if (hit) {
         const nextHitTime = this.lastHitTimes.get(entityId) || 0;
         if (gameTime >= nextHitTime) {
-          if (dangerous) {
-            this.damageService.forceDestroy(entityId, true);
-            this.activateOverclock(gameTime, overclockConfig);
-          } else {
-            this.damageService.applyUpgradeDamage(entityId, damage, 0, criticalChanceBonus);
-          }
+          this.damageService.applyUpgradeDamage(entityId, damage, 0, criticalChanceBonus);
           this.lastHitTimes.set(entityId, gameTime + hitInterval);
         }
+      }
+    }
+
+    // 폭탄 통합 충돌 (웨이브 + 낙하)
+    for (const [bombId, bp, bt] of this.world.query(C_BombProps, C_Transform)) {
+      // 스폰 완료 체크: 낙하 폭탄은 fullySpawned, 웨이브 폭탄은 spawnDuration
+      const fb = this.world.fallingBomb.get(bombId);
+      if (fb && !fb.fullySpawned) continue;
+      const lt = this.world.lifetime.get(bombId);
+      if (lt && lt.elapsedTime < lt.spawnDuration) continue;
+
+      const hitSize = bp.size;
+      let hit = false;
+      for (const orb of this.orbPositions) {
+        const dist = Phaser.Math.Distance.Between(orb.x, orb.y, bt.x, bt.y);
+        if (dist <= (orbSize + hitSize) * 1.5) {
+          hit = true;
+          break;
+        }
+      }
+
+      if (hit) {
+        if (fb) {
+          this.fallingBombSystem.forceDestroy(bombId, true);
+        } else {
+          this.damageService.forceDestroy(bombId, true);
+        }
+        this.activateOverclock(gameTime, overclockConfig);
       }
     }
 
@@ -198,22 +216,6 @@ export class OrbSystem implements EntitySystem {
             this.bossLastHitTimes.set(boss.id, gameTime + hitInterval);
           }
           break;
-        }
-      }
-    }
-
-    // Falling bomb collision check (ECS World query)
-    if (this.fallingBombSystem) {
-      for (const [bombId, fb, bt] of this.world.query(C_FallingBomb, C_Transform)) {
-        if (!fb.fullySpawned) continue;
-
-        for (const orb of this.orbPositions) {
-          const dist = Phaser.Math.Distance.Between(orb.x, orb.y, bt.x, bt.y);
-          if (dist <= (orbSize + Data.fallingBomb.hitboxSize) * 1.5) {
-            this.fallingBombSystem.forceDestroy(bombId, true);
-            this.activateOverclock(gameTime, overclockConfig);
-            break;
-          }
         }
       }
     }

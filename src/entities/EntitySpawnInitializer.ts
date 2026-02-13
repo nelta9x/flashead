@@ -30,11 +30,13 @@ export function initializeEntitySpawn(
   const upgradeOptions = config.upgradeOptions ?? {};
 
   // 1. 타입 데이터 로드
-  const dishData = Data.getDishData(config.entityType);
-  const size = dishData?.size ?? 30;
-  const color = dishData?.color ? parseInt(dishData.color.replace('#', ''), 16) : 0x00ffff;
-  const dangerous = dishData?.dangerous ?? false;
-  const invulnerable = dishData?.invulnerable ?? false;
+  const bombData = Data.getBombData(config.entityType);
+  const isBomb = !!bombData;
+  const dishData = isBomb ? undefined : Data.getDishData(config.entityType);
+  const size = bombData?.size ?? dishData?.size ?? 30;
+  const color = (bombData?.color ?? dishData?.color)
+    ? parseInt((bombData?.color ?? dishData?.color ?? '#00ffff').replace('#', ''), 16)
+    : 0x00ffff;
 
   const attackSpeedMultiplier = upgradeOptions.attackSpeedMultiplier ?? 1;
   const damageInterval = Data.dishes.damage.damageInterval * attackSpeedMultiplier;
@@ -150,7 +152,7 @@ export function initializeEntitySpawn(
   const placeholderMovement = { type: 'none' as const, homeX: x, homeY: y, movementTime: 0, drift: null };
 
   const values: Record<string, unknown> = {
-    ...(config.isGatekeeper ? { bossTag: {} } : { dishTag: {} }),
+    ...(config.isGatekeeper ? { bossTag: {} } : isBomb ? {} : { dishTag: {} }),
     identity: {
       entityId: 0, // placeholder — overwritten after spawn
       entityType: config.entityType,
@@ -167,11 +169,22 @@ export function initializeEntitySpawn(
       lifetime: config.lifetime, spawnDuration,
       globalSlowPercent: upgradeOptions.globalSlowPercent ?? 0,
     },
-    dishProps: {
-      dangerous, invulnerable, color, size: finalSize,
-      interactiveRadius, upgradeOptions,
-      destroyedByAbility: false,
-    },
+    ...(isBomb
+      ? {
+          bombProps: {
+            color, size: finalSize,
+            playerDamage: bombData!.playerDamage,
+            resetCombo: bombData!.resetCombo,
+            destroyedByAbility: false,
+          },
+        }
+      : {
+          dishProps: {
+            color, size: finalSize,
+            interactiveRadius, upgradeOptions,
+            destroyedByAbility: false,
+          },
+        }),
     cursorInteraction: {
       isHovered: false, isBeingDamaged: false,
       damageInterval, damageTimerHandle: null,
@@ -229,7 +242,7 @@ export function initializeEntitySpawn(
       armorPieceCount: bossState.armorPieceCount,
       filledArmorPieceCount: bossState.currentArmorCount,
     });
-  } else if (dangerous) {
+  } else if (isBomb) {
     DishRenderer.renderDangerDish(entity.getGraphics(), { size: finalSize, blinkPhase: 0 });
   } else {
     DishRenderer.renderDish(entity.getGraphics(), {

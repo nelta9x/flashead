@@ -21,6 +21,7 @@ import type {
   MenuConfig,
   LocalesConfig,
   RarityWeights,
+  BombEntityData,
 } from './types';
 
 // JSON 파일 직접 import
@@ -38,6 +39,7 @@ import weaponsJson from '../../data/weapons.json';
 import bossJson from '../../data/boss.json';
 import fallingBombJson from '../../data/falling-bomb.json';
 import localesJson from '../../data/locales.json';
+import entitiesJson from '../../data/entities.json';
 
 class DataManager {
   private static instance: DataManager;
@@ -227,6 +229,14 @@ class DataManager {
   // 편의 메서드: 접시 데이터 가져오기
   public getDishData(dishType: string) {
     return this.dishes.dishes[dishType];
+  }
+
+  // 편의 메서드: 폭탄 데이터 가져오기 (entities.json에서 조회)
+  public getBombData(type: string): BombEntityData | undefined {
+    const entry = (entitiesJson.types as Record<string, Record<string, unknown>>)[type];
+    if (!entry || !('bombWarning' in entry)) return undefined;
+    if (typeof entry['playerDamage'] !== 'number' || typeof entry['resetCombo'] !== 'boolean') return undefined;
+    return entry as unknown as BombEntityData;
   }
 
   // 편의 메서드: 무기 데이터 가져오기

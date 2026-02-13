@@ -629,6 +629,7 @@ export interface FallingBombConfig {
   moveSpeed: number;
   visualSize: number;
   hitboxSize: number;
+  color: string;
   cooldown: number;
   maxActive: number;
   baseSpawnChance: number;
@@ -970,13 +971,22 @@ export interface DishData {
   hp: number;
   color: string;
   size: number;
-  dangerous: boolean;
-  invulnerable: boolean;
   lifetime: number;
   spawnAnimation: SpawnAnimationConfig;
   playerDamage?: number;
-  resetCombo?: boolean;
-  bombWarning?: BombWarningConfig;
+}
+
+export interface BombEntityData {
+  name: string;
+  hp: number;
+  color: string;
+  size: number;
+  lifetime: number;
+  playerDamage: number;
+  resetCombo: boolean;
+  cursorInteraction: string;
+  spawnAnimation: SpawnAnimationConfig;
+  bombWarning: BombWarningConfig;
 }
 
 export interface BombWarningConfig {

@@ -58,8 +58,6 @@ export const C_Lifetime = defineComponent<LifetimeComponent>('lifetime');
 
 // === C6: DishProps (dish-specific data) ===
 export interface DishPropsComponent {
-  dangerous: boolean;
-  invulnerable: boolean;
   color: number;
   size: number;
   interactiveRadius: number;
@@ -67,6 +65,16 @@ export interface DishPropsComponent {
   destroyedByAbility: boolean;
 }
 export const C_DishProps = defineComponent<DishPropsComponent>('dishProps');
+
+// === C6b: BombProps (bomb-specific data — component itself is the identifier) ===
+export interface BombPropsComponent {
+  color: number;
+  size: number;
+  playerDamage: number;
+  resetCombo: boolean;
+  destroyedByAbility: boolean;
+}
+export const C_BombProps = defineComponent<BombPropsComponent>('bombProps');
 
 // === C7: CursorInteraction ===
 export interface CursorInteractionComponent {

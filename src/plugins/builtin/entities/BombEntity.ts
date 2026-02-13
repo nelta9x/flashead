@@ -6,10 +6,11 @@ import type {
 } from '../../types';
 
 /**
- * 폭탄 접시 타입 플러그인.
+ * 폭탄 엔티티 타입 플러그인.
  * 커서 접촉 시 즉시 폭발 (explode 상호작용).
+ * 'bomb' 아키타입을 사용하여 접시와 분리된 컴포넌트 구성을 갖는다.
  */
-export class BombDishPlugin implements EntityTypePlugin {
+export class BombEntityPlugin implements EntityTypePlugin {
   readonly typeId = 'bomb';
   readonly config: EntityTypeConfig = {
     spawnCategory: 'pooled',
@@ -17,6 +18,7 @@ export class BombDishPlugin implements EntityTypePlugin {
     defaultLifetime: 2800,
     isGatekeeper: false,
     cursorInteraction: 'explode',
+    archetypeId: 'bomb',
   };
 
   createRenderer(
@@ -25,10 +27,9 @@ export class BombDishPlugin implements EntityTypePlugin {
   ): EntityTypeRenderer {
     return {
       render: () => {
-        // Entity.update()에서 직접 DishRenderer.renderDangerDish() 호출
+        // EntityRenderSystem에서 bombProps 기반으로 DishRenderer.renderDangerDish() 호출
       },
       destroy: () => {},
     };
   }
-
 }

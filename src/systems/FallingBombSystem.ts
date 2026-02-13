@@ -91,10 +91,13 @@ export class FallingBombSystem implements EntitySystem {
 
     const t = this.world.transform.get(entityId);
 
-    EventBus.getInstance().emit(GameEvents.FALLING_BOMB_DESTROYED, {
+    EventBus.getInstance().emit(GameEvents.BOMB_DESTROYED, {
+      entityId,
       x: t?.x ?? 0,
       y: t?.y ?? 0,
       byAbility,
+      playerDamage: Data.fallingBomb.playerDamage,
+      resetCombo: Data.fallingBomb.resetCombo,
     });
 
     this.destroyBombEntity(entityId);
@@ -128,7 +131,12 @@ export class FallingBombSystem implements EntitySystem {
   private onMissed(entityId: EntityId): void {
     if (!this.world.isActive(entityId)) return;
 
-    EventBus.getInstance().emit(GameEvents.FALLING_BOMB_MISSED);
+    const t = this.world.transform.get(entityId);
+    EventBus.getInstance().emit(GameEvents.BOMB_MISSED, {
+      entityId,
+      x: t?.x ?? 0,
+      y: t?.y ?? 0,
+    });
     this.destroyBombEntity(entityId);
   }
 
@@ -188,6 +196,13 @@ export class FallingBombSystem implements EntitySystem {
         moveSpeed: Data.fallingBomb.moveSpeed,
         blinkPhase: 0,
         fullySpawned: false,
+      },
+      bombProps: {
+        color: Phaser.Display.Color.HexStringToColor(Data.fallingBomb.color).color,
+        size: Data.fallingBomb.visualSize,
+        playerDamage: Data.fallingBomb.playerDamage,
+        resetCombo: Data.fallingBomb.resetCombo,
+        destroyedByAbility: false,
       },
       transform: {
         x, y: -OFFSCREEN_MARGIN,

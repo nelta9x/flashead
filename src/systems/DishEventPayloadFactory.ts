@@ -17,7 +17,6 @@ interface DishDestroyedPayloadParams {
 
 interface DishMissedPayloadParams {
   snapshot: EntitySnapshot;
-  isDangerous: boolean;
 }
 
 export class DishEventPayloadFactory {
@@ -53,7 +52,6 @@ export class DishEventPayloadFactory {
       x: params.snapshot.x,
       y: params.snapshot.y,
       type: params.snapshot.entityType,
-      isDangerous: params.isDangerous,
     };
   }
 }

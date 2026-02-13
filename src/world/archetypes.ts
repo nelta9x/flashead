@@ -17,6 +17,7 @@ import {
   C_BossTag,
   C_FallingBomb,
   C_HealthPack,
+  C_BombProps,
 } from './components';
 
 /** 아키타입 = ComponentDef 토큰 배열. 런타임 확장 가능. */
@@ -92,8 +93,15 @@ export const BUILTIN_ARCHETYPES: readonly ArchetypeDefinition[] = [
     ],
   },
   {
+    id: 'bomb',
+    components: [
+      C_Identity, C_Transform, C_Health, C_StatusCache,
+      C_Lifetime, C_BombProps, C_CursorInteraction, C_VisualState, C_Movement, C_PhaserNode,
+    ],
+  },
+  {
     id: 'fallingBomb',
-    components: [C_FallingBomb, C_Transform, C_PhaserNode],
+    components: [C_FallingBomb, C_BombProps, C_Transform, C_PhaserNode],
   },
   {
     id: 'healthPack',

@@ -62,24 +62,6 @@ export class DishResolutionService {
 
   public onDishDestroyed(data: DishDestroyedEventPayload): void {
     const { snapshot, x, y, byAbility } = data;
-    const dishData = Data.getDishData(snapshot.entityType);
-
-    if (snapshot.dangerous) {
-      if (!byAbility && dishData) {
-        const damage = dishData.playerDamage ?? 1;
-        this.healthSystem.takeDamage(damage);
-
-        if (dishData.resetCombo) {
-          this.comboSystem.reset();
-        }
-      } else if (byAbility) {
-        this.damageText.showText(x, y - 40, Data.t('feedback.bomb_removed'), COLORS.CYAN);
-      }
-
-      this.feedbackSystem.onBombExploded(x, y, !!byAbility);
-      this.removeDishFromPool(snapshot.entityId);
-      return;
-    }
 
     if (!byAbility) {
       const laserConfig = Data.gameConfig.monsterAttack.laser;
@@ -126,13 +108,8 @@ export class DishResolutionService {
   }
 
   public onDishMissed(data: DishMissedEventPayload): void {
-    const { snapshot, x, y, isDangerous } = data;
+    const { snapshot, x, y } = data;
     const dishData = Data.getDishData(snapshot.entityType);
-
-    if (isDangerous) {
-      this.removeDishFromPool(snapshot.entityId);
-      return;
-    }
 
     this.feedbackSystem.onDishMissed(x, y, snapshot.color, snapshot.entityType);
     const damage = dishData?.playerDamage ?? 1;
@@ -146,9 +123,8 @@ export class DishResolutionService {
     const damage = this.upgradeSystem.getElectricShockDamage();
     const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
 
-    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
+    for (const [entityId, , , t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
       if (entityId === excludeEntityId) continue;
-      if (dp.dangerous) continue;
 
       const distance = Phaser.Math.Distance.Between(x, y, t.x, t.y);
       if (distance < radius) {

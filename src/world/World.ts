@@ -23,12 +23,14 @@ import {
   C_BossTag,
   C_FallingBomb,
   C_HealthPack,
+  C_BombProps,
 } from './components';
 import type {
   DishTag,
   BossTag,
   FallingBombComponent,
   HealthPackComponent,
+  BombPropsComponent,
   IdentityComponent,
   TransformComponent,
   HealthComponent,
@@ -72,6 +74,7 @@ export class World {
   readonly playerRender: ComponentStore<PlayerRenderComponent>;
   readonly fallingBomb: ComponentStore<FallingBombComponent>;
   readonly healthPack: ComponentStore<HealthPackComponent>;
+  readonly bombProps: ComponentStore<BombPropsComponent>;
 
   // 글로벌 게임 상태 리소스
   readonly context: GameContext = createDefaultGameContext();
@@ -104,6 +107,7 @@ export class World {
     this.playerRender = this.register(C_PlayerRender);
     this.fallingBomb = this.register(C_FallingBomb);
     this.healthPack = this.register(C_HealthPack);
+    this.bombProps = this.register(C_BombProps);
 
     // 빌트인 아키타입 등록
     registerBuiltinArchetypes(this.archetypeRegistry);

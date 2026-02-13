@@ -9,7 +9,7 @@ import type { SoundSystem } from '../../systems/SoundSystem';
 import type { UpgradeSystem } from '../../systems/UpgradeSystem';
 import type { WaveSystem } from '../../systems/WaveSystem';
 import type { EntityDamageService } from '../../systems/EntityDamageService';
-import { C_DishTag, C_DishProps, C_Transform, C_Lifetime } from '../../world';
+import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../world';
 import type { World } from '../../world';
 import type { EntityId } from '../../world/EntityId';
 import type { BossInteractionGateway } from './GameSceneContracts';
@@ -300,23 +300,32 @@ export class PlayerAttackController {
   ): void {
     const hitCandidates: EntityId[] = [];
 
-    for (const [entityId, , dp, t, lt] of this.world.query(C_DishTag, C_DishProps, C_Transform, C_Lifetime)) {
-      const dangerous = dp.dangerous;
-
-      if (dangerous && lt.elapsedTime < lt.spawnDuration) continue;
-
+    // 접시 충돌
+    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
       const collisionRadius = pathRadius + dp.size;
       if (!this.isPointInsideSegmentRadius(t.x, t.y, fromX, fromY, toX, toY, collisionRadius)) {
         continue;
       }
-
       hitCandidates.push(entityId);
+    }
+
+    // 폭탄 충돌 (웨이브 폭탄 — C_BombProps 쿼리)
+    for (const [bombId, bp, bt] of this.world.query(C_BombProps, C_Transform)) {
+      // 낙하 폭탄은 별도 시스템 관리
+      if (this.world.fallingBomb.has(bombId)) continue;
+      const lt = this.world.lifetime.get(bombId);
+      if (lt && lt.elapsedTime < lt.spawnDuration) continue;
+
+      const collisionRadius = pathRadius + bp.size;
+      if (!this.isPointInsideSegmentRadius(bt.x, bt.y, fromX, fromY, toX, toY, collisionRadius)) {
+        continue;
+      }
+      hitCandidates.push(bombId);
     }
 
     for (const entityId of hitCandidates) {
       if (!this.world.isActive(entityId)) continue;
-      const dp = this.world.dishProps.get(entityId);
-      this.damageService.forceDestroy(entityId, dp?.dangerous ?? false);
+      this.damageService.forceDestroy(entityId, true);
     }
   }
 

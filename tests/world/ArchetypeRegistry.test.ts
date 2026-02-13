@@ -86,14 +86,15 @@ describe('ArchetypeRegistry', () => {
 });
 
 describe('BUILTIN_ARCHETYPES', () => {
-  it('player, dish, boss, fallingBomb, healthPack 5개 아키타입이 정의되어야 함', () => {
+  it('player, dish, bomb, boss, fallingBomb, healthPack 6개 아키타입이 정의되어야 함', () => {
     const ids = BUILTIN_ARCHETYPES.map(a => a.id);
     expect(ids).toContain('player');
     expect(ids).toContain('dish');
+    expect(ids).toContain('bomb');
     expect(ids).toContain('boss');
     expect(ids).toContain('fallingBomb');
     expect(ids).toContain('healthPack');
-    expect(BUILTIN_ARCHETYPES).toHaveLength(5);
+    expect(BUILTIN_ARCHETYPES).toHaveLength(6);
   });
 
   it('boss 아키타입은 dish의 공유 컴포넌트를 모두 포함해야 함', () => {

@@ -133,10 +133,12 @@ export const GameEvents = {
   HEALTH_PACK_MISSED: 'healthPack:missed',
   HEALTH_PACK_UPGRADED: 'healthPack:upgraded',
 
-  // 낙하 폭탄 관련
+  // 폭탄 통합 이벤트 (웨이브 + 낙하)
+  BOMB_DESTROYED: 'bomb:destroyed',
+  BOMB_MISSED: 'bomb:missed',
+
+  // 낙하 폭탄 스폰
   FALLING_BOMB_SPAWNED: 'fallingBomb:spawned',
-  FALLING_BOMB_DESTROYED: 'fallingBomb:destroyed',
-  FALLING_BOMB_MISSED: 'fallingBomb:missed',
 
   // 몬스터 & 게이지 관련
   MONSTER_HP_CHANGED: 'monster:hpChanged',

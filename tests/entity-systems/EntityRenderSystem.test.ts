@@ -40,7 +40,7 @@ describe('EntityRenderSystem', () => {
     });
     world.identity.set(e1, { entityId: e1, entityType: 'basic', isGatekeeper: false });
     world.dishProps.set(e1, {
-      dangerous: false, invulnerable: false, color: 0x00ffff, size: 30,
+      color: 0x00ffff, size: 30,
       interactiveRadius: 40, upgradeOptions: {}, destroyedByAbility: false,
     });
     world.health.set(e1, { currentHp: 10, maxHp: 10, isDead: false });
@@ -139,6 +139,39 @@ describe('EntityRenderSystem', () => {
     // Position always syncs World → Container
     expect(mockContainer.x).toBe(50);
     expect(mockContainer.y).toBe(60);
+  });
+
+  it('renders bomb entities via DishRenderer.renderDangerDish', async () => {
+    const { DishRenderer } = await import('../../src/plugins/builtin/entities/DishRenderer');
+    const mockContainer = { x: 0, y: 0, alpha: 1, scaleX: 1, scaleY: 1 };
+    const mockGraphics = { clear: vi.fn() };
+    const system = new EntityRenderSystem(world);
+
+    const e1 = world.createEntity();
+    world.transform.set(e1, { x: 100, y: 200, baseX: 100, baseY: 200, alpha: 1, scaleX: 1, scaleY: 1 });
+    world.phaserNode.set(e1, {
+      container: mockContainer as never,
+      graphics: mockGraphics as never,
+      body: null,
+      spawnTween: null,
+      bossRenderer: null,
+      typePlugin: null,
+    });
+    world.identity.set(e1, { entityId: e1, entityType: 'bombWarning', isGatekeeper: false });
+    world.bombProps.set(e1, {
+      color: 0xff0044, size: 25,
+      playerDamage: 1, resetCombo: true, destroyedByAbility: false,
+    });
+    world.visualState.set(e1, {
+      hitFlashPhase: 0, wobblePhase: 0, blinkPhase: 0.5, isBeingPulled: false, pullPhase: 0,
+    });
+
+    system.tick(16);
+
+    expect(DishRenderer.renderDangerDish).toHaveBeenCalledWith(mockGraphics, {
+      size: 25,
+      blinkPhase: 0.5,
+    });
   });
 
   it('skips inactive entities', () => {

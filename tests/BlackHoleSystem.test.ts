@@ -51,63 +51,13 @@ vi.mock('../src/utils/EventBus', () => ({
 }));
 
 import { BlackHoleSystem } from '../src/systems/BlackHoleSystem';
-
-let entityIdCounter = 0;
-
-// Helper: minimal mock World that supports query() for BlackHoleSystem tests
-function createMockWorld() {
-  const dishTagStore = new Map<string, Record<string, never>>();
-  const dishPropsStore = new Map<string, { dangerous: boolean }>();
-  const transformStore = new Map<string, { x: number; y: number }>();
-  const phaserNodeStore = new Map<string, { container: { x: number; y: number } }>();
-  const activeEntities = new Set<string>();
-
-  const world = {
-    dishTag: {
-      get: (id: string) => dishTagStore.get(id),
-      has: (id: string) => dishTagStore.has(id),
-      set: (id: string, val: Record<string, never>) => dishTagStore.set(id, val),
-      size: () => dishTagStore.size,
-      entries: () => dishTagStore.entries(),
-    },
-    dishProps: {
-      get: (id: string) => dishPropsStore.get(id),
-      has: (id: string) => dishPropsStore.has(id),
-      set: (id: string, val: { dangerous: boolean }) => dishPropsStore.set(id, val),
-      size: () => dishPropsStore.size,
-      entries: () => dishPropsStore.entries(),
-    },
-    transform: {
-      get: (id: string) => transformStore.get(id),
-      has: (id: string) => transformStore.has(id),
-      set: (id: string, val: { x: number; y: number }) => transformStore.set(id, val),
-      size: () => transformStore.size,
-      entries: () => transformStore.entries(),
-    },
-    phaserNode: {
-      get: (id: string) => phaserNodeStore.get(id),
-      has: (id: string) => phaserNodeStore.has(id),
-      set: (id: string, val: { container: { x: number; y: number } }) => phaserNodeStore.set(id, val),
-    },
-    createEntity: (id: string) => activeEntities.add(id),
-    isActive: (id: string) => activeEntities.has(id),
-    // query returns tuples: [entityId, dishTag, dishProps, transform]
-    query: vi.fn(function () {
-      return (function* () {
-        for (const [entityId] of dishTagStore) {
-          if (!activeEntities.has(entityId)) continue;
-          const dp = dishPropsStore.get(entityId);
-          const t = transformStore.get(entityId);
-          if (!dp || !t) continue;
-          yield [entityId, dishTagStore.get(entityId), dp, t];
-        }
-      })();
-    }),
-    _stores: { dishTagStore, dishPropsStore, transformStore, phaserNodeStore, activeEntities },
-  };
-
-  return world;
-}
+import {
+  createMockWorldStores,
+  createMockWorldApi,
+  addDishToWorld as addDish,
+  addBombToWorld as addBomb,
+  resetEntityIdCounter,
+} from './helpers/mockWorldFactory';
 
 describe('BlackHoleSystem', () => {
   let blackHoleLevel = 0;
@@ -117,7 +67,8 @@ describe('BlackHoleSystem', () => {
   let damageBoss: ReturnType<typeof vi.fn>;
   let system: BlackHoleSystem;
 
-  let mockWorld: ReturnType<typeof createMockWorld>;
+  let mockWorld: ReturnType<typeof createMockWorldApi>;
+  let mockStores: ReturnType<typeof createMockWorldStores>;
 
   // DamageService mock
   let mockDamageService: {
@@ -126,16 +77,12 @@ describe('BlackHoleSystem', () => {
     applyUpgradeDamage: ReturnType<typeof vi.fn>;
   };
 
-  const addDishToWorld = (x: number, y: number, dangerous: boolean): string => {
-    const id = `dish_${entityIdCounter++}`;
-    const stores = mockWorld._stores;
-    stores.activeEntities.add(id);
-    stores.dishTagStore.set(id, {} as Record<string, never>);
-    stores.dishPropsStore.set(id, { dangerous });
-    stores.transformStore.set(id, { x, y });
-    // Add a phaserNode container so the system can update x/y on it
-    stores.phaserNodeStore.set(id, { container: { x, y } });
-    return id;
+  const addDishToWorld = (x: number, y: number): string => {
+    return addDish(mockStores, x, y, { phaserNode: true });
+  };
+
+  const addBombToWorld = (x: number, y: number): string => {
+    return addBomb(mockStores, x, y, { phaserNode: true });
   };
 
   const setupSystem = (): void => {
@@ -171,12 +118,13 @@ describe('BlackHoleSystem', () => {
     criticalChanceBonus = 0;
     bosses = [];
     damageBoss = vi.fn();
-    entityIdCounter = 0;
+    resetEntityIdCounter();
     mockFloatBetween.mockReset();
     mockFloatBetween.mockImplementation((min: number, max: number) => (min + max) / 2);
     mockEmit.mockReset();
 
-    mockWorld = createMockWorld();
+    mockStores = createMockWorldStores();
+    mockWorld = createMockWorldApi(mockStores);
     mockDamageService = {
       forceDestroy: vi.fn(),
       setBeingPulled: vi.fn(),
@@ -368,17 +316,17 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const normalDishId = addDishToWorld(420, 360, false);
-    const bombDishId = addDishToWorld(460, 360, true);
+    const normalDishId = addDishToWorld(420, 360);
+    const bombId = addBombToWorld(460, 360);
 
     system.update(100, 100);
 
-    const normalTransform = mockWorld._stores.transformStore.get(normalDishId)!;
-    const bombTransform = mockWorld._stores.transformStore.get(bombDishId)!;
+    const normalTransform = mockStores.transformStore.get(normalDishId)!;
+    const bombTransform = mockStores.transformStore.get(bombId)!;
     expect(normalTransform.x).toBeGreaterThan(420);
     expect(bombTransform.x).toBeGreaterThan(460);
     expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(normalDishId, true);
-    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(bombDishId, true);
+    // Bombs don't call setBeingPulled — pull is verified by transform change
     expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
   });
 
@@ -400,15 +348,15 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDishId = addDishToWorld(650, 360, true);
+    const bombId = addBombToWorld(650, 360);
     // forceDestroy should deactivate the dish so consume logic fires
     mockDamageService.forceDestroy.mockImplementation(() => {
-      mockWorld._stores.activeEntities.delete(bombDishId);
+      mockStores.activeEntities.delete(bombId);
     });
 
     system.update(16, 16);
 
-    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombDishId, true);
+    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombId, true);
     expect(mockDamageService.setBeingPulled).not.toHaveBeenCalled();
   });
 
@@ -430,7 +378,7 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const normalDishId = addDishToWorld(650, 360, false);
+    const normalDishId = addDishToWorld(650, 360);
 
     system.update(16, 16);
 
@@ -456,13 +404,13 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDishId = addDishToWorld(540, 360, true);
+    const bombId = addBombToWorld(540, 360);
 
     system.update(16, 16);
 
     expect(mockDamageService.forceDestroy).not.toHaveBeenCalled();
-    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(bombDishId, true);
-    const bombTransform = mockWorld._stores.transformStore.get(bombDishId)!;
+    // Bombs don't call setBeingPulled — pull is verified by transform change
+    const bombTransform = mockStores.transformStore.get(bombId)!;
     expect(bombTransform.x).toBeGreaterThan(540);
   });
 
@@ -484,15 +432,15 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDishId = addDishToWorld(560, 360, true);
+    const bombId = addBombToWorld(560, 360);
     mockDamageService.forceDestroy.mockImplementation(() => {
-      mockWorld._stores.activeEntities.delete(bombDishId);
+      mockStores.activeEntities.delete(bombId);
     });
 
     system.update(100, 100);
 
-    expect(mockDamageService.setBeingPulled).toHaveBeenCalledWith(bombDishId, true);
-    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombDishId, true);
+    // Bomb pull doesn't call setBeingPulled — verify pull + consume via forceDestroy
+    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombId, true);
   });
 
   it('grows black hole radius by ratio + flat when bomb is consumed', () => {
@@ -513,9 +461,9 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDishId = addDishToWorld(640, 360, true);
+    const bombId = addBombToWorld(640, 360);
     mockDamageService.forceDestroy.mockImplementation(() => {
-      mockWorld._stores.activeEntities.delete(bombDishId);
+      mockStores.activeEntities.delete(bombId);
     });
 
     system.update(16, 16);
@@ -523,7 +471,7 @@ describe('BlackHoleSystem', () => {
     const holes = system.getBlackHoles();
     expect(holes).toHaveLength(1);
     expect(holes[0].radius).toBeCloseTo(115);
-    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombDishId, true);
+    expect(mockDamageService.forceDestroy).toHaveBeenCalledWith(bombId, true);
     expect(mockEmit).toHaveBeenCalledWith('blackHole:consumed', { x: 640, y: 360 });
   });
 
@@ -546,9 +494,9 @@ describe('BlackHoleSystem', () => {
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
     bosses = [{ id: 'boss_1', x: 680, y: 360, radius: 40 }];
 
-    const bombDishId = addDishToWorld(640, 360, true);
+    const bombId = addBombToWorld(640, 360);
     mockDamageService.forceDestroy.mockImplementation(() => {
-      mockWorld._stores.activeEntities.delete(bombDishId);
+      mockStores.activeEntities.delete(bombId);
     });
 
     system.update(16, 16);
@@ -576,9 +524,9 @@ describe('BlackHoleSystem', () => {
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
     bosses = [{ id: 'boss_1', x: 700, y: 360, radius: 40 }];
 
-    const normalDishId = addDishToWorld(640, 360, false);
+    const normalDishId = addDishToWorld(640, 360);
     mockDamageService.applyUpgradeDamage.mockImplementation(() => {
-      mockWorld._stores.activeEntities.delete(normalDishId);
+      mockStores.activeEntities.delete(normalDishId);
     });
 
     system.update(100, 100);
@@ -612,9 +560,9 @@ describe('BlackHoleSystem', () => {
       .mockReturnValueOnce(200);
     bosses = [];
 
-    const bombDishId = addDishToWorld(640, 360, true);
+    const bombId = addBombToWorld(640, 360);
     mockDamageService.forceDestroy.mockImplementation(() => {
-      mockWorld._stores.activeEntities.delete(bombDishId);
+      mockStores.activeEntities.delete(bombId);
     });
 
     system.update(16, 16);
@@ -651,9 +599,9 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(640).mockReturnValueOnce(360);
 
-    const bombDishId = addDishToWorld(640, 360, true);
+    const bombId = addBombToWorld(640, 360);
     mockDamageService.forceDestroy.mockImplementation(() => {
-      mockWorld._stores.activeEntities.delete(bombDishId);
+      mockStores.activeEntities.delete(bombId);
     });
 
     system.update(16, 16);
@@ -685,7 +633,7 @@ describe('BlackHoleSystem', () => {
     };
     mockFloatBetween.mockReturnValueOnce(600).mockReturnValueOnce(360);
 
-    const normalDishId = addDishToWorld(600, 360, false);
+    const normalDishId = addDishToWorld(600, 360);
 
     system.update(16, 16);
     system.update(400, 416);

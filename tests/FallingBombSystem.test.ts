@@ -12,6 +12,11 @@ vi.mock('phaser', () => {
           }),
         },
       },
+      Display: {
+        Color: {
+          HexStringToColor: (hex: string) => ({ color: parseInt(hex.replace('#', ''), 16) }),
+        },
+      },
     },
   };
 });
@@ -39,6 +44,9 @@ vi.mock('../src/data/DataManager', () => ({
       moveSpeed: 120,
       visualSize: 25,
       hitboxSize: 30,
+      color: '#ff0044',
+      playerDamage: 1,
+      resetCombo: true,
       spawnMargin: 40,
     },
     gameConfig: {
@@ -58,8 +66,8 @@ vi.mock('../src/utils/EventBus', () => ({
   },
   GameEvents: {
     FALLING_BOMB_SPAWNED: 'fallingBomb:spawned',
-    FALLING_BOMB_DESTROYED: 'fallingBomb:destroyed',
-    FALLING_BOMB_MISSED: 'fallingBomb:missed',
+    BOMB_DESTROYED: 'bomb:destroyed',
+    BOMB_MISSED: 'bomb:missed',
   },
 }));
 
@@ -260,7 +268,7 @@ describe('FallingBombSystem', () => {
       if (bombTransform) {
         system.checkCursorCollision(bombTransform.x, bombTransform.y, 50);
         expect(mockEmit).toHaveBeenCalledWith(
-          GameEvents.FALLING_BOMB_DESTROYED,
+          GameEvents.BOMB_DESTROYED,
           expect.objectContaining({ byAbility: false })
         );
       }
@@ -285,14 +293,14 @@ describe('FallingBombSystem', () => {
 
       system.checkCursorCollision(100, 100, 50);
       expect(mockEmit).not.toHaveBeenCalledWith(
-        GameEvents.FALLING_BOMB_DESTROYED,
+        GameEvents.BOMB_DESTROYED,
         expect.anything()
       );
     });
   });
 
   describe('forceDestroy', () => {
-    it('should emit FALLING_BOMB_DESTROYED and remove entity', () => {
+    it('should emit BOMB_DESTROYED and remove entity', () => {
       const entityId = 50;
       worldMock.activeEntities.add(entityId);
       worldMock.stores.set('transform', new Map([[entityId, { x: 200, y: 300 }]]));
@@ -304,8 +312,8 @@ describe('FallingBombSystem', () => {
       system.forceDestroy(entityId, true);
 
       expect(mockEmit).toHaveBeenCalledWith(
-        GameEvents.FALLING_BOMB_DESTROYED,
-        { x: 200, y: 300, byAbility: true }
+        GameEvents.BOMB_DESTROYED,
+        expect.objectContaining({ x: 200, y: 300, byAbility: true, playerDamage: 1, resetCombo: true })
       );
     });
   });

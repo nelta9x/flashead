@@ -55,9 +55,6 @@ export class EntityDamageService {
     const entity = this.entityLookup(entityId);
     if (!entity?.active) return;
 
-    const dp = this.world.dishProps.get(entityId);
-    if (dp?.invulnerable) return;
-
     const ci = this.world.cursorInteraction.get(entityId);
     if (!ci || ci.isBeingDamaged) return;
 
@@ -84,8 +81,6 @@ export class EntityDamageService {
     if (!entity?.active) return;
 
     const dp = this.world.dishProps.get(entityId);
-    if (dp?.invulnerable) return;
-
     const health = this.world.health.get(entityId);
     if (!health) return;
 
@@ -119,8 +114,6 @@ export class EntityDamageService {
     if (!entity?.active) return;
 
     const dp = this.world.dishProps.get(entityId);
-    if (dp?.invulnerable) return;
-
     if (dp) dp.destroyedByAbility = true;
 
     const health = this.world.health.get(entityId);
@@ -152,8 +145,6 @@ export class EntityDamageService {
     if (!entity?.active) return;
 
     const dp = this.world.dishProps.get(entityId);
-    if (dp?.invulnerable) return;
-
     const health = this.world.health.get(entityId);
     if (!health) return;
 
@@ -243,6 +234,9 @@ export class EntityDamageService {
     const dp = this.world.dishProps.get(entityId);
     if (dp) dp.destroyedByAbility = byAbility;
 
+    const bp = this.world.bombProps.get(entityId);
+    if (bp) bp.destroyedByAbility = byAbility;
+
     this.destroyEntity(entityId);
   }
 
@@ -257,11 +251,16 @@ export class EntityDamageService {
     entity.disableInteractive();
     entity.removeAllListeners();
 
-    const snapshot = createEntitySnapshot(this.world, entityId);
-    EventBus.getInstance().emit(
-      GameEvents.DISH_DESTROYED,
-      DishEventPayloadFactory.createDishDestroyedPayload({ snapshot })
-    );
+    const bp = this.world.bombProps.get(entityId);
+    const t = this.world.transform.get(entityId);
+    EventBus.getInstance().emit(GameEvents.BOMB_DESTROYED, {
+      entityId,
+      x: t?.x ?? 0,
+      y: t?.y ?? 0,
+      byAbility: false,
+      playerDamage: bp?.playerDamage ?? 1,
+      resetCombo: bp?.resetCombo ?? true,
+    });
 
     this.invokePluginOnDestroyed(entityId);
     deactivateEntity(entity, this.world, this.sem);
@@ -275,16 +274,24 @@ export class EntityDamageService {
 
     this.clearDamageTimer(entityId);
 
-    const dp = this.world.dishProps.get(entityId);
-    const snapshot = createEntitySnapshot(this.world, entityId);
-    const eventData = DishEventPayloadFactory.createDishMissedPayload({
-      snapshot,
-      isDangerous: dp?.dangerous ?? false,
-    });
+    const isBomb = this.world.bombProps.has(entityId);
 
-    deactivateEntity(entity, this.world, this.sem);
-    this.invokePluginOnTimeout(entityId);
-    EventBus.getInstance().emit(GameEvents.DISH_MISSED, eventData);
+    if (isBomb) {
+      const t = this.world.transform.get(entityId);
+      this.invokePluginOnTimeout(entityId);
+      EventBus.getInstance().emit(GameEvents.BOMB_MISSED, {
+        entityId,
+        x: t?.x ?? 0,
+        y: t?.y ?? 0,
+      });
+      deactivateEntity(entity, this.world, this.sem);
+    } else {
+      const snapshot = createEntitySnapshot(this.world, entityId);
+      const eventData = DishEventPayloadFactory.createDishMissedPayload({ snapshot });
+      deactivateEntity(entity, this.world, this.sem);
+      this.invokePluginOnTimeout(entityId);
+      EventBus.getInstance().emit(GameEvents.DISH_MISSED, eventData);
+    }
   }
 
   // === Status effects ===
@@ -374,15 +381,28 @@ export class EntityDamageService {
     entity.disableInteractive();
     entity.removeAllListeners();
 
-    const dp = this.world.dishProps.get(entityId);
-    const snapshot = createEntitySnapshot(this.world, entityId);
-    EventBus.getInstance().emit(
-      GameEvents.DISH_DESTROYED,
-      DishEventPayloadFactory.createDishDestroyedPayload({
-        snapshot,
-        byAbility: dp?.destroyedByAbility,
-      })
-    );
+    const bp = this.world.bombProps.get(entityId);
+    if (bp) {
+      const t = this.world.transform.get(entityId);
+      EventBus.getInstance().emit(GameEvents.BOMB_DESTROYED, {
+        entityId,
+        x: t?.x ?? 0,
+        y: t?.y ?? 0,
+        byAbility: bp.destroyedByAbility,
+        playerDamage: bp.playerDamage,
+        resetCombo: bp.resetCombo,
+      });
+    } else {
+      const dp = this.world.dishProps.get(entityId);
+      const snapshot = createEntitySnapshot(this.world, entityId);
+      EventBus.getInstance().emit(
+        GameEvents.DISH_DESTROYED,
+        DishEventPayloadFactory.createDishDestroyedPayload({
+          snapshot,
+          byAbility: dp?.destroyedByAbility,
+        })
+      );
+    }
 
     this.invokePluginOnDestroyed(entityId);
     deactivateEntity(entity, this.world, this.sem);

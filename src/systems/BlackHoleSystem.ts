@@ -8,7 +8,7 @@ import { FallingBombSystem } from './FallingBombSystem';
 import type { UpgradeSystem } from './UpgradeSystem';
 import type { BlackHoleRenderer } from '../plugins/builtin/abilities/BlackHoleRenderer';
 import type { BossCombatCoordinator } from '../scenes/game/BossCombatCoordinator';
-import { C_DishTag, C_DishProps, C_Transform, C_FallingBomb } from '../world';
+import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../world';
 import type { EntitySystem, SystemStartContext } from './entity-systems/EntitySystem';
 import type { World } from '../world';
 
@@ -180,11 +180,11 @@ export class BlackHoleSystem implements EntitySystem {
     const deltaSeconds = delta / 1000;
     const consumeRatio = Phaser.Math.Clamp(data.bombConsumeRadiusRatio, 0, 1);
 
-    // 접시 pull
+    // 접시 pull (consumable: false — 접시는 흡수 불가)
     const dishTargets: PullTarget[] = [];
-    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
+    for (const [entityId, , , t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
       if (!this.world.isActive(entityId)) continue;
-      dishTargets.push({ id: entityId, transform: t, consumable: dp.dangerous });
+      dishTargets.push({ id: entityId, transform: t, consumable: false });
     }
     this.applyPullToTargets(dishTargets, deltaSeconds, consumeRatio, data, {
       isActive: (id) => this.world.isActive(id),
@@ -192,17 +192,23 @@ export class BlackHoleSystem implements EntitySystem {
       onPulled: (id) => this.damageService.setBeingPulled(id, true),
     });
 
-    // 낙하 폭탄 pull
-    if (!this.fallingBombSystem) return;
-
+    // 폭탄 통합 pull (웨이브 + 낙하, 항상 consumable)
     const bombTargets: PullTarget[] = [];
-    for (const [bombId, fb, bt] of this.world.query(C_FallingBomb, C_Transform)) {
-      if (!fb.fullySpawned) continue;
+    for (const [bombId, , bt] of this.world.query(C_BombProps, C_Transform)) {
+      const fb = this.world.fallingBomb.get(bombId);
+      if (fb && !fb.fullySpawned) continue;
       bombTargets.push({ id: bombId, transform: bt, consumable: true });
     }
+    // onPulled 생략: 폭탄은 pull 시각 효과(pullPhase) 불필요 — 흡인 즉시 소멸 대상
     this.applyPullToTargets(bombTargets, deltaSeconds, consumeRatio, data, {
       isActive: (id) => this.world.isActive(id),
-      forceDestroy: (id) => this.fallingBombSystem.forceDestroy(id, true),
+      forceDestroy: (id) => {
+        if (this.world.fallingBomb.has(id)) {
+          this.fallingBombSystem.forceDestroy(id, true);
+        } else {
+          this.damageService.forceDestroy(id, true);
+        }
+      },
     });
   }
 
@@ -276,9 +282,7 @@ export class BlackHoleSystem implements EntitySystem {
   private applyDamageTick(data: BlackHoleLevelData, criticalChanceBonus: number): void {
     if (this.blackHoles.length === 0) return;
 
-    for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
-      if (dp.dangerous) continue;
-
+    for (const [entityId, , , t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
       for (const hole of this.blackHoles) {
         const distance = Phaser.Math.Distance.Between(hole.x, hole.y, t.x, t.y);
         if (distance > hole.radius) continue;

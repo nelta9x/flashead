@@ -1,4 +1,5 @@
 import type { EntitySnapshot } from '../../entities/EntitySnapshot';
+import type { EntityId } from '../../world/EntityId';
 
 export interface CursorSnapshot {
   x: number;
@@ -49,7 +50,21 @@ export interface DishMissedEventPayload {
   x: number;
   y: number;
   type: string;
-  isDangerous: boolean;
+}
+
+export interface BombDestroyedEventPayload {
+  entityId: EntityId;
+  x: number;
+  y: number;
+  byAbility: boolean;
+  playerDamage: number;
+  resetCombo: boolean;
+}
+
+export interface BombMissedEventPayload {
+  entityId: EntityId;
+  x: number;
+  y: number;
 }
 
 export interface BossInteractionGateway {
