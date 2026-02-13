@@ -1,4 +1,14 @@
-# Claude Code 지침
+# AI 에이전트 지침
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
 ## 프로젝트 개요
 FLASHEAD - Phaser 4 기반 웹 슈팅 게임
