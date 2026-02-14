@@ -9,6 +9,6 @@
   "checkInterval": 1000,
   "playerDamage": 1,
   "resetCombo": true,
-  "minWave": 2,
+  "minWave": 1,
   "spawnMargin": 80
 }
