@@ -3,7 +3,7 @@
   "visualSize": 24,
   "hitboxSize": 30,
   "color": "#ff0044",
-  "cooldown": 12000,
+  "cooldown": 2000,
   "maxActive": 2,
   "baseSpawnChance": 0.06,
   "checkInterval": 1000,
