@@ -77,7 +77,7 @@ export class MenuScene extends Phaser.Scene {
     });
     this.inputController.setup();
 
-    this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 8, 'v0.1', {
+    this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 8, 'v0.0.2', {
       fontFamily: FONTS.MAIN,
       fontSize: '12px',
       color: '#ffffff',
