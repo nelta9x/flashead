@@ -29,7 +29,7 @@ import { ParticleManager } from '../../../effects/ParticleManager';
 import { EntityDamageService } from '../../../systems/EntityDamageService';
 import { EntityQueryService } from '../../../systems/EntityQueryService';
 import { StatusEffectManager } from '../../../systems/StatusEffectManager';
-import { World } from '../../../world';
+import { World, C_DishTag, C_Identity } from '../../../world';
 
 function calculateMaxSpawnedDishRadius(): number {
   const waveDishTypes = Data.waves.waves.flatMap((wave) => wave.dishTypes.map((dish) => dish.type));
@@ -132,6 +132,14 @@ export class GameModulesPlugin implements ServicePlugin {
           {
             spawnDish: (type, x, y, mult) =>
               r.get(DishLifecycleController).spawnDish(type, x, y, mult),
+          },
+          (type: string) => {
+            const world = r.get(World);
+            let count = 0;
+            for (const [, , identity] of world.query(C_DishTag, C_Identity)) {
+              if (identity.entityType === type) count++;
+            }
+            return count;
           },
         );
       },

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MIN_BOSS_DISTANCE, MIN_DISH_DISTANCE, SPAWN_AREA } from '../../data/constants';
+import type { DishTypeWeight } from '../../data/types/waves';
 import type { Entity } from '../../entities/Entity';
 import type { ObjectPool } from '../../utils/ObjectPool';
 import type { WaveRuntimeConfig } from './WaveConfigResolver';
@@ -15,6 +16,7 @@ interface WaveSpawnPlannerDeps {
   getDishPool: () => ObjectPool<Entity>;
   getMaxSpawnY: () => number;
   getBosses: () => BossPositionSnapshot[];
+  getActiveCountByType?: (type: string) => number;
 }
 
 export interface PlannedDishSpawn {
@@ -28,11 +30,13 @@ export class WaveSpawnPlanner {
   private readonly getDishPool: () => ObjectPool<Entity>;
   private readonly getMaxSpawnY: () => number;
   private readonly getBosses: () => BossPositionSnapshot[];
+  private readonly getActiveCountByType?: (type: string) => number;
 
   constructor(deps: WaveSpawnPlannerDeps) {
     this.getDishPool = deps.getDishPool;
     this.getMaxSpawnY = deps.getMaxSpawnY;
     this.getBosses = deps.getBosses;
+    this.getActiveCountByType = deps.getActiveCountByType;
   }
 
   public planDishSpawn(
@@ -40,11 +44,14 @@ export class WaveSpawnPlanner {
     currentWave: number,
     isFeverTime: boolean
   ): PlannedDishSpawn | null {
+    const type = this.selectDishType(waveConfig.dishTypes);
+    if (!type) return null;
+
     const position = this.findValidSpawnPosition(waveConfig.bossSpawnMinDistance);
     if (!position) return null;
 
     return {
-      type: this.selectDishType(waveConfig.dishTypes),
+      type,
       x: position.x,
       y: position.y,
       speedMultiplier: isFeverTime ? 2.5 : 1 + (currentWave - 1) * 0.1,
@@ -91,17 +98,25 @@ export class WaveSpawnPlanner {
     return null;
   }
 
-  private selectDishType(types: { type: string; weight: number }[]): string {
-    const totalWeight = types.reduce((sum, t) => sum + t.weight, 0);
-    let random = Math.random() * totalWeight;
+  private selectDishType(types: DishTypeWeight[]): string | null {
+    const getCount = this.getActiveCountByType;
+    const eligible = getCount
+      ? types.filter(t => t.maxActive == null || getCount(t.type) < t.maxActive)
+      : types;
 
-    for (const dishType of types) {
+    if (eligible.length === 0) return null;
+
+    const totalWeight = eligible.reduce((sum, t) => sum + t.weight, 0);
+    if (totalWeight <= 0) return eligible[0].type;
+
+    let random = Math.random() * totalWeight;
+    for (const dishType of eligible) {
       random -= dishType.weight;
       if (random <= 0) {
         return dishType.type;
       }
     }
 
-    return types[0].type;
+    return eligible[0].type;
   }
 }

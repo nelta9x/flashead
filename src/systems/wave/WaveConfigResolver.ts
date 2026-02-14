@@ -1,11 +1,11 @@
 import { Data } from '../../data/DataManager';
-import type { WaveBossConfig, WaveLaserConfig } from '../../data/types/waves';
+import type { DishTypeWeight, WaveBossConfig, WaveLaserConfig } from '../../data/types/waves';
 import { resolveWaveBossConfig } from '../waveBossConfig';
 
 export interface WaveRuntimeConfig {
   spawnInterval: number;
   minDishCount: number;
-  dishTypes: { type: string; weight: number }[];
+  dishTypes: DishTypeWeight[];
   laser?: WaveLaserConfig;
   bosses: WaveBossConfig[];
   bossTotalHp: number;
@@ -77,7 +77,7 @@ export class WaveConfigResolver {
     };
   }
 
-  private getScaledDishTypes(waveNumber: number): { type: string; weight: number }[] {
+  private getScaledDishTypes(waveNumber: number): DishTypeWeight[] {
     const wavesData = Data.waves;
     const scaling = wavesData.infiniteScaling;
     const wavesBeyond = waveNumber - wavesData.waves.length;
@@ -106,13 +106,14 @@ export class WaveConfigResolver {
       minWeight?: number;
       startWaveOffset?: number;
       startWeight?: number;
+      maxActive?: number;
     }>,
     scaling: typeof Data.waves.infiniteScaling
-  ): { type: string; weight: number }[] {
+  ): DishTypeWeight[] {
     const remainderType = scaling.remainderType ?? 'basic';
     const remainderMinWeight = scaling.remainderMinWeight ?? 0.05;
 
-    const scaledTypes: { type: string; weight: number }[] = [];
+    const scaledTypes: DishTypeWeight[] = [];
 
     for (const entry of dishTypeScaling) {
       const baseWeight = baseWeights.get(entry.type) ?? (entry.baseWeightFallback ?? 0);
@@ -144,7 +145,11 @@ export class WaveConfigResolver {
         weight = Math.max(entry.minWeight, weight);
       }
 
-      scaledTypes.push({ type: entry.type, weight: Math.max(0, weight) });
+      scaledTypes.push({
+        type: entry.type,
+        weight: Math.max(0, weight),
+        ...(entry.maxActive != null ? { maxActive: entry.maxActive } : {}),
+      });
     }
 
     // 나머지 타입 (basic 등)으로 1.0 채우기
@@ -179,7 +184,7 @@ export class WaveConfigResolver {
     wavesBeyond: number,
     baseWeights: Map<string, number>,
     scaling: typeof Data.waves.infiniteScaling
-  ): { type: string; weight: number }[] {
+  ): DishTypeWeight[] {
     const baseBombWeight = baseWeights.get('bomb') ?? 0.25;
     const baseCrystalWeight = baseWeights.get('crystal') ?? 0.3;
     const baseGoldenWeight = baseWeights.get('golden') ?? 0.25;

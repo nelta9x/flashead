@@ -88,6 +88,26 @@ describe('Wave balance config', () => {
     expect(scaling.maxAmberWeight).toBe(0.16);
   });
 
+  it('all configured maxActive values are positive integers', () => {
+    for (const wave of Data.waves.waves) {
+      for (const dt of wave.dishTypes) {
+        if (dt.maxActive != null) {
+          expect(dt.maxActive, `wave ${wave.number} type ${dt.type}`).toBeGreaterThan(0);
+          expect(Number.isInteger(dt.maxActive), `wave ${wave.number} type ${dt.type} integer`).toBe(true);
+        }
+      }
+    }
+    const dishTypeScaling = Data.waves.infiniteScaling.dishTypeScaling;
+    if (dishTypeScaling) {
+      for (const entry of dishTypeScaling) {
+        if (entry.maxActive != null) {
+          expect(entry.maxActive, `scaling type ${entry.type}`).toBeGreaterThan(0);
+          expect(Number.isInteger(entry.maxActive), `scaling type ${entry.type} integer`).toBe(true);
+        }
+      }
+    }
+  });
+
   it('introduces amber from wave 15 with three full-hp bosses', () => {
     const resolver = new WaveConfigResolver();
     const wave15Config = resolver.resolveWaveConfig(15);

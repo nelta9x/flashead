@@ -31,7 +31,8 @@ export class WaveSystem {
     getDishPool: () => ObjectPool<Entity>,
     getMaxSpawnY?: () => number,
     getBosses?: () => Array<{ id: string; x: number; y: number; visible: boolean }>,
-    dishSpawnDelegate?: DishSpawnDelegate
+    dishSpawnDelegate?: DishSpawnDelegate,
+    getActiveCountByType?: (type: string) => number
   ) {
     this.dishSpawnDelegate = dishSpawnDelegate ?? (scene as unknown as DishSpawnDelegate);
     this.getDishPool = getDishPool;
@@ -44,6 +45,7 @@ export class WaveSystem {
       getDishPool: this.getDishPool,
       getMaxSpawnY: this.getMaxSpawnY,
       getBosses: this.getBosses,
+      getActiveCountByType,
     });
   }
 

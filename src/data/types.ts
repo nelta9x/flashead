@@ -868,6 +868,7 @@ export interface ColorsConfig {
 export interface DishTypeWeight {
   type: string;
   weight: number;
+  maxActive?: number;
 }
 
 export interface WaveLaserConfig {
@@ -911,6 +912,7 @@ export interface DishTypeScalingEntry {
   minWeight?: number;
   startWaveOffset?: number;
   startWeight?: number;
+  maxActive?: number;
 }
 
 export interface InfiniteScalingConfig {

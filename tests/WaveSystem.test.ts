@@ -67,7 +67,7 @@ vi.mock('../src/data/DataManager', () => ({
           spawnInterval: 1500,
           dishTypes: [
             { type: 'basic', weight: 0.8 },
-            { type: 'golden', weight: 0.2 },
+            { type: 'golden', weight: 0.2, maxActive: 1 },
           ],
           bossTotalHp: 200,
           bosses: [
@@ -363,6 +363,70 @@ describe('WaveSystem', () => {
 
       expect(waveSystem.getWavePhase()).toBe('waiting');
       expect(mockEmit).toHaveBeenCalledWith(GameEvents.WAVE_COMPLETED, 1);
+    });
+  });
+
+  describe('maxActive', () => {
+    let mockSpawnDelegate: { spawnDish: ReturnType<typeof vi.fn> };
+    let mockGetActiveCountByType: ReturnType<typeof vi.fn>;
+
+    function createWaveSystemWithMaxActive() {
+      mockSpawnDelegate = { spawnDish: vi.fn() };
+      mockGetActiveCountByType = vi.fn().mockReturnValue(0);
+
+      return new WaveSystem(
+        {} as Phaser.Scene,
+        () => mockDishPool as unknown as ObjectPool<Entity>,
+        mockGetMaxSpawnY,
+        mockGetBoss as () => Array<{ id: string; x: number; y: number; visible: boolean }>,
+        mockSpawnDelegate,
+        mockGetActiveCountByType as (type: string) => number,
+      );
+    }
+
+    it('should exclude type that reached maxActive cap', () => {
+      // Wave 2: basic (0.8, no cap), golden (0.2, maxActive: 1)
+      const ws = createWaveSystemWithMaxActive();
+      ws.startWave(2);
+
+      // golden has 1 active, which equals maxActive(1) → excluded
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'golden' ? 1 : 0));
+
+      // Force Math.random to pick golden range (high value) to confirm it's excluded
+      const originalRandom = Math.random;
+      Math.random = () => 0.99;
+
+      ws.update(1500);
+
+      // Should have spawned, but only basic type is eligible
+      expect(mockSpawnDelegate.spawnDish).toHaveBeenCalled();
+      const spawnedType = mockSpawnDelegate.spawnDish.mock.calls[0][0];
+      expect(spawnedType).toBe('basic');
+
+      Math.random = originalRandom;
+    });
+
+    it('should spawn type without maxActive regardless of active count', () => {
+      const ws = createWaveSystemWithMaxActive();
+      ws.startWave(2);
+
+      // basic has no maxActive, golden has maxActive: 1
+      // Even with many basics active, basic should still spawn
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'basic' ? 100 : 0));
+
+      ws.update(1500);
+
+      expect(mockSpawnDelegate.spawnDish).toHaveBeenCalled();
+    });
+
+    it('should preserve existing behavior when getActiveCountByType is not provided', () => {
+      // Use default waveSystem (no getActiveCountByType)
+      waveSystem.startWave(2);
+
+      // golden has maxActive: 1 in mock data, but no counter → no filtering
+      waveSystem.update(1500);
+
+      expect(mockScene.spawnDish).toHaveBeenCalled();
     });
   });
 });

@@ -206,7 +206,7 @@ import { COLORS, FONTS } from '../data/constants';
     { "type": "basic", "weight": 0.48 },
     { "type": "golden", "weight": 0.3 },
     { "type": "crystal", "weight": 0.1 },
-    { "type": "bomb", "weight": 0.12 }
+    { "type": "bomb", "weight": 0.12, "maxActive": 2 }
   ],
   "bossTotalHp": 1900,      // 웨이브 전체 보스 HP 총량
   "bossSpawnMinDistance": 280, // 보스 간 최소 스폰 거리
@@ -232,6 +232,7 @@ import { COLORS, FONTS } from '../data/constants';
 
 **dishTypes 가중치 계산**: 모든 weight의 합 대비 각 weight의 비율이 출현 확률
 - 예: basic=0.8, golden=0.1, bomb=0.1 → basic 80%, golden 10%, bomb 10%
+- `maxActive` (선택): 이 타입의 최대 동시 활성 수. 현재 활성 수가 이 값 이상이면 스폰 후보에서 제외. 미설정 시 무제한
 
 **보스 HP 분배 규칙**:
 - `bossTotalHp`를 `bosses[].hpWeight` 비율로 분배
@@ -258,6 +259,11 @@ import { COLORS, FONTS } from '../data/constants';
   "amberWeightIncrease": 0.02,   // 웨이브당 amber 가중치 증가량
   "maxAmberWeight": 0.16         // amber 최대 가중치
 }
+```
+
+무한 스케일링의 `dishTypeScaling[]` 항목도 `maxActive` 필드를 지원합니다:
+```json
+{ "type": "bomb", "baseWeightFallback": 0.25, "weightPerWave": 0.002, "maxWeight": 0.18, "maxActive": 3 }
 ```
 
 ---
