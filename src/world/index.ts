@@ -6,8 +6,8 @@ export { defineComponent } from './ComponentDef';
 export { World } from './World';
 export type { GameContext } from './GameContext';
 export { createDefaultGameContext } from './GameContext';
-export { ArchetypeRegistry, registerBuiltinArchetypes, BUILTIN_ARCHETYPES } from './archetypes';
-export type { ArchetypeDefinition } from './archetypes';
+export { ArchetypeRegistry } from './ArchetypeRegistry';
+export type { ArchetypeDefinition } from './ArchetypeRegistry';
 export {
   C_DishTag,
   C_BossTag,

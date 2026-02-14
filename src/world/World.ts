@@ -1,8 +1,9 @@
 import type { EntityId } from './EntityId';
 import { ComponentStore } from './ComponentStore';
 import type { ComponentDef } from './ComponentDef';
-import { ArchetypeRegistry, registerBuiltinArchetypes } from './archetypes';
-import type { ArchetypeDefinition } from './archetypes'; // used in spawnFromArchetype
+import { ArchetypeRegistry } from './ArchetypeRegistry';
+import type { ArchetypeDefinition } from './ArchetypeRegistry';
+import entitiesJson from '../../data/entities.json';
 import type { GameContext } from './GameContext';
 import { createDefaultGameContext } from './GameContext';
 import {
@@ -109,8 +110,37 @@ export class World {
     this.healthPack = this.register(C_HealthPack);
     this.bombProps = this.register(C_BombProps);
 
-    // 빌트인 아키타입 등록
-    registerBuiltinArchetypes(this.archetypeRegistry);
+    // JSON 기반 아키타입 등록 + 검증
+    const registeredStores = new Set(this.stores.keys());
+    const archetypes = entitiesJson.archetypes as Record<string, string[]>;
+
+    for (const [id, components] of Object.entries(archetypes)) {
+      if (components.length === 0) {
+        throw new Error(
+          `Archetype "${id}": components array is empty (data/entities.json)`,
+        );
+      }
+
+      for (const name of components) {
+        if (!registeredStores.has(name)) {
+          throw new Error(
+            `Archetype "${id}": unknown component "${name}". ` +
+            `Registered stores: [${[...registeredStores].join(', ')}]. ` +
+            `Check data/entities.json archetypes.${id} for typos.`,
+          );
+        }
+      }
+
+      const unique = new Set(components);
+      if (unique.size !== components.length) {
+        const dupes = components.filter((c, i) => components.indexOf(c) !== i);
+        throw new Error(
+          `Archetype "${id}": duplicate components [${dupes.join(', ')}] in data/entities.json`,
+        );
+      }
+
+      this.archetypeRegistry.register({ id, components });
+    }
   }
 
   /** ComponentDef 토큰으로 새 스토어 등록. 중복 시 에러. */
@@ -150,11 +180,22 @@ export class World {
     values: Record<string, unknown>,
   ): EntityId {
     const entityId = this.createEntity();
-    for (const def of archetype.components) {
-      const store = this.getStoreByName(def.name);
-      if (!store) throw new Error(`spawnFromArchetype: store "${def.name}" not registered`);
-      const value = values[def.name];
-      if (value === undefined) throw new Error(`spawnFromArchetype: missing value for "${def.name}"`);
+    for (const name of archetype.components) {
+      const store = this.getStoreByName(name);
+      if (!store) {
+        throw new Error(
+          `spawnFromArchetype("${archetype.id}"): store "${name}" not registered. ` +
+          `This archetype may reference an outdated component name in data/entities.json.`,
+        );
+      }
+      const value = values[name];
+      if (value === undefined) {
+        throw new Error(
+          `spawnFromArchetype("${archetype.id}"): missing value for component "${name}". ` +
+          `Required components: [${archetype.components.join(', ')}]. ` +
+          `Provided keys: [${Object.keys(values).join(', ')}].`,
+        );
+      }
       store.set(entityId, value);
     }
     return entityId;

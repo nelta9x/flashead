@@ -3,7 +3,7 @@ import type { ModSystemRegistry } from '../ModSystemRegistry';
 import type { EntitySystemPipeline } from '../../systems/EntitySystemPipeline';
 import type { StatusEffectManager } from '../../systems/StatusEffectManager';
 import type { World } from '../../world/World';
-import type { ArchetypeRegistry } from '../../world/archetypes';
+import type { ArchetypeRegistry } from '../../world/ArchetypeRegistry';
 
 type EventCallback = (...args: unknown[]) => void;
 

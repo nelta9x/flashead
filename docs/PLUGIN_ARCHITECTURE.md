@@ -202,7 +202,7 @@ const ABILITY_FACTORIES: Record<string, () => AbilityPlugin> = {
 ### 3.2 새 엔티티 타입 추가
 
 1. **데이터**: `data/entities.json`에 타입 정의 추가
-2. **아키타입** (필요 시): `src/world/archetypes.ts`에 아키타입 등록
+2. **아키타입** (필요 시): `data/entities.json`의 `archetypes` 섹션에 아키타입 추가 (컴포넌트 이름 문자열 배열)
 3. **플러그인 클래스**: `src/plugins/builtin/entities/NewEntity.ts` 작성 (`EntityTypePlugin` 구현)
 4. **렌더러**: 같은 디렉토리에 `NewEntityRenderer.ts` 작성
 5. **팩토리 맵 등록**: `src/plugins/builtin/entities/index.ts`의 `ENTITY_TYPE_FACTORIES`에 한 줄 추가

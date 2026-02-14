@@ -118,7 +118,7 @@ describe('World Store Registry', () => {
     it('미등록 스토어 사용 시 에러를 던져야 함', () => {
       const unknownArch = {
         id: 'unknown',
-        components: [defineComponent('notRegistered')],
+        components: ['notRegistered'],
       };
 
       expect(() => world.spawnFromArchetype(unknownArch, {
@@ -128,10 +128,14 @@ describe('World Store Registry', () => {
   });
 
   describe('archetypeRegistry', () => {
-    it('빌트인 아키타입 3개가 등록되어야 함', () => {
+    it('entities.json의 6종 아키타입이 자동 등록되어야 함', () => {
       expect(world.archetypeRegistry.has('player')).toBe(true);
       expect(world.archetypeRegistry.has('dish')).toBe(true);
       expect(world.archetypeRegistry.has('boss')).toBe(true);
+      expect(world.archetypeRegistry.has('bomb')).toBe(true);
+      expect(world.archetypeRegistry.has('fallingBomb')).toBe(true);
+      expect(world.archetypeRegistry.has('healthPack')).toBe(true);
+      expect(world.archetypeRegistry.getIds()).toHaveLength(6);
     });
   });
 

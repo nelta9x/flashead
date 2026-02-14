@@ -1,4 +1,12 @@
 {
+  "archetypes": {
+    "player": ["identity", "transform", "health", "statusCache", "playerInput", "playerRender"],
+    "dish": ["dishTag", "identity", "transform", "health", "statusCache", "lifetime", "dishProps", "cursorInteraction", "visualState", "movement", "phaserNode"],
+    "boss": ["bossTag", "identity", "transform", "health", "statusCache", "lifetime", "dishProps", "cursorInteraction", "visualState", "movement", "phaserNode", "bossState"],
+    "bomb": ["identity", "transform", "health", "statusCache", "lifetime", "bombProps", "cursorInteraction", "visualState", "movement", "phaserNode"],
+    "fallingBomb": ["fallingBomb", "bombProps", "transform", "phaserNode"],
+    "healthPack": ["healthPack", "transform", "phaserNode"]
+  },
   "types": {
     "player": {
       "name": "플레이어",
