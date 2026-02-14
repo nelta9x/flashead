@@ -1361,20 +1361,3 @@ export interface LocalesConfig {
   ko: LocaleData;
 }
 
-// ========== 전체 데이터 구조 ==========
-export interface GameDataConfig {
-  gameConfig: GameConfig;
-  mainMenu: MenuConfig;
-  spawn: SpawnConfig;
-  combo: ComboConfig;
-  healthPack: HealthPackConfig;
-  feedback: FeedbackConfig;
-  colors: ColorsConfig;
-  waves: WavesConfig;
-  dishes: DishesConfig;
-  upgrades: UpgradesConfig;
-  weapons: WeaponsConfig;
-  magnet: MagnetConfig;
-  boss: BossConfig;
-  locales: LocalesConfig;
-}
