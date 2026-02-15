@@ -70,6 +70,31 @@ export class EntitySystemPipeline {
     return Array.from(this.systems.keys()).filter((id) => !configSet.has(id));
   }
 
+  /**
+   * 구성 동기화 강제 검증.
+   * - missing: config 순서에 있으나 미등록
+   * - unmapped: 등록되었으나 config 순서에 없음
+   * 하나라도 있으면 즉시 예외를 던진다.
+   */
+  assertConfigSyncOrThrow(): void {
+    const missing = this.getMissingSystems();
+    const unmapped = this.getUnmappedSystems();
+    if (missing.length === 0 && unmapped.length === 0) return;
+
+    const registered = this.getRegisteredIds();
+    const configOrder = [...this.configOrder];
+
+    throw new Error(
+      [
+        'EntitySystemPipeline config sync failed.',
+        `missing=${JSON.stringify(missing)}`,
+        `unmapped=${JSON.stringify(unmapped)}`,
+        `registered=${JSON.stringify(registered)}`,
+        `configOrder=${JSON.stringify(configOrder)}`,
+      ].join(' ')
+    );
+  }
+
   getSystem(id: string): EntitySystem | undefined {
     return this.systems.get(id);
   }

@@ -1,4 +1,4 @@
-import type { ModSystemRegistry, ModSystemContext } from '../../ModSystemRegistry';
+import type { ModSystemRegistry, ModSystemSharedContext } from '../../ModSystemRegistry';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 
 export class ModTickSystem implements EntitySystem {
@@ -6,9 +6,9 @@ export class ModTickSystem implements EntitySystem {
   enabled = true;
 
   private readonly modSystemRegistry: ModSystemRegistry;
-  private readonly getContext: () => ModSystemContext;
+  private readonly getContext: () => ModSystemSharedContext;
 
-  constructor(modSystemRegistry: ModSystemRegistry, getContext: () => ModSystemContext) {
+  constructor(modSystemRegistry: ModSystemRegistry, getContext: () => ModSystemSharedContext) {
     this.modSystemRegistry = modSystemRegistry;
     this.getContext = getContext;
   }

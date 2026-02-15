@@ -268,3 +268,19 @@
 - `UpgradeSystem`의 전용 getter 집합을 제거하고 공통 조회 API로 일괄 전환
 - Player/Boss/Dish/System 전역 호출부를 `abilityId + key` 접근으로 통일
 - 테스트 mock shape를 공통 API 기준으로 맞춰 회귀 검증 안정성 확보
+
+---
+
+## 17. 파이프라인 드리프트 fail-fast + MOD raw bus 금지 `occurrences: 1`
+
+### 원칙
+- `entityPipeline` 설정과 실제 등록 시스템의 불일치를 초기화 시점에 즉시 실패시킨다.
+- `EntitySystemPipeline`는 진단 메서드(`missing`/`unmapped`)를 로그용으로만 두지 않고, `assertConfigSyncOrThrow()`로 배포 환경까지 동일하게 강제한다.
+- MOD tick 컨텍스트에는 raw `EventBus`를 전달하지 않는다. 시스템별로 바인딩된 `ScopedEventBus`만 허용한다.
+- MOD 시스템이 scoped bus 바인딩 없이 실행되는 경로는 호환성보다 안전성을 우선해 즉시 예외 처리한다.
+
+### 사례 요약
+- `GameScene.initializeSystems()`에서 `startAll()` 직전 `assertConfigSyncOrThrow()`를 실행해 오타/누락을 게임 시작 전에 차단
+- `ModSystemRegistry`에 `bindSystemEventBus(systemId, bus)`를 도입하고 `runAll()`에서 미바인딩 시스템을 즉시 실패 처리
+- `ModRegistry.loadMod()`에서 diff로 파악한 `modSystemIds` 전부에 MOD의 scoped bus를 바인딩하도록 표준 경로를 고정
+- `GameWrappersSystemPlugin`/`ModTickSystem`에서 raw `EventBus` 주입을 제거해 scoped 이벤트 경로 우회 가능성을 제거

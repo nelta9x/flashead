@@ -15,6 +15,7 @@ import { ModRegistry } from '../src/plugins/ModRegistry';
 import { World } from '../src/world/World';
 import type { ModModule, ModContext } from '../src/plugins/types/ModTypes';
 import type { AbilityPlugin, EntityTypePlugin } from '../src/plugins/types';
+import type { ModSystemSharedContext } from '../src/plugins/ModSystemRegistry';
 import type { EntitySystem } from '../src/systems/entity-systems/EntitySystem';
 
 function createMockAbility(id: string): AbilityPlugin {
@@ -38,6 +39,18 @@ function createMockEntityType(typeId: string): EntityTypePlugin {
 
 function createMockEntitySystem(id: string): EntitySystem {
   return { id, enabled: true, tick: vi.fn() };
+}
+
+function createModSharedContext(): ModSystemSharedContext {
+  return {
+    entities: {
+      getActiveEntities: vi.fn(() => []),
+      forEachActive: vi.fn(),
+      getEntitiesInRadius: vi.fn(() => []),
+      getEntitiesWithCondition: vi.fn(() => []),
+    } as unknown as ModSystemSharedContext['entities'],
+    statusEffectManager: { clear: vi.fn() } as unknown as ModSystemSharedContext['statusEffectManager'],
+  };
 }
 
 describe('ModRegistry', () => {
@@ -116,6 +129,26 @@ describe('ModRegistry', () => {
 
       registry.unloadMod('system-mod');
       expect(modSystemRegistry.getSystemIds()).not.toContain('mod-sys');
+    });
+
+    it('loadMod 시 신규 modSystem에 scoped event bus가 바인딩되어야 함', () => {
+      let capturedScopedEvents: ModContext['events'] | null = null;
+      const tickFn = vi.fn();
+      const mod: ModModule = {
+        id: 'scoped-bind-mod',
+        registerMod: (ctx: ModContext) => {
+          capturedScopedEvents = ctx.events;
+          ctx.modSystemRegistry.registerSystem('mod-sys', tickFn);
+        },
+      };
+
+      expect(registry.loadMod(mod)).toBe(true);
+      modSystemRegistry.runAll(16, createModSharedContext());
+
+      expect(tickFn).toHaveBeenCalledWith(
+        16,
+        expect.objectContaining({ eventBus: capturedScopedEvents }),
+      );
     });
 
     it('스냅샷 diff로 entitySystem 등록을 추적해야 함', () => {
@@ -237,6 +270,28 @@ describe('ModRegistry', () => {
       expect(pluginRegistry.getEntityType('fe')).toBeUndefined();
       expect(modSystemRegistry.getSystemIds()).not.toContain('fs');
       expect(entitySystemPipeline.getRegisteredIds()).not.toContain('fes');
+    });
+
+    it('unloadMod 후 mod tick 경로에서 등록한 이벤트 리스너가 잔존하지 않아야 함', () => {
+      const listener = vi.fn();
+      const mod: ModModule = {
+        id: 'tick-event-mod',
+        registerMod: (ctx: ModContext) => {
+          ctx.modSystemRegistry.registerSystem('tick-sys', (_delta, systemCtx) => {
+            systemCtx.eventBus.on('mod:tick:event', listener);
+          });
+        },
+      };
+
+      expect(registry.loadMod(mod)).toBe(true);
+      modSystemRegistry.runAll(16, createModSharedContext());
+      eventBus.emit('mod:tick:event', 'before-unload');
+      expect(listener).toHaveBeenCalledWith('before-unload');
+
+      expect(registry.unloadMod('tick-event-mod')).toBe(true);
+      listener.mockClear();
+      eventBus.emit('mod:tick:event', 'after-unload');
+      expect(listener).not.toHaveBeenCalled();
     });
   });
 

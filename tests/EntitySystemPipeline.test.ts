@@ -173,6 +173,31 @@ describe('EntitySystemPipeline', () => {
     });
   });
 
+  describe('assertConfigSyncOrThrow', () => {
+    it('config와 등록 상태가 일치하면 예외를 던지지 않아야 함', () => {
+      const pipeline = new EntitySystemPipeline(['a', 'b']);
+      pipeline.register(createMockSystem('a'));
+      pipeline.register(createMockSystem('b'));
+
+      expect(() => pipeline.assertConfigSyncOrThrow()).not.toThrow();
+    });
+
+    it('missing 시스템이 있으면 상세 정보와 함께 예외를 던져야 함', () => {
+      const pipeline = new EntitySystemPipeline(['a', 'b']);
+      pipeline.register(createMockSystem('a'));
+
+      expect(() => pipeline.assertConfigSyncOrThrow()).toThrow('missing=["b"]');
+    });
+
+    it('unmapped 시스템이 있으면 상세 정보와 함께 예외를 던져야 함', () => {
+      const pipeline = new EntitySystemPipeline(['a']);
+      pipeline.register(createMockSystem('a'));
+      pipeline.register(createMockSystem('extra'));
+
+      expect(() => pipeline.assertConfigSyncOrThrow()).toThrow('unmapped=["extra"]');
+    });
+  });
+
   describe('clear', () => {
     it('모든 시스템을 제거해야 함', () => {
       const pipeline = new EntitySystemPipeline(['a']);

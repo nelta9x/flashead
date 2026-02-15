@@ -1,4 +1,3 @@
-import { EventBus } from '../../../utils/EventBus';
 import { WaveSystem } from '../services/WaveSystem';
 import { EntityQueryService } from '../../../systems/EntityQueryService';
 import { StatusEffectManager } from '../../../systems/StatusEffectManager';
@@ -25,7 +24,6 @@ export class GameWrappersSystemPlugin implements SystemPlugin {
         () => ({
           entities: ctx.services.get(EntityQueryService),
           statusEffectManager: ctx.services.get(StatusEffectManager),
-          eventBus: EventBus.getInstance(),
         }),
       ),
     ];

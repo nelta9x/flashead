@@ -42,7 +42,6 @@ sequenceDiagram
   participant CFG as game-config.json
   participant PP as EntitySystemPipeline
 
-  GS->>PR: resetInstance()
   GS->>PR: registerBuiltinServicePlugins() (3개)
   GS->>CFG: servicePlugins[] 읽기
   GS->>SR: resolveEntries() (DI 컨테이너 구성)
@@ -57,6 +56,7 @@ sequenceDiagram
   GS->>PR: getSystemPlugin(id).createSystems()
   GS->>CFG: entityPipeline[] 읽기
   GS->>PP: register() (20개 시스템, config 순서)
+  GS->>PP: assertConfigSyncOrThrow() (missing/unmapped fail-fast)
   GS->>PP: startAll() → initialEntities[] 스폰
 ```
 
@@ -147,7 +147,7 @@ interface SystemPlugin {
 }
 ```
 
-`createSystems()`가 반환한 각 `EntitySystem`은 `game-config.json`의 `entityPipeline` 순서대로 파이프라인에 등록된다.
+`createSystems()`가 반환한 각 `EntitySystem`은 `game-config.json`의 `entityPipeline` 순서대로 파이프라인에 등록된다. 등록 완료 후 `EntitySystemPipeline.assertConfigSyncOrThrow()`가 실행되며, `missing`/`unmapped`가 하나라도 있으면 초기화 단계에서 즉시 실패한다.
 
 ### 2.4 ServicePlugin
 
@@ -287,6 +287,11 @@ interface ModModule {
 
 **ModContext 제공 항목**: `pluginRegistry`, `modSystemRegistry`, `entitySystemPipeline`, `statusEffectManager`, `events` (ScopedEventBus), `world`, `archetypeRegistry`
 
+**ModSystemRegistry 실행 계약**:
+- `registerSystem(id, tickFn, priority?)`로 시스템 등록 후, `bindSystemEventBus(systemId, bus)`로 scoped bus를 바인딩해야 한다.
+- `runAll(delta, sharedContext)`는 바인딩된 `ScopedEventBus`를 각 시스템의 `context.eventBus`로 주입한다.
+- 미바인딩 시스템이 있으면 `runAll()`은 즉시 예외를 던진다 (raw EventBus 우회 금지).
+
 **MOD 로드/언로드 안전 장치**:
 
 ```mermaid
@@ -294,14 +299,17 @@ sequenceDiagram
   participant MR as ModRegistry
   participant MOD as ModModule
   participant PR as PluginRegistry
+  participant MSR as ModSystemRegistry
   participant EB as ScopedEventBusWrapper
 
   Note over MR: Load
   MR->>PR: snapshot (before)
   MR->>MOD: registerMod(ctx)
   MOD->>PR: registerAbility / registerEntityType ...
+  MOD->>MSR: registerSystem()
   MOD->>EB: on() / once() (이벤트 구독)
   MR->>PR: snapshot (after)
+  MR->>MSR: bindSystemEventBus(modSystemId, scopedBus)
   MR->>MR: diff 저장 (등록 내역 추적)
 
   Note over MR: Unload

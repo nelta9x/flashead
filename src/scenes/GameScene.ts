@@ -134,6 +134,7 @@ export class GameScene extends Phaser.Scene {
         );
       }
     }
+    this.entitySystemPipeline.assertConfigSyncOrThrow();
     // startAll() → InitialEntitySpawnSystem.start()에서 player spawn (world.context.playerId 설정)
     this.entitySystemPipeline.startAll({ services: this.serviceRegistry });
 

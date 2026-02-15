@@ -101,6 +101,12 @@ export class ModRegistry {
       archetypesBefore,
       storesBefore,
     );
+    try {
+      this.bindModSystemEventBuses(reg.modSystemIds, scopedEventBus);
+    } catch {
+      this.rollbackRegistration(reg);
+      return false;
+    }
     this.mods.set(mod.id, reg);
     return true;
   }
@@ -207,5 +213,11 @@ export class ModRegistry {
       this.world.unregisterStore(name);
     }
     reg.scopedEventBus.removeAll();
+  }
+
+  private bindModSystemEventBuses(systemIds: readonly string[], scopedEventBus: ScopedEventBusWrapper): void {
+    for (const systemId of systemIds) {
+      this.modSystemRegistry.bindSystemEventBus(systemId, scopedEventBus);
+    }
   }
 }

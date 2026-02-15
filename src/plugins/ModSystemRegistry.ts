@@ -5,12 +5,15 @@
 
 import type { StatusEffectManager } from '../systems/StatusEffectManager';
 import type { EntityQueryService } from '../systems/EntityQueryService';
-import type { EventBus } from '../utils/EventBus';
+import type { ScopedEventBus } from './types/ModTypes';
 
-export interface ModSystemContext {
+export interface ModSystemSharedContext {
   readonly entities: EntityQueryService;
   readonly statusEffectManager: StatusEffectManager;
-  readonly eventBus: EventBus;
+}
+
+export interface ModSystemContext extends ModSystemSharedContext {
+  readonly eventBus: ScopedEventBus;
 }
 
 export type ModTickFn = (delta: number, context: ModSystemContext) => void;
@@ -23,6 +26,7 @@ interface RegisteredSystem {
 
 export class ModSystemRegistry {
   private systems: RegisteredSystem[] = [];
+  private readonly systemEventBuses = new Map<string, ScopedEventBus>();
   private sorted = true;
 
   registerSystem(id: string, tickFn: ModTickFn, priority: number = 0): void {
@@ -37,16 +41,31 @@ export class ModSystemRegistry {
     if (idx !== -1) {
       this.systems.splice(idx, 1);
     }
+    this.systemEventBuses.delete(id);
   }
 
-  runAll(delta: number, context: ModSystemContext): void {
+  bindSystemEventBus(systemId: string, bus: ScopedEventBus): void {
+    const hasSystem = this.systems.some((system) => system.id === systemId);
+    if (!hasSystem) {
+      throw new Error(`ModSystemRegistry: cannot bind event bus. Unknown system id: "${systemId}"`);
+    }
+    this.systemEventBuses.set(systemId, bus);
+  }
+
+  runAll(delta: number, context: ModSystemSharedContext): void {
     if (!this.sorted) {
       this.systems.sort((a, b) => a.priority - b.priority);
       this.sorted = true;
     }
 
     for (const system of this.systems) {
-      system.tickFn(delta, context);
+      const eventBus = this.systemEventBuses.get(system.id);
+      if (!eventBus) {
+        throw new Error(
+          `ModSystemRegistry: missing scoped event bus binding for system "${system.id}"`
+        );
+      }
+      system.tickFn(delta, { ...context, eventBus });
     }
   }
 
@@ -56,6 +75,7 @@ export class ModSystemRegistry {
 
   clear(): void {
     this.systems.length = 0;
+    this.systemEventBuses.clear();
     this.sorted = true;
   }
 }
