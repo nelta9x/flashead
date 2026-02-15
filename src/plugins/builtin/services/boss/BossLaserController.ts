@@ -8,11 +8,11 @@ import type { FeedbackSystem } from '../FeedbackSystem';
 import type { HealthSystem } from '../../../../systems/HealthSystem';
 import type { MonsterSystem } from '../MonsterSystem';
 import type { SoundSystem } from '../SoundSystem';
-import type { UpgradeSystem } from '../UpgradeSystem';
 import type { WaveSystem } from '../WaveSystem';
 import type { EntityDamageService } from '../EntityDamageService';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
 import type { ActiveLaser } from './BossCombatTypes';
+import type { AbilityRuntimeQueryService } from '../abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CURSOR_SIZE_EFFECT_KEYS,
@@ -27,7 +27,7 @@ interface BossLaserControllerDeps {
   damageText: DamageText;
   laserRenderer: LaserRenderer;
   healthSystem: HealthSystem;
-  upgradeSystem: UpgradeSystem;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   damageService: EntityDamageService;
   isGameOver: () => boolean;
   bosses: Map<string, Entity>;
@@ -47,7 +47,7 @@ export class BossLaserController {
   private readonly damageText: DamageText;
   private readonly laserRenderer: LaserRenderer;
   private readonly healthSystem: HealthSystem;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly isGameOver: () => boolean;
   private readonly bosses: Map<string, Entity>;
   private readonly laserNextTimeByBossId: Map<string, number>;
@@ -66,7 +66,7 @@ export class BossLaserController {
     this.damageText = deps.damageText;
     this.laserRenderer = deps.laserRenderer;
     this.healthSystem = deps.healthSystem;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.damageService = deps.damageService;
     this.isGameOver = deps.isGameOver;
     this.bosses = deps.bosses;
@@ -172,7 +172,7 @@ export class BossLaserController {
 
   public checkLaserCollisions(_delta: number, gameTime: number, cursor: CursorSnapshot): void {
     const config = Data.gameConfig.monsterAttack.laser;
-    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+    const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CURSOR_SIZE,
       CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
     );

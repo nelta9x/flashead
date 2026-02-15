@@ -9,7 +9,8 @@ export type {
 } from './EntityTypePlugin';
 export type {
   AbilityRenderer,
-  UpgradeSystemCore,
+  AbilityStateReader,
+  AbilityDataReader,
   AbilityContext,
   DerivedStatEntry,
   AbilityPlugin,

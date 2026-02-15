@@ -1,8 +1,12 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, COLORS_HEX, UPGRADE_UI, FONTS, DEPTHS } from '../data/constants';
 import { Data } from '../data/DataManager';
-import { UpgradeSystem, Upgrade } from '../plugins/builtin/services/UpgradeSystem';
 import { EventBus, GameEvents } from '../utils/EventBus';
+import type {
+  AbilityChoice,
+  AbilityProgressionService,
+} from '../plugins/builtin/services/abilities/AbilityProgressionService';
+import type { AbilityPresentationService } from '../plugins/builtin/services/abilities/AbilityPresentationService';
 
 import { ParticleManager } from '../effects/ParticleManager';
 import {
@@ -19,7 +23,7 @@ import { renderUpgradeCardContent } from './upgrade/UpgradeCardContentRenderer';
 
 interface UpgradeBox {
   container: Phaser.GameObjects.Container;
-  upgrade: Upgrade;
+  upgrade: AbilityChoice;
   hoverProgress: number;
   isHovered: boolean;
   progressBar: Phaser.GameObjects.Graphics;
@@ -31,7 +35,8 @@ interface UpgradeBox {
 
 export class InGameUpgradeUI {
   private scene: Phaser.Scene;
-  private upgradeSystem: UpgradeSystem;
+  private abilityProgression: AbilityProgressionService;
+  private abilityPresentation: AbilityPresentationService;
   private particleManager: ParticleManager;
   private boxes: UpgradeBox[] = [];
   private visible: boolean = false;
@@ -41,12 +46,14 @@ export class InGameUpgradeUI {
 
   constructor(
     scene: Phaser.Scene,
-    upgradeSystem: UpgradeSystem,
+    abilityProgression: AbilityProgressionService,
+    abilityPresentation: AbilityPresentationService,
     particleManager: ParticleManager,
     cursorProvider?: CursorPositionProvider
   ) {
     this.scene = scene;
-    this.upgradeSystem = upgradeSystem;
+    this.abilityProgression = abilityProgression;
+    this.abilityPresentation = abilityPresentation;
     this.particleManager = particleManager;
     this.cursorProvider = cursorProvider;
     this.createContainer();
@@ -64,7 +71,7 @@ export class InGameUpgradeUI {
     this.visible = true;
     this.clearBoxes();
 
-    const upgrades = this.upgradeSystem.getRandomUpgrades(3);
+    const upgrades = this.abilityProgression.rollChoices(3);
     this.createUpgradeBoxes(upgrades);
 
     this.mainContainer.setVisible(true);
@@ -105,7 +112,7 @@ export class InGameUpgradeUI {
     this.boxes = [];
   }
 
-  private createUpgradeBoxes(upgrades: Upgrade[]): void {
+  private createUpgradeBoxes(upgrades: AbilityChoice[]): void {
     const { BOX_WIDTH, BOX_SPACING, BOX_Y_OFFSET } = UPGRADE_UI;
     const totalWidth = upgrades.length * BOX_WIDTH + (upgrades.length - 1) * BOX_SPACING;
     const startX = (GAME_WIDTH - totalWidth) / 2 + BOX_WIDTH / 2;
@@ -120,7 +127,7 @@ export class InGameUpgradeUI {
     });
   }
 
-  private createUpgradeBox(upgrade: Upgrade, x: number, y: number): UpgradeBox {
+  private createUpgradeBox(upgrade: AbilityChoice, x: number, y: number): UpgradeBox {
     const { BOX_WIDTH, BOX_HEIGHT } = UPGRADE_UI;
     const container = this.scene.add.container(x, y);
     this.mainContainer.add(container);
@@ -157,8 +164,8 @@ export class InGameUpgradeUI {
     // 아이콘 표시 (SVG 스프라이트 또는 텍스트 폴백)
     const iconY = -BOX_HEIGHT / 2 + (isCurse ? 95 : 80);
     const iconSize = 80;
-    const abilityId = Data.getAbilityIdByUpgradeId(upgrade.id);
-    const iconKey = Data.getAbilityIconKeyByUpgradeId(upgrade.id);
+    const abilityId = upgrade.abilityId;
+    const iconKey = Data.getAbilityIconKey(abilityId);
 
     // 텍스처가 존재하는지 확인
     if (this.scene.textures.exists(iconKey)) {
@@ -194,10 +201,7 @@ export class InGameUpgradeUI {
       .setOrigin(0.5, 0);
     container.add(name);
 
-    const previewModel = this.upgradeSystem.getPreviewCardModel(upgrade.id);
-    if (!previewModel) {
-      throw new Error(`Preview model missing for upgrade "${upgrade.id}"`);
-    }
+    const previewModel = this.abilityPresentation.getPreviewCardModelOrThrow(abilityId);
     const content = renderUpgradeCardContent({
       scene: this.scene,
       container,
@@ -294,7 +298,7 @@ export class InGameUpgradeUI {
     this.visible = false;
 
     // 업그레이드 적용
-    this.upgradeSystem.applyUpgrade(upgrade);
+    this.abilityProgression.applyChoice(upgrade.abilityId);
 
     // 시각적 연출: 카드 위치에서 커서 위치로 입자 흡수
     // box.container.x/y는 mainContainer 내부의 상대 좌표이므로 월드 좌표로 변환 필요

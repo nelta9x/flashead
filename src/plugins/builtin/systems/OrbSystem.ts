@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { EntityDamageService } from '../services/EntityDamageService';
 import type { OrbRenderer } from '../abilities/OrbRenderer';
 import type { OrbitingOrbLevelData, SystemUpgradeData } from '../../../data/types';
@@ -10,6 +9,9 @@ import { FallingBombSystem } from './FallingBombSystem';
 import type { EntitySystem, SystemStartContext } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
+import type { AbilityDataRepository } from '../services/abilities/AbilityDataRepository';
+import type { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
+import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CRITICAL_CHANCE_EFFECT_KEYS,
@@ -31,7 +33,9 @@ export class OrbSystem implements EntitySystem {
   readonly id = 'core:orb';
   enabled = true;
 
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityData: AbilityDataRepository;
+  private readonly abilityProgression: AbilityProgressionService;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly world: World;
   private readonly damageService: EntityDamageService;
   private readonly bcc: BossCombatCoordinator;
@@ -48,13 +52,17 @@ export class OrbSystem implements EntitySystem {
   private fallingBombSystem!: FallingBombSystem;
 
   constructor(
-    upgradeSystem: UpgradeSystem,
+    abilityData: AbilityDataRepository,
+    abilityProgression: AbilityProgressionService,
+    abilityRuntimeQuery: AbilityRuntimeQueryService,
     world: World,
     damageService: EntityDamageService,
     bcc: BossCombatCoordinator,
     renderer: OrbRenderer,
   ) {
-    this.upgradeSystem = upgradeSystem;
+    this.abilityData = abilityData;
+    this.abilityProgression = abilityProgression;
+    this.abilityRuntimeQuery = abilityRuntimeQuery;
     this.world = world;
     this.damageService = damageService;
     this.bcc = bcc;
@@ -87,27 +95,30 @@ export class OrbSystem implements EntitySystem {
     getBossSnapshots: () => BossRadiusSnapshot[] = () => [],
     onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {},
   ): void {
-    const level = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.ORBITING_ORB);
+    const level = this.abilityProgression.getAbilityLevel(ABILITY_IDS.ORBITING_ORB);
     if (level <= 0) {
       this.orbPositions = [];
       this.resetOverclock();
       return;
     }
 
-    const upgradeData = this.upgradeSystem.getSystemUpgrade(ABILITY_IDS.ORBITING_ORB);
+    const upgradeData = this.abilityData.getUpgradeDataOrThrow(ABILITY_IDS.ORBITING_ORB);
     const hitInterval = upgradeData?.hitInterval ?? 300;
     const overclockConfig = this.resolveOverclockConfig(upgradeData);
     this.updateOverclockState(gameTime, overclockConfig);
 
-    const stats = this.upgradeSystem.getLevelData<OrbitingOrbLevelData>(ABILITY_IDS.ORBITING_ORB);
+    const stats = this.abilityData.getLevelDataOrNull<OrbitingOrbLevelData>(
+      ABILITY_IDS.ORBITING_ORB,
+      level,
+    );
     if (!stats) return;
-    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+    const criticalChanceBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CRITICAL_CHANCE,
       CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
     );
 
     // Magnet Synergy: Increase Size
-    const magnetLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MAGNET);
+    const magnetLevel = this.abilityProgression.getAbilityLevel(ABILITY_IDS.MAGNET);
     const magnetSynergyPerLevel = upgradeData?.magnetSynergyPerLevel ?? 0.2;
     const synergySizeMultiplier = 1 + magnetLevel * magnetSynergyPerLevel;
     const finalSize = stats.size * synergySizeMultiplier;

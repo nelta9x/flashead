@@ -3,8 +3,8 @@ import type { ServicePlugin } from '../../types/SystemPlugin';
 import type { ServiceEntry } from '../../ServiceRegistry';
 import { DEPTHS } from '../../../data/constants';
 import { Data } from '../../../data/DataManager';
+import { AbilityManager } from '../../../systems/AbilityManager';
 import { ComboSystem } from './ComboSystem';
-import { UpgradeSystem } from './UpgradeSystem';
 import { HealthSystem } from '../../../systems/HealthSystem';
 import { MonsterSystem } from './MonsterSystem';
 import { StatusEffectManager } from '../../../systems/StatusEffectManager';
@@ -19,13 +19,40 @@ import { CursorRenderer } from '../entities/CursorRenderer';
 import { OrbRenderer } from '../abilities/OrbRenderer';
 import { BlackHoleRenderer } from '../abilities/BlackHoleRenderer';
 import { BossShatterEffect } from '../entities/BossShatterEffect';
+import { AbilityDataRepository } from './abilities/AbilityDataRepository';
+import { AbilityProgressionService } from './abilities/AbilityProgressionService';
+import { AbilityRuntimeQueryService } from './abilities/AbilityRuntimeQueryService';
+import { AbilityPresentationService } from './abilities/AbilityPresentationService';
 
 export class CoreServicesPlugin implements ServicePlugin {
   readonly id = 'core:services';
   readonly services: ServiceEntry[] = [
     // auto-inject (no deps)
     ComboSystem,
-    UpgradeSystem,
+    {
+      key: AbilityDataRepository,
+      factory: () => new AbilityDataRepository(),
+    },
+    {
+      key: AbilityProgressionService,
+      factory: (r) => new AbilityProgressionService(r.get(AbilityDataRepository)),
+    },
+    {
+      key: AbilityRuntimeQueryService,
+      factory: (r) => new AbilityRuntimeQueryService(
+        r.get(AbilityManager),
+        r.get(AbilityProgressionService),
+        r.get(AbilityDataRepository),
+      ),
+    },
+    {
+      key: AbilityPresentationService,
+      factory: (r) => new AbilityPresentationService(
+        r.get(AbilityProgressionService),
+        r.get(AbilityDataRepository),
+        r.get(AbilityManager),
+      ),
+    },
     HealthSystem,
     MonsterSystem,
     StatusEffectManager,

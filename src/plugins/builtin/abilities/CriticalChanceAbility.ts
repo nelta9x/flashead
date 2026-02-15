@@ -18,14 +18,14 @@ export class CriticalChanceAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<CriticalChanceLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<CriticalChanceLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
       case 'criticalChance':
         return data.criticalChance;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

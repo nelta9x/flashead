@@ -3,7 +3,6 @@ import { World } from '../src/world/World';
 import type { EntityId } from '../src/world/EntityId';
 import type { CursorRenderer } from '../src/plugins/builtin/entities/CursorRenderer';
 import type { CursorTrail } from '../src/plugins/builtin/entities/CursorTrail';
-import type { UpgradeSystem } from '../src/plugins/builtin/services/UpgradeSystem';
 import type { HealthSystem } from '../src/systems/HealthSystem';
 
 function createMockCursorRenderer(): CursorRenderer {
@@ -22,12 +21,16 @@ function createMockCursorTrail(): CursorTrail {
   } as unknown as CursorTrail;
 }
 
-function createMockUpgradeSystem(): UpgradeSystem {
+function createMockAbilityRuntimeQuery() {
+  return {
+    getEffectValueOrThrow: vi.fn(() => 0),
+  };
+}
+
+function createMockAbilityProgression() {
   return {
     getAbilityLevel: vi.fn(() => 0),
-    getEffectValue: vi.fn(() => 0),
-    update: vi.fn(),
-  } as unknown as UpgradeSystem;
+  };
 }
 
 function createMockHealthSystem(): HealthSystem {
@@ -60,7 +63,8 @@ describe('PlayerTickSystem', () => {
   let world: World;
   let cursorRenderer: CursorRenderer;
   let cursorTrail: CursorTrail;
-  let upgradeSystem: UpgradeSystem;
+  let abilityRuntimeQuery: ReturnType<typeof createMockAbilityRuntimeQuery>;
+  let abilityProgression: ReturnType<typeof createMockAbilityProgression>;
   let healthSystem: HealthSystem;
 
   // Dynamic import to avoid module-level mock issues
@@ -78,12 +82,20 @@ describe('PlayerTickSystem', () => {
     world = new World();
     cursorRenderer = createMockCursorRenderer();
     cursorTrail = createMockCursorTrail();
-    upgradeSystem = createMockUpgradeSystem();
+    abilityRuntimeQuery = createMockAbilityRuntimeQuery();
+    abilityProgression = createMockAbilityProgression();
     healthSystem = createMockHealthSystem();
   });
 
   function createSystem() {
-    return new PlayerTickSystem(world, cursorRenderer, cursorTrail, upgradeSystem, healthSystem);
+    return new PlayerTickSystem(
+      world,
+      cursorRenderer,
+      cursorTrail,
+      abilityRuntimeQuery as never,
+      abilityProgression as never,
+      healthSystem,
+    );
   }
 
   describe('tick', () => {

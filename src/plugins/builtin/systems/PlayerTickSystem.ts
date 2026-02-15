@@ -3,10 +3,11 @@ import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
 import type { CursorRenderer } from '../entities/CursorRenderer';
 import type { CursorTrail } from '../entities/CursorTrail';
-import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { HealthSystem } from '../../../systems/HealthSystem';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import { computeCursorSmoothing } from '../../../utils/cursorSmoothing';
+import type { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
+import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CURSOR_SIZE_EFFECT_KEYS,
@@ -26,7 +27,8 @@ export class PlayerTickSystem implements EntitySystem {
     private readonly world: World,
     private readonly cursorRenderer: CursorRenderer,
     private readonly cursorTrail: CursorTrail,
-    private readonly upgradeSystem: UpgradeSystem,
+    private readonly abilityRuntimeQuery: AbilityRuntimeQueryService,
+    private readonly abilityProgression: AbilityProgressionService,
     private readonly healthSystem: HealthSystem,
   ) {}
 
@@ -67,7 +69,7 @@ export class PlayerTickSystem implements EntitySystem {
   }
 
   private computeCursorRadius(): number {
-    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+    const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CURSOR_SIZE,
       CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
     );
@@ -86,12 +88,12 @@ export class PlayerTickSystem implements EntitySystem {
     const playerRender = this.world.playerRender.get(id);
     if (!transform || !playerRender) return;
 
-    const magnetLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MAGNET);
-    const magnetRadius = this.upgradeSystem.getEffectValue(
+    const magnetLevel = this.abilityProgression.getAbilityLevel(ABILITY_IDS.MAGNET);
+    const magnetRadius = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.MAGNET,
       MAGNET_EFFECT_KEYS.RADIUS,
     );
-    const electricLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK);
+    const electricLevel = this.abilityProgression.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK);
     const currentHp = this.healthSystem.getHp();
     const maxHp = this.healthSystem.getMaxHp();
 

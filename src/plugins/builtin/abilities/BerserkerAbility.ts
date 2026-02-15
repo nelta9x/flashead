@@ -18,14 +18,14 @@ export class BerserkerAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<BerserkerLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<BerserkerLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
       case 'missingHpDamagePercent':
         return data.missingHpDamagePercent;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

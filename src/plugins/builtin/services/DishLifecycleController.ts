@@ -10,7 +10,6 @@ import type { FeedbackSystem } from './FeedbackSystem';
 import type { HealthSystem } from '../../../systems/HealthSystem';
 import type { SoundSystem } from './SoundSystem';
 import type { StatusEffectManager } from '../../../systems/StatusEffectManager';
-import type { UpgradeSystem } from './UpgradeSystem';
 import { C_DishTag, C_BombProps } from '../../../world';
 import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
@@ -21,6 +20,8 @@ import type {
 } from './ContentContracts';
 import type { GameEnvironment } from '../../../scenes/game/GameEnvironment';
 import type { BossCombatCoordinator } from './BossCombatCoordinator';
+import type { AbilityProgressionService } from './abilities/AbilityProgressionService';
+import type { AbilityRuntimeQueryService } from './abilities/AbilityRuntimeQueryService';
 import { DishResolutionService } from './dish/DishResolutionService';
 import { DishSpawnService } from './dish/DishSpawnService';
 
@@ -30,7 +31,8 @@ interface DishLifecycleControllerDeps {
   dishes: Phaser.GameObjects.Group;
   healthSystem: HealthSystem;
   comboSystem: ComboSystem;
-  upgradeSystem: UpgradeSystem;
+  abilityProgression: AbilityProgressionService;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   damageText: DamageText;
@@ -59,7 +61,7 @@ export class DishLifecycleController {
     this.spawnService = new DishSpawnService({
       dishPool: deps.dishPool,
       dishes: deps.dishes,
-      upgradeSystem: deps.upgradeSystem,
+      abilityRuntimeQuery: deps.abilityRuntimeQuery,
       world: deps.world,
       getPlayerAttackRenderer: deps.getPlayerAttackRenderer,
       isGameOver: () => deps.gameEnv.isGameOver,
@@ -71,7 +73,8 @@ export class DishLifecycleController {
       dishes: deps.dishes,
       healthSystem: deps.healthSystem,
       comboSystem: deps.comboSystem,
-      upgradeSystem: deps.upgradeSystem,
+      abilityProgression: deps.abilityProgression,
+      abilityRuntimeQuery: deps.abilityRuntimeQuery,
       feedbackSystem: deps.feedbackSystem,
       soundSystem: deps.soundSystem,
       damageText: deps.damageText,

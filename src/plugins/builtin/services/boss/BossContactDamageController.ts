@@ -4,8 +4,8 @@ import type { Entity } from '../../../../entities/Entity';
 import type { FeedbackSystem } from '../FeedbackSystem';
 import type { HealthSystem } from '../../../../systems/HealthSystem';
 import type { MonsterSystem } from '../MonsterSystem';
-import type { UpgradeSystem } from '../UpgradeSystem';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
+import type { AbilityRuntimeQueryService } from '../abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   BERSERKER_EFFECT_KEYS,
@@ -20,7 +20,7 @@ interface BossContactDamageControllerDeps {
   bosses: Map<string, Entity>;
   monsterSystem: MonsterSystem;
   feedbackSystem: FeedbackSystem;
-  upgradeSystem: UpgradeSystem;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   healthSystem: HealthSystem;
   bossOverlapLastHitTimeByBossId: Map<string, number>;
 }
@@ -29,7 +29,7 @@ export class BossContactDamageController {
   private readonly bosses: Map<string, Entity>;
   private readonly monsterSystem: MonsterSystem;
   private readonly feedbackSystem: FeedbackSystem;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly healthSystem: HealthSystem;
   private readonly bossOverlapLastHitTimeByBossId: Map<string, number>;
 
@@ -37,7 +37,7 @@ export class BossContactDamageController {
     this.bosses = deps.bosses;
     this.monsterSystem = deps.monsterSystem;
     this.feedbackSystem = deps.feedbackSystem;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.healthSystem = deps.healthSystem;
     this.bossOverlapLastHitTimeByBossId = deps.bossOverlapLastHitTimeByBossId;
   }
@@ -48,12 +48,12 @@ export class BossContactDamageController {
     gameTime: number
   ): void {
     const damageConfig = Data.dishes.damage;
-    const cursorDamageBonus = this.upgradeSystem.getEffectValue(
+    const cursorDamageBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CURSOR_SIZE,
       CURSOR_SIZE_EFFECT_KEYS.DAMAGE,
     );
     const baseDamage = Math.max(0, damageConfig.playerDamage + cursorDamageBonus);
-    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+    const criticalChanceBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CRITICAL_CHANCE,
       CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
     );
@@ -87,14 +87,14 @@ export class BossContactDamageController {
       const isCritical = Math.random() < criticalChance;
 
       // 변덕 저주: 치명타 배율 오버라이드 / 비치명타 패널티
-      const volatilityCritMult = this.upgradeSystem.getEffectValue(
+      const volatilityCritMult = this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.VOLATILITY,
         VOLATILITY_EFFECT_KEYS.CRIT_MULTIPLIER,
       );
       if (isCritical) {
         damage *= volatilityCritMult > 0 ? volatilityCritMult : criticalMultiplier;
       } else {
-        const nonCritPenalty = this.upgradeSystem.getEffectValue(
+        const nonCritPenalty = this.abilityRuntimeQuery.getEffectValueOrThrow(
           ABILITY_IDS.VOLATILITY,
           VOLATILITY_EFFECT_KEYS.NON_CRIT_PENALTY,
         );
@@ -107,11 +107,11 @@ export class BossContactDamageController {
       damage *= computeGlobalDamageMultiplier({
         currentHp: this.healthSystem.getHp(),
         maxHp: this.healthSystem.getMaxHp(),
-        glassCannonDamageMultiplier: this.upgradeSystem.getEffectValue(
+        glassCannonDamageMultiplier: this.abilityRuntimeQuery.getEffectValueOrThrow(
           ABILITY_IDS.GLASS_CANNON,
           GLASS_CANNON_EFFECT_KEYS.DAMAGE_MULTIPLIER,
         ),
-        berserkerMissingHpDamagePercent: this.upgradeSystem.getEffectValue(
+        berserkerMissingHpDamagePercent: this.abilityRuntimeQuery.getEffectValueOrThrow(
           ABILITY_IDS.BERSERKER,
           BERSERKER_EFFECT_KEYS.MISSING_HP_DAMAGE_PERCENT,
         ),

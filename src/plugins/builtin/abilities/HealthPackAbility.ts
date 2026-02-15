@@ -18,7 +18,7 @@ export class HealthPackAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<HealthPackLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<HealthPackLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -27,7 +27,7 @@ export class HealthPackAbility implements AbilityPlugin {
       case 'dropChanceBonus':
         return data.dropChanceBonus;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

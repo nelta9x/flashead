@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, FONTS, DEPTHS } from '../../data/constants';
 import { Data } from '../../data/DataManager';
-import { UpgradeSystem } from '../../plugins/builtin/services/UpgradeSystem';
 import { HoverArea } from './WaveTimerVisibilityPolicy';
 import { getUpgradeFallbackSymbol } from '../upgrade/UpgradeIconCatalog';
 import { renderAbilityDockOverlay, renderAbilityDockPauseGauge } from './AbilityDockRenderer';
 import { resolveAbilityTooltipPosition } from './AbilityTooltipLayout';
+import type { AbilityProgressionService } from '../../plugins/builtin/services/abilities/AbilityProgressionService';
+import type { AbilityPresentationService } from '../../plugins/builtin/services/abilities/AbilityPresentationService';
 
 interface ActiveAbility {
   id: string;
@@ -20,7 +21,8 @@ interface AbilitySlot {
 
 export class AbilitySummaryWidget {
   private readonly scene: Phaser.Scene;
-  private upgradeSystem: UpgradeSystem | null;
+  private abilityProgression: AbilityProgressionService | null;
+  private abilityPresentation: AbilityPresentationService | null;
   private readonly container: Phaser.GameObjects.Container;
   private readonly dockOverlay: Phaser.GameObjects.Graphics;
   private readonly dockPauseGauge: Phaser.GameObjects.Graphics;
@@ -40,9 +42,14 @@ export class AbilitySummaryWidget {
   private tooltipSignature = '';
   private tooltipHeight = 0;
 
-  constructor(scene: Phaser.Scene, upgradeSystem: UpgradeSystem | null) {
+  constructor(
+    scene: Phaser.Scene,
+    abilityProgression: AbilityProgressionService | null,
+    abilityPresentation: AbilityPresentationService | null,
+  ) {
     this.scene = scene;
-    this.upgradeSystem = upgradeSystem;
+    this.abilityProgression = abilityProgression;
+    this.abilityPresentation = abilityPresentation;
 
     const config = Data.gameConfig.hud.abilityDisplay;
     this.container = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT - config.bottomMargin);
@@ -115,8 +122,12 @@ export class AbilitySummaryWidget {
     this.tooltipContainer.add(this.tooltipDescText);
   }
 
-  public setUpgradeSystem(upgradeSystem: UpgradeSystem): void {
-    this.upgradeSystem = upgradeSystem;
+  public setAbilityServices(
+    abilityProgression: AbilityProgressionService,
+    abilityPresentation: AbilityPresentationService,
+  ): void {
+    this.abilityProgression = abilityProgression;
+    this.abilityPresentation = abilityPresentation;
     this.abilitySignature = '';
   }
 
@@ -254,8 +265,8 @@ export class AbilitySummaryWidget {
     const tooltipCfg = Data.gameConfig.hud.abilityDisplay.tooltip;
     const name = Data.t(`upgrade.${ability.id}.name`);
     const levelLabel = Data.t('hud.ability_level', ability.level);
-    const description = this.upgradeSystem
-      ? this.upgradeSystem.getFormattedDescription(ability.id)
+    const description = this.abilityPresentation
+      ? this.abilityPresentation.getFormattedDescriptionOrThrow(ability.id)
       : Data.t(`upgrade.${ability.id}.desc`);
     const tooltipSignature = `${ability.id}:${ability.level}:${name}:${levelLabel}:${description}`;
     if (this.tooltipSignature === tooltipSignature) {
@@ -367,15 +378,15 @@ export class AbilitySummaryWidget {
   }
 
   private getActiveAbilities(): ActiveAbility[] {
-    const upgradeSystem = this.upgradeSystem;
-    if (!upgradeSystem) {
+    const abilityProgression = this.abilityProgression;
+    if (!abilityProgression) {
       return [];
     }
 
     return Data.getActiveAbilityDefinitions()
       .map((definition) => ({
         id: definition.id,
-        level: upgradeSystem.getAbilityLevel(definition.id),
+        level: abilityProgression.getAbilityLevel(definition.id),
         iconKey: definition.icon.key,
       }))
       .filter((ability) => ability.level > 0);

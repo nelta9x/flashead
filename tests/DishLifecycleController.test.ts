@@ -184,13 +184,15 @@ describe('DishLifecycleController', () => {
       dishes: dishes as never,
       healthSystem: healthSystem as never,
       comboSystem: comboSystem as never,
-      upgradeSystem: {
+      abilityProgression: {
         getAbilityLevel: (abilityId: string) => {
           if (abilityId === 'electric_shock') return legacyUpgradeSystem.getElectricShockLevel();
           if (abilityId === 'magnet') return legacyUpgradeSystem.getMagnetLevel();
           return 0;
         },
-        getEffectValue: (abilityId: string, key: string) => {
+      } as never,
+      abilityRuntimeQuery: {
+        getEffectValueOrThrow: (abilityId: string, key: string) => {
           if (abilityId === 'electric_shock' && key === 'radius') {
             return legacyUpgradeSystem.getElectricShockRadius();
           }

@@ -9,18 +9,23 @@ export interface AbilityRenderer {
   destroy(): void;
 }
 
-/** UpgradeSystem에서 플러그인이 필요로 하는 최소 인터페이스 */
-export interface UpgradeSystemCore {
-  getUpgradeStack(upgradeId: string): number;
-  getLevelData<T>(upgradeId: string): T | null;
-  getSystemUpgrade(upgradeId: string): SystemUpgradeData | undefined;
-  getAllUpgradeStacks(): Map<string, number>;
+/** Ability 진행 상태(레벨/스택) 조회 인터페이스 */
+export interface AbilityStateReader {
+  getAbilityLevel(abilityId: string): number;
+  getAllAbilityLevels(): Map<string, number>;
+}
+
+/** Ability 데이터(업그레이드/레벨 데이터) 조회 인터페이스 */
+export interface AbilityDataReader {
+  getLevelData<T>(abilityId: string): T | null;
+  getSystemUpgrade(abilityId: string): SystemUpgradeData;
 }
 
 /** 어빌리티 플러그인에 제공되는 컨텍스트 */
 export interface AbilityContext {
   scene: Phaser.Scene;
-  upgradeSystem: UpgradeSystemCore;
+  abilityState: AbilityStateReader;
+  abilityData: AbilityDataReader;
   getCursor: () => CursorSnapshot;
 }
 

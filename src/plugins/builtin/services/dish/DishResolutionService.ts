@@ -9,10 +9,11 @@ import type { EntityDamageService } from '../EntityDamageService';
 import type { FeedbackSystem } from '../FeedbackSystem';
 import type { HealthSystem } from '../../../../systems/HealthSystem';
 import type { SoundSystem } from '../SoundSystem';
-import type { UpgradeSystem } from '../UpgradeSystem';
 import { C_DishTag, C_DishProps, C_Transform } from '../../../../world';
 import type { World } from '../../../../world';
 import type { EntityId } from '../../../../world/EntityId';
+import type { AbilityProgressionService } from '../abilities/AbilityProgressionService';
+import type { AbilityRuntimeQueryService } from '../abilities/AbilityRuntimeQueryService';
 import type {
   DishDamagedEventPayload,
   DishDestroyedEventPayload,
@@ -31,7 +32,8 @@ interface DishResolutionServiceDeps {
   dishes: Phaser.GameObjects.Group;
   healthSystem: HealthSystem;
   comboSystem: ComboSystem;
-  upgradeSystem: UpgradeSystem;
+  abilityProgression: AbilityProgressionService;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   damageText: DamageText;
@@ -45,7 +47,8 @@ export class DishResolutionService {
   private readonly dishes: Phaser.GameObjects.Group;
   private readonly healthSystem: HealthSystem;
   private readonly comboSystem: ComboSystem;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityProgression: AbilityProgressionService;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly damageText: DamageText;
@@ -58,7 +61,8 @@ export class DishResolutionService {
     this.dishes = deps.dishes;
     this.healthSystem = deps.healthSystem;
     this.comboSystem = deps.comboSystem;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityProgression = deps.abilityProgression;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.damageText = deps.damageText;
@@ -99,9 +103,9 @@ export class DishResolutionService {
     const isAbilityDamage = byAbility === true;
     const combo = isAbilityDamage ? 0 : this.comboSystem.getCombo();
 
-    const electricLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK);
+    const electricLevel = this.abilityProgression.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK);
     if (!isAbilityDamage && electricLevel > 0) {
-      const electricRadius = this.upgradeSystem.getEffectValue(
+      const electricRadius = this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.ELECTRIC_SHOCK,
         ELECTRIC_SHOCK_EFFECT_KEYS.RADIUS,
       );
@@ -129,11 +133,11 @@ export class DishResolutionService {
 
   private applyElectricShock(x: number, y: number, excludeEntityId: EntityId, radius: number): void {
     const targets: { x: number; y: number }[] = [];
-    const damage = this.upgradeSystem.getEffectValue(
+    const damage = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.ELECTRIC_SHOCK,
       ELECTRIC_SHOCK_EFFECT_KEYS.DAMAGE,
     );
-    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+    const criticalChanceBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CRITICAL_CHANCE,
       CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
     );
@@ -162,7 +166,7 @@ export class DishResolutionService {
   }
 
   private getCursorRadius(): number {
-    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+    const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CURSOR_SIZE,
       CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
     );

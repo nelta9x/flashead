@@ -23,7 +23,7 @@ export class BlackHoleAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<BlackHoleLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<BlackHoleLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -42,7 +42,7 @@ export class BlackHoleAbility implements AbilityPlugin {
       case 'damageInterval':
         return data.damageInterval;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

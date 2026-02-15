@@ -61,7 +61,7 @@
 
 ### 2. 핵심 게임 로직 (Systems)
 
-`src/systems/` 디렉토리에는 **코어 인프라 시스템**이 위치합니다. 콘텐츠 레벨 시스템(WaveSystem, ComboSystem, UpgradeSystem, MonsterSystem, SoundSystem, FeedbackSystem, GaugeSystem, ScoreSystem, EntityDamageService 등)은 `plugins/builtin/services/`로 이동되었습니다 (→ §2.6 참조).
+`src/systems/` 디렉토리에는 **코어 인프라 시스템**이 위치합니다. 콘텐츠 레벨 시스템(WaveSystem, ComboSystem, AbilityProgressionService, AbilityRuntimeQueryService, AbilityPresentationService, AbilityDataRepository, MonsterSystem, SoundSystem, FeedbackSystem, GaugeSystem, ScoreSystem, EntityDamageService 등)은 `plugins/builtin/services/`로 이동되었습니다 (→ §2.6 참조).
 
 - **`HealthSystem.ts`**: 플레이어 HP 관리. 데미지 수신 시 `HP_CHANGED` 이벤트를 발행하며, 현재 HP는 `GameScene -> CursorRenderer` 경로로 커서 통합형 링에 반영됩니다. HP가 0이 되면 `GAME_OVER` 발생. `adjustMaxHp(delta)` — 저주(글래스캐논) HP 패널티 적용. `isHealDisabled()` — 광전사 저주 활성 시 헬스팩 획득 차단.
 - **`PlayerCursorInputController.ts`**: `GameScene` 전용 입력 컨트롤러. 디지털 키 입력을 축(axis)으로 변환하고, 키다운 시 축 가속(0→1), 포인터 최신 입력 우선 유예, 입력 리셋/리스너 해제를 단일 책임으로 관리합니다.
@@ -128,7 +128,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 
 - **`PluginRegistry.ts`**: 어빌리티 및 엔티티 타입 플러그인을 등록/조회하는 싱글톤. `unregisterAbility(id)` / `unregisterEntityType(typeId)` 메서드로 MOD teardown 시 등록 해제 지원.
 - **`types/`**: 플러그인 인터페이스 정의. 코어 코드에서 import 허용되는 계약 계층.
-  - `AbilityPlugin.ts`: 어빌리티 플러그인 인터페이스, `UpgradeSystemCore`, `AbilityContext`, `DerivedStatEntry`.
+  - `AbilityPlugin.ts`: 어빌리티 플러그인 인터페이스, `AbilityStateReader`, `AbilityDataReader`, `AbilityContext`, `DerivedStatEntry`.
   - `EntityTypePlugin.ts`: 엔티티 타입 플러그인 인터페이스, `EntityTypeRenderer`, `DamageSource`.
   - `AttackPattern.ts`: 공격 패턴 인터페이스 (LaserAttackPattern 등).
   - `renderers.ts`: 렌더러 추상 인터페이스 (`IBossRenderer`, `IBossShatterEffect` 등). 코어의 `components.ts`는 `bossRenderer: unknown`으로 보유하고, 플러그인 시스템에서 `IBossRenderer`로 캐스팅하여 사용. `ILaserRenderer`/`IPlayerAttackRenderer`는 플러그인 내부에서만 참조.
@@ -146,9 +146,11 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
     - `wave/WaveSpawnPlanner.ts`: 접시 타입 롤 + 스폰 위치 제약 검증(보스/접시 거리)
   - **`waveBossConfig.ts`**: 웨이브별 보스 구성 해석 유틸리티. `bossTotalHp`/`hpWeight` 분배, 무한 웨이브 보스 수/총 HP 스케일링, 보스별 `entityTypeId` 보존 및 fallback(`boss.defaultEntityTypeId`) 적용.
   - **`ComboSystem.ts`**: 콤보 증가, 타임아웃 처리, 마일스톤 관리. `COMBO_MILESTONE` 이벤트 발행.
-  - **`UpgradeSystem.ts`**: 업그레이드 파사드. 전용 getter 대신 공통 조회 API(`getAbilityLevel`, `getEffectValue`, `getLevelData`, `getSystemUpgrade`)를 공식 진입점으로 사용.
-    - `upgrades/UpgradeDescriptionFormatter.ts`: 로케일 템플릿 기반 설명 문자열 생성
-    - `upgrades/UpgradePreviewModelBuilder.ts`: 카드 프리뷰 모델 생성
+  - **Ability 서비스 계층**: 업그레이드 선택/효과 조회/설명·프리뷰를 플러그인 중심으로 분리.
+    - `abilities/AbilityDataRepository.ts`: `abilities.json`↔`upgrades.json` 매핑 조회 및 key 검증
+    - `abilities/AbilityProgressionService.ts`: 레벨 상태/희귀도 롤/선택 적용(`rollChoices`, `applyChoice`)
+    - `abilities/AbilityRuntimeQueryService.ts`: 런타임 효과값 단일 조회 경로(`getEffectValueOrThrow`)
+    - `abilities/AbilityPresentationService.ts`: 설명 문자열/카드 프리뷰 모델 생성(derived stats 병합)
     - `upgrades/AbilityConfigSyncValidator.ts`: `abilities.json`/factory/upgrade/icon/등록 상태를 초기화 시점에 fail-fast 검증
   - **`MonsterSystem.ts`**: 보스 몬스터 HP/사망 상태를 `bossId`별 `Map`으로 관리. `MONSTER_HP_CHANGED`/`MONSTER_DIED` 발행.
   - **`GaugeSystem.ts`**: 콤보 수치에 따라 공격 게이지를 충전. 게이지 100%시 `PLAYER_ATTACK` 이벤트 발생.
@@ -268,7 +270,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 | **점수**          | `SCORE_CHANGED`         | 점수 갱신 시                   | `ScoreSystem`     | —                                      |
 | **플레이어 상태** | `HP_CHANGED`            | 데미지/회복 발생 시            | `HealthSystem`    | `GSEB`(코어UI), `ContentEventBinder`(피드백) |
 |                   | `GAME_OVER`             | HP가 0이 될 때                 | `HealthSystem`    | `GameScene`                            |
-|                   | `HEALTH_PACK_UPGRADED`  | 힐팩 업그레이드 적용 시        | `UpgradeSystem`   | `ContentEventBinder` (최대 HP 증가)    |
+|                   | `HEALTH_PACK_UPGRADED`  | 힐팩 업그레이드 적용 시        | `AbilityProgressionService` | `ContentEventBinder` (최대 HP 증가)    |
 | **힐팩**          | `HEALTH_PACK_SPAWNED`   | 힐팩 스폰 시                   | `HealthPack`      | —                                      |
 |                   | `HEALTH_PACK_PASSING`   | 힐팩 상단 이탈 직전            | `HealthPack`      | `ContentEventBinder` (피드백 텍스트)   |
 |                   | `HEALTH_PACK_COLLECTED` | 힐팩 획득 시                   | `HealthPack`      | `HealthPackSystem`, `ContentEventBinder` |
@@ -281,7 +283,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 |                   | `GAUGE_UPDATED`         | 게이지 수치 변경 시            | `GaugeSystem`     | `GameScene`                            |
 |                   | `PLAYER_ATTACK`         | 게이지 완충 후 공격 시         | `GaugeSystem`     | `GameScene`                            |
 | **블랙홀**        | `BLACK_HOLE_CONSUMED`   | 블랙홀이 폭탄/접시 흡수 시     | `BlackHoleSystem` | `ContentEventBinder` (피드백 텍스트)   |
-| **저주**          | `CURSE_HP_PENALTY`      | 글래스캐논 업그레이드 적용 시  | `UpgradeSystem`   | `ContentEventBinder` (maxHP 감소)    |
+| **저주**          | `CURSE_HP_PENALTY`      | 글래스캐논 업그레이드 적용 시  | `AbilityProgressionService` | `ContentEventBinder` (maxHP 감소)    |
 
 ---
 

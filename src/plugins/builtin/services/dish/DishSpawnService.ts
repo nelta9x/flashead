@@ -5,8 +5,8 @@ import type { Entity } from '../../../../entities/Entity';
 import { initializeEntitySpawn } from '../../../../entities/EntitySpawnInitializer';
 import type { PlayerAttackRenderer } from '../../abilities/PlayerAttackRenderer';
 import type { ObjectPool } from '../../../../utils/ObjectPool';
-import type { UpgradeSystem } from '../UpgradeSystem';
 import type { World } from '../../../../world';
+import type { AbilityRuntimeQueryService } from '../abilities/AbilityRuntimeQueryService';
 import { INVALID_ENTITY_ID } from '../../../../world/EntityId';
 import { PluginRegistry } from '../../../../plugins/PluginRegistry';
 import {
@@ -18,7 +18,7 @@ import {
 interface DishSpawnServiceDeps {
   dishPool: ObjectPool<Entity>;
   dishes: Phaser.GameObjects.Group;
-  upgradeSystem: UpgradeSystem;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   world: World;
   getPlayerAttackRenderer: () => PlayerAttackRenderer;
   isGameOver: () => boolean;
@@ -27,7 +27,7 @@ interface DishSpawnServiceDeps {
 export class DishSpawnService {
   private readonly dishPool: ObjectPool<Entity>;
   private readonly dishes: Phaser.GameObjects.Group;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly world: World;
   private readonly getPlayerAttackRenderer: () => PlayerAttackRenderer;
   private readonly isGameOver: () => boolean;
@@ -35,7 +35,7 @@ export class DishSpawnService {
   constructor(deps: DishSpawnServiceDeps) {
     this.dishPool = deps.dishPool;
     this.dishes = deps.dishes;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.world = deps.world;
     this.getPlayerAttackRenderer = deps.getPlayerAttackRenderer;
     this.isGameOver = deps.isGameOver;
@@ -69,15 +69,15 @@ export class DishSpawnService {
     const bombData = Data.getBombData(type);
     const dishData = bombData ? undefined : Data.getDishData(type);
     const options = {
-      cursorSizeBonus: this.upgradeSystem.getEffectValue(
+      cursorSizeBonus: this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.CURSOR_SIZE,
         CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
       ),
-      damageBonus: this.upgradeSystem.getEffectValue(
+      damageBonus: this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.CURSOR_SIZE,
         CURSOR_SIZE_EFFECT_KEYS.DAMAGE,
       ),
-      criticalChance: this.upgradeSystem.getEffectValue(
+      criticalChance: this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.CRITICAL_CHANCE,
         CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
       ),

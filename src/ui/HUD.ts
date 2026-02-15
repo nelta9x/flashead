@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
 import { WaveSystem } from '../plugins/builtin/services/WaveSystem';
 import { HealthSystem } from '../systems/HealthSystem';
-import { UpgradeSystem } from '../plugins/builtin/services/UpgradeSystem';
 import { AbilitySummaryWidget } from './hud/AbilitySummaryWidget';
 import { DockPauseController } from './hud/DockPauseController';
 import { WaveTimerVisibilityPolicy } from './hud/WaveTimerVisibilityPolicy';
 import { WaveTimerWidget } from './hud/WaveTimerWidget';
 import { HudFrameContext, HudInteractionState } from './hud/types';
 import { Data } from '../data/DataManager';
+import type { AbilityProgressionService } from '../plugins/builtin/services/abilities/AbilityProgressionService';
+import type { AbilityPresentationService } from '../plugins/builtin/services/abilities/AbilityPresentationService';
 
 export class HUD {
   private readonly scene: Phaser.Scene;
@@ -20,7 +21,8 @@ export class HUD {
     scene: Phaser.Scene,
     waveSystem: WaveSystem,
     _healthSystem?: HealthSystem,
-    upgradeSystem?: UpgradeSystem
+    abilityProgression?: AbilityProgressionService,
+    abilityPresentation?: AbilityPresentationService,
   ) {
     this.scene = scene;
 
@@ -29,18 +31,29 @@ export class HUD {
       Data.gameConfig.hud.waveTimerDisplay.dockPauseHoldDurationMs
     );
 
-    if (upgradeSystem) {
-      this.abilitySummaryWidget = new AbilitySummaryWidget(this.scene, upgradeSystem);
+    if (abilityProgression && abilityPresentation) {
+      this.abilitySummaryWidget = new AbilitySummaryWidget(
+        this.scene,
+        abilityProgression,
+        abilityPresentation,
+      );
     }
   }
 
-  public setUpgradeSystem(upgradeSystem: UpgradeSystem): void {
+  public setAbilityServices(
+    abilityProgression: AbilityProgressionService,
+    abilityPresentation: AbilityPresentationService,
+  ): void {
     if (this.abilitySummaryWidget) {
-      this.abilitySummaryWidget.setUpgradeSystem(upgradeSystem);
+      this.abilitySummaryWidget.setAbilityServices(abilityProgression, abilityPresentation);
       return;
     }
 
-    this.abilitySummaryWidget = new AbilitySummaryWidget(this.scene, upgradeSystem);
+    this.abilitySummaryWidget = new AbilitySummaryWidget(
+      this.scene,
+      abilityProgression,
+      abilityPresentation,
+    );
   }
 
   public updateInteractionState(context: HudFrameContext, deltaMs: number): HudInteractionState {

@@ -4,8 +4,8 @@ import { ComboSystem } from './ComboSystem';
 import { FeedbackSystem } from './FeedbackSystem';
 import { HealthSystem } from '../../../systems/HealthSystem';
 import { MonsterSystem } from './MonsterSystem';
-import { UpgradeSystem } from './UpgradeSystem';
 import { WaveSystem } from './WaveSystem';
+import { AbilityProgressionService } from './abilities/AbilityProgressionService';
 import { DamageText } from '../../../ui/DamageText';
 import { World } from '../../../world';
 import { EventBus, GameEvents } from '../../../utils/EventBus';
@@ -123,7 +123,7 @@ export class ContentEventBinder {
       s.get(FeedbackSystem).onHealthPackPassing(payload.x, payload.y);
     });
     this.on(GameEvents.HEALTH_PACK_COLLECTED, (payload: { x: number; y: number }) => {
-      if (s.get(UpgradeSystem).getAbilityLevel(ABILITY_IDS.BERSERKER) <= 0) {
+      if (s.get(AbilityProgressionService).getAbilityLevel(ABILITY_IDS.BERSERKER) <= 0) {
         s.get(HealthSystem).heal(1);
       }
       s.get(FeedbackSystem).onHealthPackCollected(payload.x, payload.y);

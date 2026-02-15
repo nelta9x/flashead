@@ -7,9 +7,9 @@ import { EventBus, GameEvents } from '../../../utils/EventBus';
 import { C_HealthPack, C_Transform } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
 import type { World } from '../../../world';
-import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { EntityPoolManager } from '../../../systems/EntityPoolManager';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
+import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CURSOR_SIZE_EFFECT_KEYS,
@@ -24,14 +24,19 @@ export class HealthPackSystem implements EntitySystem {
 
   private readonly world: World;
   private readonly scene: Phaser.Scene;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly entityPoolManager: EntityPoolManager;
   private lastSpawnTime: number = -HEAL_PACK.COOLDOWN;
   private timeSinceLastCheck: number = 0;
 
-  constructor(scene: Phaser.Scene, upgradeSystem: UpgradeSystem, world: World, entityPoolManager: EntityPoolManager) {
+  constructor(
+    scene: Phaser.Scene,
+    abilityRuntimeQuery: AbilityRuntimeQueryService,
+    world: World,
+    entityPoolManager: EntityPoolManager,
+  ) {
     this.scene = scene;
-    this.upgradeSystem = upgradeSystem;
+    this.abilityRuntimeQuery = abilityRuntimeQuery;
     this.world = world;
     this.entityPoolManager = entityPoolManager;
   }
@@ -72,7 +77,7 @@ export class HealthPackSystem implements EntitySystem {
     // Cursor collection check (post-movement)
     const playerT = this.world.transform.get(this.world.context.playerId);
     if (playerT) {
-      const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.CURSOR_SIZE,
         CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
       );
@@ -102,7 +107,7 @@ export class HealthPackSystem implements EntitySystem {
   }
 
   getSpawnChance(): number {
-    const upgradeBonus = this.upgradeSystem.getEffectValue(
+    const upgradeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.HEALTH_PACK,
       HEALTH_PACK_EFFECT_KEYS.DROP_CHANCE_BONUS,
     );

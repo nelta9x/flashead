@@ -8,7 +8,7 @@ import { EntityDamageService } from './EntityDamageService';
 import { EntityQueryService } from '../../../systems/EntityQueryService';
 import { HealthSystem } from '../../../systems/HealthSystem';
 import { StatusEffectManager } from '../../../systems/StatusEffectManager';
-import { UpgradeSystem } from './UpgradeSystem';
+import { AbilityRuntimeQueryService } from './abilities/AbilityRuntimeQueryService';
 import { setSpawnDamageServiceGetter } from '../../../entities/EntitySpawnInitializer';
 import {
   ABILITY_IDS,
@@ -49,26 +49,26 @@ export class EcsFoundationPlugin implements ServicePlugin {
         );
         setSpawnDamageServiceGetter(() => svc);
         svc.setCurseModifiersProvider(() => {
-          const us = r.get(UpgradeSystem);
+          const query = r.get(AbilityRuntimeQueryService);
           const hs = r.get(HealthSystem);
           return {
             globalDamageMultiplier: computeGlobalDamageMultiplier({
               currentHp: hs.getHp(),
               maxHp: hs.getMaxHp(),
-              glassCannonDamageMultiplier: us.getEffectValue(
+              glassCannonDamageMultiplier: query.getEffectValueOrThrow(
                 ABILITY_IDS.GLASS_CANNON,
                 GLASS_CANNON_EFFECT_KEYS.DAMAGE_MULTIPLIER,
               ),
-              berserkerMissingHpDamagePercent: us.getEffectValue(
+              berserkerMissingHpDamagePercent: query.getEffectValueOrThrow(
                 ABILITY_IDS.BERSERKER,
                 BERSERKER_EFFECT_KEYS.MISSING_HP_DAMAGE_PERCENT,
               ),
             }),
-            volatilityCritMultiplier: us.getEffectValue(
+            volatilityCritMultiplier: query.getEffectValueOrThrow(
               ABILITY_IDS.VOLATILITY,
               VOLATILITY_EFFECT_KEYS.CRIT_MULTIPLIER,
             ),
-            volatilityNonCritPenalty: us.getEffectValue(
+            volatilityNonCritPenalty: query.getEffectValueOrThrow(
               ABILITY_IDS.VOLATILITY,
               VOLATILITY_EFFECT_KEYS.NON_CRIT_PENALTY,
             ),

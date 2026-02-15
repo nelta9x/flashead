@@ -8,7 +8,6 @@ import type { FeedbackSystem } from './FeedbackSystem';
 import type { HealthSystem } from '../../../systems/HealthSystem';
 import type { MonsterSystem } from './MonsterSystem';
 import type { SoundSystem } from './SoundSystem';
-import type { UpgradeSystem } from './UpgradeSystem';
 import type { WaveSystem } from './WaveSystem';
 import type { CursorSnapshot } from '../../../scenes/game/GameSceneContracts';
 import type {
@@ -21,6 +20,7 @@ import type { EntityDamageService } from './EntityDamageService';
 import type { StatusEffectManager } from '../../../systems/StatusEffectManager';
 import type { World } from '../../../world';
 import type { GameEnvironment } from '../../../scenes/game/GameEnvironment';
+import type { AbilityRuntimeQueryService } from './abilities/AbilityRuntimeQueryService';
 import { BossAttackScheduler } from './boss/BossAttackScheduler';
 import { BossContactDamageController } from './boss/BossContactDamageController';
 import { BossLaserController } from './boss/BossLaserController';
@@ -40,7 +40,7 @@ interface BossCombatCoordinatorDeps {
   damageText: DamageText;
   laserRenderer: LaserRenderer;
   healthSystem: HealthSystem;
-  upgradeSystem: UpgradeSystem;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   damageService: EntityDamageService;
   world: World;
   statusEffectManager: StatusEffectManager;
@@ -56,7 +56,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
   private readonly damageText: DamageText;
   private readonly laserRenderer: LaserRenderer;
   private readonly healthSystem: HealthSystem;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly gameEnv: GameEnvironment;
 
   private readonly bosses = new Map<string, Entity>();
@@ -84,7 +84,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
     this.damageText = deps.damageText;
     this.laserRenderer = deps.laserRenderer;
     this.healthSystem = deps.healthSystem;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.gameEnv = deps.gameEnv;
 
     this.bossRosterSync = new BossRosterSync({
@@ -116,7 +116,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       damageText: this.damageText,
       laserRenderer: this.laserRenderer,
       healthSystem: this.healthSystem,
-      upgradeSystem: this.upgradeSystem,
+      abilityRuntimeQuery: this.abilityRuntimeQuery,
       isGameOver: () => this.gameEnv.isGameOver,
       damageService: deps.damageService,
       bosses: this.bosses,
@@ -135,7 +135,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       bosses: this.bosses,
       monsterSystem: this.monsterSystem,
       feedbackSystem: this.feedbackSystem,
-      upgradeSystem: this.upgradeSystem,
+      abilityRuntimeQuery: this.abilityRuntimeQuery,
       healthSystem: this.healthSystem,
       bossOverlapLastHitTimeByBossId: this.bossOverlapLastHitTimeByBossId,
     });
@@ -164,7 +164,7 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       return;
     }
 
-    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+    const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CURSOR_SIZE,
       CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
     );

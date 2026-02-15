@@ -18,7 +18,7 @@ export class MissileAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<MissileLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<MissileLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -27,7 +27,7 @@ export class MissileAbility implements AbilityPlugin {
       case 'count':
         return data.count;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

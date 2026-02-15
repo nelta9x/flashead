@@ -316,3 +316,20 @@
 - `registerBuiltinAbilities()`를 definition 기반(`id`, `pluginId`) strict 검증 경로로 전환
 - `UpgradeSystem`/description/preview 경로를 매핑 기반 조회로 통일
 - `AbilityConfigSyncValidator`를 도입해 중복/미등록 pluginId/미정의 upgradeId/icon 메타 오류를 초기화 시점에 즉시 차단
+
+---
+
+## 20. Ability 서비스 계층 분리 + 플러그인 중심 효과 조회 `occurrences: 1`
+
+### 원칙
+- 런타임 효과 조회는 단일 경로(`AbilityRuntimeQueryService`)로 통일하고, 미정의 ability/key는 즉시 예외로 실패시킨다.
+- 레벨/선택 상태(`AbilityProgressionService`)와 데이터 매핑 조회(`AbilityDataRepository`)를 분리해 책임을 분명히 한다.
+- 설명/프리뷰 생성은 `AbilityPresentationService`로 분리하고, 플러그인 `getDerivedStats` 훅을 병합해 UI/런타임 계산 경로를 일치시킨다.
+- Ability 플러그인 컨텍스트는 `upgradeSystem` 직접 참조 대신 `abilityState`/`abilityData` 리더 계약만 받는다.
+- `GameScene.update()` 외부 직접 tick 호출을 금지하고, `AbilityTickSystem` + 파이프라인 실행을 유지한다.
+
+### 사례 요약
+- `PlayerAttackController`, `BossCombatCoordinator`, `DishLifecycleController`, `Magnet/Orb/BlackHole/HealthPack/FallingBomb/PlayerTick` 시스템을 Ability 서비스 DI로 전환
+- `InGameUpgradeUI`/`HUD`/`AbilitySummaryWidget`를 `rollChoices`/`applyChoice`/`presentation` 경로로 전환
+- `AbilityManager`에 `getPluginOrThrow`/`getEffectValueOrThrow`를 추가하고, 0 fallback 경로를 제거
+- 신규 단위 테스트(`AbilityRuntimeQueryService`, `AbilityProgressionService`, `AbilityPresentationService`)로 fail-fast/프리뷰 병합 회귀를 고정

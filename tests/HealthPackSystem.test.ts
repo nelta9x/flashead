@@ -24,7 +24,6 @@ vi.mock('phaser', () => {
 
 import { HealthPackSystem } from '../src/plugins/builtin/systems/HealthPackSystem';
 import { GameEvents } from '../src/utils/EventBus';
-import type { UpgradeSystem } from '../src/plugins/builtin/services/UpgradeSystem';
 
 vi.mock('../src/data/constants', () => ({
   GAME_WIDTH: 800,
@@ -153,9 +152,9 @@ function createWorldMock() {
 }
 
 const mockGetEffectValue = vi.fn(() => 0);
-const mockUpgradeSystem = {
-  getEffectValue: mockGetEffectValue,
-} as unknown as UpgradeSystem;
+const mockAbilityRuntimeQuery = {
+  getEffectValueOrThrow: mockGetEffectValue,
+};
 
 describe('HealthPackSystem', () => {
   let system: HealthPackSystem;
@@ -195,7 +194,12 @@ describe('HealthPackSystem', () => {
     mockGetEffectValue.mockReturnValue(0);
     mockPoolManager.acquire.mockReturnValue(mockEntity);
     worldMock = createWorldMock();
-    system = new HealthPackSystem(mockScene, mockUpgradeSystem, worldMock.world as never, mockPoolManager as never);
+    system = new HealthPackSystem(
+      mockScene,
+      mockAbilityRuntimeQuery as never,
+      worldMock.world as never,
+      mockPoolManager as never,
+    );
   });
 
   describe('EntitySystem interface', () => {

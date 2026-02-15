@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { UpgradeSystem } from '../src/plugins/builtin/services/UpgradeSystem';
 import type { BlackHoleLevelData } from '../src/data/types';
 
 const { mockFloatBetween } = vi.hoisted(() => ({
@@ -86,15 +85,19 @@ describe('BlackHoleSystem', () => {
   };
 
   const setupSystem = (): void => {
-    const upgradeSystem = {
+    const mockAbilityProgression = {
       getAbilityLevel: (abilityId: string) => (abilityId === 'black_hole' ? blackHoleLevel : 0),
-      getLevelData: (abilityId: string) => (abilityId === 'black_hole' ? blackHoleData : null),
-      getEffectValue: (abilityId: string, key: string) => (
+    };
+    const mockAbilityData = {
+      getLevelDataOrNull: (abilityId: string) => (abilityId === 'black_hole' ? blackHoleData : null),
+    };
+    const mockAbilityRuntimeQuery = {
+      getEffectValueOrThrow: (abilityId: string, key: string) => (
         abilityId === 'critical_chance' && key === 'criticalChance'
           ? criticalChanceBonus
           : 0
       ),
-    } as unknown as UpgradeSystem;
+    };
 
     damageBoss = vi.fn();
     const mockBcc = {
@@ -102,7 +105,9 @@ describe('BlackHoleSystem', () => {
       damageBoss,
     };
     system = new BlackHoleSystem(
-      upgradeSystem,
+      mockAbilityData as never,
+      mockAbilityProgression as never,
+      mockAbilityRuntimeQuery as never,
       mockWorld as never,
       mockDamageService as never,
       mockBcc as never,

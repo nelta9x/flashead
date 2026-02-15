@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { UpgradeSystem } from '../src/plugins/builtin/services/UpgradeSystem';
 
 // Mock Phaser
 vi.mock('phaser', () => {
@@ -118,8 +117,23 @@ describe('OrbSystem', () => {
       getAliveVisibleBossSnapshotsWithRadius: () => [],
       damageBoss: vi.fn(),
     };
+    const mockAbilityData = {
+      getLevelDataOrNull: vi.fn((abilityId: string) => {
+        if (abilityId === 'orbiting_orb') return getOrbitingOrbData();
+        return null;
+      }),
+      getUpgradeDataOrThrow: mockUpgradeSystem.getSystemUpgrade,
+    };
+    const mockAbilityProgression = {
+      getAbilityLevel: mockUpgradeSystem.getAbilityLevel,
+    };
+    const mockAbilityRuntimeQuery = {
+      getEffectValueOrThrow: mockUpgradeSystem.getEffectValue,
+    };
     system = new OrbSystem(
-      mockUpgradeSystem as unknown as UpgradeSystem,
+      mockAbilityData as never,
+      mockAbilityProgression as never,
+      mockAbilityRuntimeQuery as never,
       mockWorld as never,
       mockDamageService as never,
       mockBcc as never,

@@ -7,9 +7,10 @@ import type { FeedbackSystem } from './FeedbackSystem';
 import type { HealthSystem } from '../../../systems/HealthSystem';
 import type { MonsterSystem } from './MonsterSystem';
 import type { SoundSystem } from './SoundSystem';
-import type { UpgradeSystem } from './UpgradeSystem';
 import type { WaveSystem } from './WaveSystem';
 import type { EntityDamageService } from './EntityDamageService';
+import type { AbilityProgressionService } from './abilities/AbilityProgressionService';
+import type { AbilityRuntimeQueryService } from './abilities/AbilityRuntimeQueryService';
 import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../../world';
 import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
@@ -30,7 +31,8 @@ interface PlayerAttackControllerDeps {
   scene: Phaser.Scene;
   world: World;
   damageService: EntityDamageService;
-  upgradeSystem: UpgradeSystem;
+  abilityProgression: AbilityProgressionService;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   healthSystem: HealthSystem;
   waveSystem: WaveSystem;
   monsterSystem: MonsterSystem;
@@ -46,7 +48,8 @@ export class PlayerAttackController {
   private readonly scene: Phaser.Scene;
   private readonly world: World;
   private readonly damageService: EntityDamageService;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityProgression: AbilityProgressionService;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly healthSystem: HealthSystem;
   private readonly waveSystem: WaveSystem;
   private readonly monsterSystem: MonsterSystem;
@@ -61,7 +64,8 @@ export class PlayerAttackController {
     this.scene = deps.scene;
     this.world = deps.world;
     this.damageService = deps.damageService;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityProgression = deps.abilityProgression;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.healthSystem = deps.healthSystem;
     this.waveSystem = deps.waveSystem;
     this.monsterSystem = deps.monsterSystem;
@@ -109,8 +113,8 @@ export class PlayerAttackController {
 
         const baseAttack = Data.gameConfig.playerAttack;
         const missileCount =
-          this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MISSILE) > 0
-            ? this.upgradeSystem.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)
+          this.abilityProgression.getAbilityLevel(ABILITY_IDS.MISSILE) > 0
+            ? this.abilityRuntimeQuery.getEffectValueOrThrow(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)
             : baseAttack.baseMissileCount;
 
         for (let i = 0; i < missileCount; i++) {
@@ -157,7 +161,7 @@ export class PlayerAttackController {
     const speed = config.fire.duration * (1 - intensity * 0.3);
     const missileThicknessMultiplier = Math.max(
       0.1,
-      1 + this.upgradeSystem.getEffectValue(
+      1 + this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.CURSOR_SIZE,
         CURSOR_SIZE_EFFECT_KEYS.MISSILE_THICKNESS_BONUS,
       )
@@ -271,11 +275,11 @@ export class PlayerAttackController {
 
         const attackConfig = Data.gameConfig.playerAttack;
         let totalDamage =
-          this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MISSILE) > 0
-            ? this.upgradeSystem.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)
+          this.abilityProgression.getAbilityLevel(ABILITY_IDS.MISSILE) > 0
+            ? this.abilityRuntimeQuery.getEffectValueOrThrow(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)
             : attackConfig.baseMissileDamage;
 
-        const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+        const criticalChanceBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
           ABILITY_IDS.CRITICAL_CHANCE,
           CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
         );
@@ -286,14 +290,14 @@ export class PlayerAttackController {
         const isCritical = Math.random() < criticalChance;
 
         // 변덕 저주: 치명타 배율 오버라이드 / 비치명타 패널티
-        const volatilityCritMult = this.upgradeSystem.getEffectValue(
+        const volatilityCritMult = this.abilityRuntimeQuery.getEffectValueOrThrow(
           ABILITY_IDS.VOLATILITY,
           VOLATILITY_EFFECT_KEYS.CRIT_MULTIPLIER,
         );
         if (isCritical) {
           totalDamage *= volatilityCritMult > 0 ? volatilityCritMult : attackConfig.criticalMultiplier;
         } else {
-          const nonCritPenalty = this.upgradeSystem.getEffectValue(
+          const nonCritPenalty = this.abilityRuntimeQuery.getEffectValueOrThrow(
             ABILITY_IDS.VOLATILITY,
             VOLATILITY_EFFECT_KEYS.NON_CRIT_PENALTY,
           );
@@ -306,11 +310,11 @@ export class PlayerAttackController {
         totalDamage *= computeGlobalDamageMultiplier({
           currentHp: this.healthSystem.getHp(),
           maxHp: this.healthSystem.getMaxHp(),
-          glassCannonDamageMultiplier: this.upgradeSystem.getEffectValue(
+          glassCannonDamageMultiplier: this.abilityRuntimeQuery.getEffectValueOrThrow(
             ABILITY_IDS.GLASS_CANNON,
             GLASS_CANNON_EFFECT_KEYS.DAMAGE_MULTIPLIER,
           ),
-          berserkerMissingHpDamagePercent: this.upgradeSystem.getEffectValue(
+          berserkerMissingHpDamagePercent: this.abilityRuntimeQuery.getEffectValueOrThrow(
             ABILITY_IDS.BERSERKER,
             BERSERKER_EFFECT_KEYS.MISSING_HP_DAMAGE_PERCENT,
           ),
@@ -406,7 +410,7 @@ export class PlayerAttackController {
   }
 
   private getCursorRadius(): number {
-    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+    const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CURSOR_SIZE,
       CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
     );

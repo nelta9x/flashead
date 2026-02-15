@@ -335,8 +335,8 @@ describe('BossCombatCoordinator', () => {
       damageText: damageText as never,
       laserRenderer: laserRenderer as never,
       healthSystem: healthSystem as never,
-      upgradeSystem: {
-        getEffectValue: () => 0,
+      abilityRuntimeQuery: {
+        getEffectValueOrThrow: () => 0,
       } as never,
       damageService: { freeze: vi.fn(), unfreeze: vi.fn() } as never,
       world: {

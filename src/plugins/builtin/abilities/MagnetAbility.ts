@@ -22,7 +22,7 @@ export class MagnetAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<MagnetLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<MagnetLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -31,7 +31,7 @@ export class MagnetAbility implements AbilityPlugin {
       case 'force':
         return data.force;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

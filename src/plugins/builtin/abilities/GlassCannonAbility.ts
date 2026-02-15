@@ -18,7 +18,7 @@ export class GlassCannonAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<GlassCannonLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<GlassCannonLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -27,7 +27,7 @@ export class GlassCannonAbility implements AbilityPlugin {
       case 'hpPenalty':
         return data.hpPenalty;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

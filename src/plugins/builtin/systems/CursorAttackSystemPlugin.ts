@@ -1,7 +1,7 @@
 import { CursorAttackSystem } from './CursorAttackSystem';
 import { EntityDamageService } from '../services/EntityDamageService';
-import { UpgradeSystem } from '../services/UpgradeSystem';
 import { GameEnvironment } from '../../../scenes/game/GameEnvironment';
+import { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import type { SystemPlugin, SystemPluginContext } from '../../types/SystemPlugin';
 
@@ -13,7 +13,7 @@ export class CursorAttackSystemPlugin implements SystemPlugin {
       new CursorAttackSystem({
         world: ctx.world,
         damageService: ctx.services.get(EntityDamageService),
-        upgradeSystem: ctx.services.get(UpgradeSystem),
+        abilityRuntimeQuery: ctx.services.get(AbilityRuntimeQueryService),
         gameEnv: ctx.services.get(GameEnvironment),
       }),
     ];

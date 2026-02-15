@@ -7,7 +7,6 @@ import {
 } from '../data/constants';
 import { Data } from '../data/DataManager';
 import { EventBus } from '../utils/EventBus';
-import { UpgradeSystem } from '../plugins/builtin/services/UpgradeSystem';
 import { StatusEffectManager } from '../systems/StatusEffectManager';
 import { PlayerCursorInputController } from '../systems/PlayerCursorInputController';
 import { GridRenderer } from '../effects/GridRenderer';
@@ -29,6 +28,8 @@ import { registerBuiltinServicePlugins } from '../plugins/builtin/services';
 import { registerBuiltinSystemPlugins } from '../plugins/builtin/systems';
 import type { SystemPluginContext } from '../plugins/types/SystemPlugin';
 import { assertAbilityConfigSyncOrThrow } from '../plugins/builtin/services/upgrades/AbilityConfigSyncValidator';
+import { AbilityDataRepository } from '../plugins/builtin/services/abilities/AbilityDataRepository';
+import { AbilityProgressionService } from '../plugins/builtin/services/abilities/AbilityProgressionService';
 
 export class GameScene extends Phaser.Scene {
   private serviceRegistry!: ServiceRegistry;
@@ -152,9 +153,19 @@ export class GameScene extends Phaser.Scene {
       world,
     );
 
+    const abilityState = this.serviceRegistry.get(AbilityProgressionService);
+    const abilityData = this.serviceRegistry.get(AbilityDataRepository);
+
     this.abilityManager.init({
       scene: this,
-      upgradeSystem: this.serviceRegistry.get(UpgradeSystem),
+      abilityState,
+      abilityData: {
+        getLevelData: <T>(abilityId: string): T | null => {
+          const level = abilityState.getAbilityLevel(abilityId);
+          return abilityData.getLevelDataOrNull<T>(abilityId, level);
+        },
+        getSystemUpgrade: (abilityId: string) => abilityData.getUpgradeDataOrThrow(abilityId),
+      },
       getCursor: () => this.controller.getCursorPosition(),
     });
   }

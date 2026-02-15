@@ -84,7 +84,7 @@ sequenceDiagram
 ```typescript
 interface AbilityPlugin {
   readonly id: string;
-  init(ctx: AbilityContext): void;        // 초기화 (scene, upgradeSystem, getCursor)
+  init(ctx: AbilityContext): void;        // 초기화 (scene, abilityState, abilityData, getCursor)
   update(delta, gameTime, playerX, playerY): void;  // 매 프레임 로직
   clear(): void;                          // 라운드 종료 정리
   destroy(): void;                        // 완전 파괴
@@ -340,7 +340,7 @@ sequenceDiagram
 ### 코어/플러그인 경계 원칙
 
 - **코어(`GameSceneEventBinder`)**: 코어 UI(WaveCountdownUI/HUD), 코어 시스템(HealthSystem.reset), Scene 라이프사이클(WAVE_COMPLETED/UPGRADE_SELECTED/GAME_OVER) 이벤트만 라우팅.
-- **플러그인(`ContentEventBinder`)**: 보스/디쉬/폭탄/플레이어 공격 + 콘텐츠 피드백(COMBO_MILESTONE/MONSTER_DIED/HEALTH_PACK/CURSE_HP_PENALTY/HP_CHANGED피드백/BLACK_HOLE_CONSUMED) 이벤트를 콘텐츠 서비스(BCC/DLC/PAC/FeedbackSystem/MonsterSystem/WaveSystem/UpgradeSystem)로 라우팅.
+- **플러그인(`ContentEventBinder`)**: 보스/디쉬/폭탄/플레이어 공격 + 콘텐츠 피드백(COMBO_MILESTONE/MONSTER_DIED/HEALTH_PACK/CURSE_HP_PENALTY/HP_CHANGED피드백/BLACK_HOLE_CONSUMED) 이벤트를 콘텐츠 서비스(BCC/DLC/PAC/FeedbackSystem/MonsterSystem/WaveSystem/AbilityProgressionService)로 라우팅.
 - **`WAVE_TRANSITION` 이벤트**: 코어(`GameSceneController`)가 emit → 플러그인(`ContentEventBinder`)이 구독하여 BCC/DLC를 정리. 코어가 콘텐츠 서비스를 직접 호출하지 않는다.
 
 ### ContentEventBinder 등록
@@ -357,7 +357,8 @@ sequenceDiagram
 모든 콘텐츠 레벨 서비스는 `src/plugins/builtin/services/`에 위치:
 - `WaveSystem.ts` + `wave/` (WaveConfigResolver, WavePhaseController, WaveSpawnPlanner)
 - `ComboSystem.ts`, `GaugeSystem.ts`, `ScoreSystem.ts`, `MonsterSystem.ts`
-- `UpgradeSystem.ts` + `upgrades/` (UpgradeDescriptionFormatter, UpgradePreviewModelBuilder)
+- `abilities/` (AbilityDataRepository, AbilityProgressionService, AbilityRuntimeQueryService, AbilityPresentationService)
+- `upgrades/` (UpgradeDescriptionFormatter, UpgradePreviewModelBuilder, AbilityConfigSyncValidator)
 - `SoundSystem.ts`, `FeedbackSystem.ts`
 - `EntityDamageService.ts`, `DishDamageResolver.ts`, `DishEventPayloadFactory.ts`, `waveBossConfig.ts`
 - `BossCombatCoordinator.ts` + `boss/` (BossRosterSync, BossLaserController, BossAttackScheduler 등)

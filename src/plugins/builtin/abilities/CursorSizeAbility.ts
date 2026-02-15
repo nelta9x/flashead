@@ -22,7 +22,7 @@ export class CursorSizeAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<CursorSizeLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<CursorSizeLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -33,7 +33,7 @@ export class CursorSizeAbility implements AbilityPlugin {
       case 'missileThicknessBonus':
         return data.missileThicknessBonus;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 
@@ -41,7 +41,7 @@ export class CursorSizeAbility implements AbilityPlugin {
     const baseRadius = CURSOR_HITBOX.BASE_RADIUS;
     const getCursorSizeData = (level: number): CursorSizeLevelData | null => {
       if (level <= 0) return null;
-      const upgradeData = this.ctx.upgradeSystem.getSystemUpgrade(this.id);
+      const upgradeData = this.ctx.abilityData.getSystemUpgrade(this.id);
       if (!upgradeData?.levels) return null;
       const index = Math.min(level, upgradeData.levels.length) - 1;
       return upgradeData.levels[index] as CursorSizeLevelData;

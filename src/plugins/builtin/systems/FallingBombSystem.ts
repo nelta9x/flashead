@@ -8,8 +8,8 @@ import { C_FallingBomb, C_Transform } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
 import type { World } from '../../../world';
 import type { EntityPoolManager } from '../../../systems/EntityPoolManager';
-import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
+import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CURSOR_SIZE_EFFECT_KEYS,
@@ -24,15 +24,20 @@ export class FallingBombSystem implements EntitySystem {
   private readonly world: World;
   private readonly scene: Phaser.Scene;
   private readonly entityPoolManager: EntityPoolManager;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private lastSpawnTime: number = -FALLING_BOMB.COOLDOWN;
   private timeSinceLastCheck: number = 0;
 
-  constructor(scene: Phaser.Scene, world: World, entityPoolManager: EntityPoolManager, upgradeSystem: UpgradeSystem) {
+  constructor(
+    scene: Phaser.Scene,
+    world: World,
+    entityPoolManager: EntityPoolManager,
+    abilityRuntimeQuery: AbilityRuntimeQueryService,
+  ) {
     this.scene = scene;
     this.world = world;
     this.entityPoolManager = entityPoolManager;
-    this.upgradeSystem = upgradeSystem;
+    this.abilityRuntimeQuery = abilityRuntimeQuery;
   }
 
   tick(delta: number): void {
@@ -71,7 +76,7 @@ export class FallingBombSystem implements EntitySystem {
     // Cursor collision check (post-movement)
     const playerT = this.world.transform.get(this.world.context.playerId);
     if (playerT) {
-      const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.CURSOR_SIZE,
         CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
       );

@@ -4,9 +4,10 @@ import { C_DishTag, C_DishProps, C_Transform } from '../../../world';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
 import type { EntityDamageService } from '../services/EntityDamageService';
-import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { ParticleManager } from '../../../effects/ParticleManager';
 import type { GameEnvironment } from '../../../scenes/game/GameEnvironment';
+import type { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
+import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   MAGNET_EFFECT_KEYS,
@@ -15,7 +16,8 @@ import {
 interface MagnetSystemDeps {
   world: World;
   damageService: EntityDamageService;
-  upgradeSystem: UpgradeSystem;
+  abilityProgression: AbilityProgressionService;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   particleManager: ParticleManager;
   gameEnv: GameEnvironment;
 }
@@ -26,20 +28,22 @@ export class MagnetSystem implements EntitySystem {
 
   private readonly world: World;
   private readonly damageService: EntityDamageService;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityProgression: AbilityProgressionService;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly particleManager: ParticleManager;
   private readonly gameEnv: GameEnvironment;
 
   constructor(deps: MagnetSystemDeps) {
     this.world = deps.world;
     this.damageService = deps.damageService;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityProgression = deps.abilityProgression;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.particleManager = deps.particleManager;
     this.gameEnv = deps.gameEnv;
   }
 
   tick(delta: number): void {
-    const magnetLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MAGNET);
+    const magnetLevel = this.abilityProgression.getAbilityLevel(ABILITY_IDS.MAGNET);
     const cursor = this.gameEnv.getCursorPosition();
 
     if (magnetLevel <= 0) {
@@ -49,11 +53,11 @@ export class MagnetSystem implements EntitySystem {
       return;
     }
 
-    const magnetRadius = this.upgradeSystem.getEffectValue(
+    const magnetRadius = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.MAGNET,
       MAGNET_EFFECT_KEYS.RADIUS,
     );
-    const magnetForce = this.upgradeSystem.getEffectValue(
+    const magnetForce = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.MAGNET,
       MAGNET_EFFECT_KEYS.FORCE,
     );

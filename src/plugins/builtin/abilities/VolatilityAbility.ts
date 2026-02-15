@@ -18,7 +18,7 @@ export class VolatilityAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<VolatilityLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<VolatilityLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -27,7 +27,7 @@ export class VolatilityAbility implements AbilityPlugin {
       case 'nonCritPenalty':
         return data.nonCritPenalty;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

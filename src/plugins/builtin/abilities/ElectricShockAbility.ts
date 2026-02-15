@@ -22,7 +22,7 @@ export class ElectricShockAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<ElectricShockLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<ElectricShockLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -31,7 +31,7 @@ export class ElectricShockAbility implements AbilityPlugin {
       case 'damage':
         return data.damage;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 }

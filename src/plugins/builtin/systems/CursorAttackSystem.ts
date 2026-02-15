@@ -4,8 +4,8 @@ import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../../world
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
 import type { EntityDamageService } from '../services/EntityDamageService';
-import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { GameEnvironment } from '../../../scenes/game/GameEnvironment';
+import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CURSOR_SIZE_EFFECT_KEYS,
@@ -14,7 +14,7 @@ import {
 interface CursorAttackSystemDeps {
   world: World;
   damageService: EntityDamageService;
-  upgradeSystem: UpgradeSystem;
+  abilityRuntimeQuery: AbilityRuntimeQueryService;
   gameEnv: GameEnvironment;
 }
 
@@ -24,19 +24,19 @@ export class CursorAttackSystem implements EntitySystem {
 
   private readonly world: World;
   private readonly damageService: EntityDamageService;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly gameEnv: GameEnvironment;
 
   constructor(deps: CursorAttackSystemDeps) {
     this.world = deps.world;
     this.damageService = deps.damageService;
-    this.upgradeSystem = deps.upgradeSystem;
+    this.abilityRuntimeQuery = deps.abilityRuntimeQuery;
     this.gameEnv = deps.gameEnv;
   }
 
   tick(_delta: number): void {
     const cursor = this.gameEnv.getCursorPosition();
-    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+    const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CURSOR_SIZE,
       CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
     );

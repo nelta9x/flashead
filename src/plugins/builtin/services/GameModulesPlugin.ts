@@ -23,13 +23,15 @@ import { MonsterSystem } from './MonsterSystem';
 import { FeedbackSystem } from './FeedbackSystem';
 import { SoundSystem } from './SoundSystem';
 import { HealthSystem } from '../../../systems/HealthSystem';
-import { UpgradeSystem } from './UpgradeSystem';
 import { ComboSystem } from './ComboSystem';
 import { DamageText } from '../../../ui/DamageText';
 import { ParticleManager } from '../../../effects/ParticleManager';
 import { EntityDamageService } from './EntityDamageService';
 import { EntityQueryService } from '../../../systems/EntityQueryService';
 import { StatusEffectManager } from '../../../systems/StatusEffectManager';
+import { AbilityProgressionService } from './abilities/AbilityProgressionService';
+import { AbilityRuntimeQueryService } from './abilities/AbilityRuntimeQueryService';
+import { AbilityPresentationService } from './abilities/AbilityPresentationService';
 import { World, C_DishTag, C_Identity } from '../../../world';
 
 function calculateMaxSpawnedDishRadius(): number {
@@ -80,7 +82,8 @@ export class GameModulesPlugin implements ServicePlugin {
       factory: (r) =>
         new InGameUpgradeUI(
           r.get(Phaser.Scene),
-          r.get(UpgradeSystem),
+          r.get(AbilityProgressionService),
+          r.get(AbilityPresentationService),
           r.get(ParticleManager),
         ),
     },
@@ -154,7 +157,8 @@ export class GameModulesPlugin implements ServicePlugin {
           r.get(Phaser.Scene),
           r.get(WaveSystem),
           r.get(HealthSystem),
-          r.get(UpgradeSystem),
+          r.get(AbilityProgressionService),
+          r.get(AbilityPresentationService),
         ),
     },
 
@@ -177,7 +181,7 @@ export class GameModulesPlugin implements ServicePlugin {
           damageText: r.get(DamageText),
           laserRenderer: r.get(LaserRenderer),
           healthSystem: r.get(HealthSystem),
-          upgradeSystem: r.get(UpgradeSystem),
+          abilityRuntimeQuery: r.get(AbilityRuntimeQueryService),
           damageService: r.get(EntityDamageService),
           world: r.get(World),
           statusEffectManager: r.get(StatusEffectManager),
@@ -203,7 +207,8 @@ export class GameModulesPlugin implements ServicePlugin {
           dishes,
           healthSystem: r.get(HealthSystem),
           comboSystem: r.get(ComboSystem),
-          upgradeSystem: r.get(UpgradeSystem),
+          abilityProgression: r.get(AbilityProgressionService),
+          abilityRuntimeQuery: r.get(AbilityRuntimeQueryService),
           feedbackSystem: r.get(FeedbackSystem),
           soundSystem: r.get(SoundSystem),
           damageText: r.get(DamageText),
@@ -224,7 +229,8 @@ export class GameModulesPlugin implements ServicePlugin {
           scene: r.get(Phaser.Scene),
           world: r.get(World),
           damageService: r.get(EntityDamageService),
-          upgradeSystem: r.get(UpgradeSystem),
+          abilityProgression: r.get(AbilityProgressionService),
+          abilityRuntimeQuery: r.get(AbilityRuntimeQueryService),
           healthSystem: r.get(HealthSystem),
           waveSystem: r.get(WaveSystem),
           monsterSystem: r.get(MonsterSystem),

@@ -23,7 +23,7 @@ export class OrbAbility implements AbilityPlugin {
   }
 
   getEffectValue(key: string): number {
-    const data = this.ctx.upgradeSystem.getLevelData<OrbitingOrbLevelData>(this.id);
+    const data = this.ctx.abilityData.getLevelData<OrbitingOrbLevelData>(this.id);
     if (!data) return 0;
 
     switch (key) {
@@ -38,16 +38,16 @@ export class OrbAbility implements AbilityPlugin {
       case 'size':
         return data.size;
       default:
-        return 0;
+        throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
   }
 
   getDerivedStats(currentLevel: number, nextLevel: number): DerivedStatEntry[] {
-    const magnetLevel = this.ctx.upgradeSystem.getUpgradeStack('magnet');
+    const magnetLevel = this.ctx.abilityState.getAbilityLevel('magnet');
 
     const getOrbData = (level: number): OrbitingOrbLevelData | null => {
       if (level <= 0) return null;
-      const upgradeData = this.ctx.upgradeSystem.getSystemUpgrade(this.id);
+      const upgradeData = this.ctx.abilityData.getSystemUpgrade(this.id);
       if (!upgradeData?.levels) return null;
       const index = Math.min(level, upgradeData.levels.length) - 1;
       return upgradeData.levels[index] as OrbitingOrbLevelData;
@@ -56,7 +56,7 @@ export class OrbAbility implements AbilityPlugin {
     const currentData = getOrbData(currentLevel);
     const nextData = getOrbData(nextLevel);
 
-    const upgradeData = this.ctx.upgradeSystem.getSystemUpgrade(this.id);
+    const upgradeData = this.ctx.abilityData.getSystemUpgrade(this.id);
     const magnetSynergyPerLevel = upgradeData?.magnetSynergyPerLevel ?? 0.2;
     const synergy = 1 + magnetLevel * magnetSynergyPerLevel;
     const currentFinalSize = (currentData?.size ?? 0) * synergy;

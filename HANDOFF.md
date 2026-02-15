@@ -1,11 +1,11 @@
-# HANDOFF - Extensibility Findings (P1~P4)
+# HANDOFF - Extensibility Findings (P1~P5)
 
 작성일: 2026-02-15  
 대상 프로젝트: `/Users/nelta/Projects/vibeshooter`
 
 ## 0) 목적과 사용법
 
-이 문서는 "확장성 리뷰에서 나온 P1~P3 이슈"를, 컨텍스트를 잃은 뒤에도 빠르게 복구할 수 있도록 정리한 핸드오프 문서다.
+이 문서는 "확장성 리뷰에서 나온 P1~P5 이슈/결정/완료 상태"를, 컨텍스트를 잃은 뒤에도 빠르게 복구할 수 있도록 정리한 핸드오프 문서다.
 
 - 이 문서만 읽어도 아래를 알 수 있어야 한다.
 1. 왜 이것이 확장성 이슈인지
@@ -74,11 +74,11 @@
 
 ## 1-4) 오픈 이슈 결정 체크리스트
 
-아래 결정이 완료되어야 P2/P3 설계를 고정할 수 있다.
+아래 항목은 모두 결정 완료되었고 코드에 반영됐다.
 
-- [ ] Ability 일반화 전략 결정: `UpgradeSystem` adapter 유지 vs 완전 플러그인 조회 전환
-- [ ] 보스 타입 스키마 기준점 결정: `waves[].bosses[].entityTypeId` 고정 vs boss definition 레벨 통합
-- [ ] 파이프라인 fail-fast 적용 범위 결정: 개발/테스트 전용 vs 프로덕션 포함
+- [x] Ability 일반화 전략: `UpgradeSystem` 제거 + 플러그인 중심 조회(`AbilityRuntimeQueryService`)로 전면 전환
+- [x] 보스 타입 스키마 기준점: `waves[].bosses[].entityTypeId` 고정 + fallback은 `boss.defaultEntityTypeId`
+- [x] 파이프라인 fail-fast 범위: 개발/테스트/프로덕션 공통 즉시 예외
 
 ## 1-5) P4 실행 체크리스트 (abilities.json 브레이킹 전환)
 
@@ -94,7 +94,25 @@
 - [x] 기존 테스트/문서 동기화: `AbilityIconPreloadResolver.test.ts`, `UpgradeIconCatalog.test.ts`, `CODEMAP`, `PLUGIN_ARCHITECTURE`, `LESSONS`, `data/README`
 - [x] P4 검증 통과: `npm run lint`, `npm run test:run`, `npm run build`
 
+## 1-6) P5 실행 체크리스트 (Ability 일반화 최종 컷오버)
+
+- [x] `AbilityPlugin` 컨텍스트를 `upgradeSystem`에서 `abilityState`/`abilityData` 리더 계약으로 전환
+- [x] 신규 서비스 계층 도입: `AbilityDataRepository`, `AbilityProgressionService`, `AbilityRuntimeQueryService`, `AbilityPresentationService`
+- [x] 런타임 시스템/컨트롤러의 효과 조회를 `AbilityRuntimeQueryService` 단일 경로로 통일
+- [x] 레벨/선택 상태 조회 및 적용을 `AbilityProgressionService`로 통일
+- [x] UI(HUD/UpgradeUI/요약 위젯) 설명/프리뷰를 `AbilityPresentationService` 경로로 전환
+- [x] `AbilityManager` strict API 추가: `getPluginOrThrow`, `getEffectValueOrThrow`
+- [x] `UpgradeSystem` 제거 및 프로덕션 코드에서 `UpgradeSystem` 참조 0건 달성
+- [x] 신규 테스트 추가: `AbilityRuntimeQueryService.test.ts`, `AbilityProgressionService.test.ts`, `AbilityPresentationService.test.ts`, `AbilityEffects.test.ts`
+- [x] 기존 테스트 전환: `UpgradeEffects.test.ts`/`UpgradePreviewModelBuilder.test.ts` 제거 후 새 서비스 기준 검증으로 교체
+- [x] 문서 동기화: `docs/CODEMAP.md`, `docs/PLUGIN_ARCHITECTURE.md`, `docs/LESSONS.md`, `HANDOFF.md`
+- [x] P5 검증 통과: `npm run lint`, `npm run test:run`, `npm run build`
+
 ---
+
+## 참고: 아래 P1~P3 본문은 "발견 당시 진단 기록"이다
+
+현재 코드 기준 완료 상태와 acceptance는 상단 체크리스트(1-1~1-6) 및 하단 P4/P5 결정사항 섹션을 우선 기준으로 본다.
 
 ## 2) P1 - 핵심 확장 경로가 하드코딩에 묶여 있음
 
@@ -355,7 +373,7 @@ rg -n "resetInstance\\(" src/scenes src/plugins
 ## 5) 구현/리팩토링 시 주의 사항 (AGENTS 원칙 연결)
 
 1. 밸런스/텍스트/색상 하드코딩 금지: `data/*.json` + `DataManager` SSOT 유지
-2. 콘텐츠 추가 목적의 코어 수정 최소화: plugin + factory map + `game-config.json` 경로 우선
+2. 콘텐츠 추가 목적의 코어 수정 최소화: plugin + factory map + 데이터 SSOT(`abilities.json`, `game-config.json`) 경로 우선
 3. `GameScene.update()`는 파이프라인 오케스트레이션 원칙 유지
 4. EventBus payload는 객체 참조 대신 값 스냅샷 유지
 5. 변경 후 필수 검증:
@@ -365,22 +383,18 @@ rg -n "resetInstance\\(" src/scenes src/plugins
 
 ---
 
-## 6) 추천 작업 순서 (컨텍스트 복귀용)
+## 6) 다음 작업 후보 (컨텍스트 복귀용)
 
-1. P2-A(파이프라인 fail-fast) 먼저 적용: 안전망 확보
-2. P1-B(보스 타입 data-driven) 적용: 엔티티 확장 병목 완화
-3. P1-A(Ability 일반화) 단계적 이관 시작: 신규 Ability부터 일반 경로 사용
-4. P3-A/P3-B 병행 정리: 확장 반복 비용과 문서 드리프트 제거
+1. MOD Ability 확장 계약 설계: `AbilityRuntimeQueryService` 기반 외부 플러그인 가이드/검증기 보강
+2. Ability 프리뷰 템플릿 국제화 강화: `locales.json` 키 정합 검증 추가
+3. 콘텐츠 스키마 일관성 강화: `abilities.json`/`waves.json`/`boss.json` 교차 validator 통합
 
 ---
 
 ## 7) 오픈 이슈 / 결정 필요 사항
 
-1. Ability 일반화 시, `UpgradeSystem`을 유지한 채 adapter를 둘지 vs 능력 조회를 완전 플러그인화할지
-2. 보스 data schema에 `entityTypeId`를 wave 레벨에 둘지, boss definition 레벨에 둘지
-3. pipeline fail-fast를 개발/테스트에서만 강제할지, 프로덕션에서도 강제할지
-
-이 3개를 결정하면 P1/P2 리팩토링 설계를 확정할 수 있다.
+현재 P1~P5 범위의 차단 이슈는 없다.  
+향후 P6+ 후보는 6) 섹션 항목을 우선순위에 따라 선택해 진행한다.
 
 ---
 
@@ -401,3 +415,25 @@ rg -n "resetInstance\\(" src/scenes src/plugins
 3. 잘못된 `pluginId`/`upgradeId`/icon 메타는 `GameScene.initializeSystems()`에서 즉시 예외로 실패한다.
 4. 아이콘 에셋 누락 시 부팅이 중단되지 않고 경고 후 UI 심볼 폴백으로 진행된다.
 5. 문서(`CODEMAP`, `PLUGIN_ARCHITECTURE`, `LESSONS`, `HANDOFF`)가 코드 경로와 일치한다.
+
+---
+
+## 9) P5 결정사항 / 완료 기준
+
+### 확정된 결정사항
+
+1. 능력 조회의 런타임 표면은 `abilityId` canonical ID만 노출하고 `upgradeId`는 내부 매핑으로 숨긴다.
+2. 효과값 조회는 `AbilityRuntimeQueryService` 단일 경로로 강제한다.
+3. 레벨/선택/적용은 `AbilityProgressionService`, 데이터 매핑은 `AbilityDataRepository`, UI 표현은 `AbilityPresentationService`로 분리한다.
+4. `AbilityPlugin` 컨텍스트는 `upgradeSystem`을 제거하고 `abilityState`/`abilityData` 계약만 사용한다.
+5. 미정의 abilityId/key/plugin/presentation 데이터는 완화(fallback) 없이 즉시 예외로 실패시킨다.
+6. `UpgradeSystem`은 제거하고 하위호환 레이어를 제공하지 않는다(브레이킹 허용).
+
+### 완료 기준 (Acceptance)
+
+1. 프로덕션 코드에서 `UpgradeSystem` 참조가 0건이다.
+2. 런타임 효과 조회가 `AbilityRuntimeQueryService` 경로로 통일되어 있다.
+3. UI(업그레이드 선택/툴팁/HUD)가 `AbilityPresentationService` + `AbilityProgressionService` 경로로 동작한다.
+4. 새 서비스 계층 단위 테스트(`AbilityRuntimeQueryService`, `AbilityProgressionService`, `AbilityPresentationService`, `AbilityEffects`)가 통과한다.
+5. 문서(`CODEMAP`, `PLUGIN_ARCHITECTURE`, `LESSONS`, `HANDOFF`)가 P5 구조를 반영한다.
+6. `npm run lint`, `npm run test:run`, `npm run build`가 모두 통과한다.

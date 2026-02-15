@@ -89,6 +89,20 @@ describe('PlayerAttackController', () => {
   };
 
   function createController(): PlayerAttackController {
+    const getAbilityLevel = (abilityId: string) => (abilityId === 'missile' ? 0 : 0);
+    const getEffectValue = (abilityId: string, key: string) => {
+      if (abilityId === 'cursor_size' && key === 'missileThicknessBonus') return 0;
+      if (abilityId === 'cursor_size' && key === 'sizeBonus') return 0;
+      if (abilityId === 'critical_chance' && key === 'criticalChance') return 0;
+      if (abilityId === 'volatility' && key === 'critMultiplier') return 0;
+      if (abilityId === 'volatility' && key === 'nonCritPenalty') return 0;
+      if (abilityId === 'glass_cannon' && key === 'damageMultiplier') return 0;
+      if (abilityId === 'berserker' && key === 'missingHpDamagePercent') return 0;
+      if (abilityId === 'missile' && key === 'count') return 1;
+      if (abilityId === 'missile' && key === 'damage') return 20;
+      return 0;
+    };
+
     return new PlayerAttackController({
       scene: {
         tweens: {
@@ -108,20 +122,11 @@ describe('PlayerAttackController', () => {
       } as never,
       world: mockWorld as never,
       damageService: mockDamageService as never,
-      upgradeSystem: {
-        getAbilityLevel: (abilityId: string) => (abilityId === 'missile' ? 0 : 0),
-        getEffectValue: (abilityId: string, key: string) => {
-          if (abilityId === 'cursor_size' && key === 'missileThicknessBonus') return 0;
-          if (abilityId === 'cursor_size' && key === 'sizeBonus') return 0;
-          if (abilityId === 'critical_chance' && key === 'criticalChance') return 0;
-          if (abilityId === 'volatility' && key === 'critMultiplier') return 0;
-          if (abilityId === 'volatility' && key === 'nonCritPenalty') return 0;
-          if (abilityId === 'glass_cannon' && key === 'damageMultiplier') return 0;
-          if (abilityId === 'berserker' && key === 'missingHpDamagePercent') return 0;
-          if (abilityId === 'missile' && key === 'count') return 1;
-          if (abilityId === 'missile' && key === 'damage') return 20;
-          return 0;
-        },
+      abilityProgression: {
+        getAbilityLevel,
+      } as never,
+      abilityRuntimeQuery: {
+        getEffectValueOrThrow: getEffectValue,
       } as never,
       healthSystem: {
         getHp: () => 5,

@@ -5,12 +5,14 @@ import type { BlackHoleLevelData } from '../../../data/types';
 import { EventBus, GameEvents } from '../../../utils/EventBus';
 import type { EntityDamageService } from '../services/EntityDamageService';
 import { FallingBombSystem } from './FallingBombSystem';
-import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { BlackHoleRenderer } from '../abilities/BlackHoleRenderer';
 import type { BossCombatCoordinator } from '../services/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../../world';
 import type { EntitySystem, SystemStartContext } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
+import type { AbilityDataRepository } from '../services/abilities/AbilityDataRepository';
+import type { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
+import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CRITICAL_CHANCE_EFFECT_KEYS,
@@ -43,7 +45,9 @@ interface PullCallbacks {
 export class BlackHoleSystem implements EntitySystem {
   readonly id = 'core:black_hole';
   enabled = true;
-  private readonly upgradeSystem: UpgradeSystem;
+  private readonly abilityData: AbilityDataRepository;
+  private readonly abilityProgression: AbilityProgressionService;
+  private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly world: World;
   private readonly damageService: EntityDamageService;
   private readonly bcc: BossCombatCoordinator;
@@ -56,13 +60,17 @@ export class BlackHoleSystem implements EntitySystem {
   private lastAppliedLevel = 0;
 
   constructor(
-    upgradeSystem: UpgradeSystem,
+    abilityData: AbilityDataRepository,
+    abilityProgression: AbilityProgressionService,
+    abilityRuntimeQuery: AbilityRuntimeQueryService,
     world: World,
     damageService: EntityDamageService,
     bcc: BossCombatCoordinator,
     renderer: BlackHoleRenderer,
   ) {
-    this.upgradeSystem = upgradeSystem;
+    this.abilityData = abilityData;
+    this.abilityProgression = abilityProgression;
+    this.abilityRuntimeQuery = abilityRuntimeQuery;
     this.world = world;
     this.damageService = damageService;
     this.bcc = bcc;
@@ -79,18 +87,21 @@ export class BlackHoleSystem implements EntitySystem {
   }
 
   update(delta: number, gameTime: number): void {
-    const level = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.BLACK_HOLE);
+    const level = this.abilityProgression.getAbilityLevel(ABILITY_IDS.BLACK_HOLE);
     if (level <= 0) {
       this.clear();
       return;
     }
 
-    const blackHoleData = this.upgradeSystem.getLevelData<BlackHoleLevelData>(ABILITY_IDS.BLACK_HOLE);
+    const blackHoleData = this.abilityData.getLevelDataOrNull<BlackHoleLevelData>(
+      ABILITY_IDS.BLACK_HOLE,
+      level,
+    );
     if (!blackHoleData) {
       this.clear();
       return;
     }
-    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+    const criticalChanceBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CRITICAL_CHANCE,
       CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
     );
