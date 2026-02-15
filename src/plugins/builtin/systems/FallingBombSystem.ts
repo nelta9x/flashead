@@ -240,6 +240,7 @@ export class FallingBombSystem implements EntitySystem {
         spawnTween: null,
         bossRenderer: null,
         typePlugin: null,
+        cleanupFn: null,
       },
     });
 

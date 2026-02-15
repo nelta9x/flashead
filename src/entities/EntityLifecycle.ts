@@ -29,6 +29,12 @@ export function deactivateEntity(
     pn.spawnTween = null;
   }
 
+  // 2.5 EventBus 리스너 정리 (보스)
+  if (pn?.cleanupFn) {
+    pn.cleanupFn();
+    pn.cleanupFn = null;
+  }
+
   // 3. World entity 파괴
   world.destroyEntity(entityId);
 

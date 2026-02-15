@@ -123,6 +123,7 @@ export interface PhaserNodeComponent {
   spawnTween: Phaser.Tweens.Tween | null;
   bossRenderer: unknown;
   typePlugin: EntityTypePlugin | null;
+  cleanupFn: (() => void) | null;
 }
 export const C_PhaserNode = defineComponent<PhaserNodeComponent>('phaserNode');
 

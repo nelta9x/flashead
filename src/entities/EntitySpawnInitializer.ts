@@ -188,6 +188,7 @@ export function initializeEntitySpawn(
       spawnTween,
       bossRenderer: null,
       typePlugin: plugin,
+      cleanupFn: null,
     },
   };
 
@@ -218,7 +219,9 @@ export function initializeEntitySpawn(
 
   // 11. Setup boss event listeners if needed
   if (config.isGatekeeper) {
-    setupBossEventListeners(assignedEntityId, config.bossDataId);
+    const cleanup = setupBossEventListeners(assignedEntityId, config.bossDataId);
+    const pn = world.phaserNode.get(assignedEntityId);
+    if (pn) pn.cleanupFn = cleanup;
   }
 
   // 12. Plugin callback (before render — onSpawn may refine bossState segments)
@@ -254,7 +257,7 @@ export function setSpawnDamageServiceGetter(getter: () => import('../plugins/bui
  * Routes MONSTER_HP_CHANGED to EntityDamageService.
  * bossDataId is the string ID from waves.json (e.g. "boss_center").
  */
-function setupBossEventListeners(entityId: EntityId, bossDataId?: string): void {
+function setupBossEventListeners(entityId: EntityId, bossDataId?: string): () => void {
   const bus = EventBus.getInstance();
   const matchId = bossDataId ?? String(entityId);
 
@@ -277,4 +280,5 @@ function setupBossEventListeners(entityId: EntityId, bossDataId?: string): void 
   };
 
   bus.on(GameEvents.MONSTER_HP_CHANGED, onHpChanged);
+  return () => bus.off(GameEvents.MONSTER_HP_CHANGED, onHpChanged);
 }

@@ -278,6 +278,7 @@ export class HealthPackSystem implements EntitySystem {
         spawnTween: null,
         bossRenderer: null,
         typePlugin: null,
+        cleanupFn: null,
       },
     });
 

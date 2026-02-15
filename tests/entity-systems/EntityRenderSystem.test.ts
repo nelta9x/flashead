@@ -37,6 +37,7 @@ describe('EntityRenderSystem', () => {
       spawnTween: null,
       bossRenderer: null,
       typePlugin: null,
+      cleanupFn: null,
     });
     world.identity.set(e1, { entityId: e1, entityType: 'basic', isGatekeeper: false });
     world.dishProps.set(e1, {
@@ -76,6 +77,7 @@ describe('EntityRenderSystem', () => {
       spawnTween: null,
       bossRenderer: null,
       typePlugin: mockPlugin as never,
+      cleanupFn: null,
     });
     world.transform.set(e1, { x: 0, y: 0, baseX: 0, baseY: 0, alpha: 1, scaleX: 1, scaleY: 1 });
     world.identity.set(e1, { entityId: e1, entityType: 'basic', isGatekeeper: false });
@@ -102,6 +104,7 @@ describe('EntityRenderSystem', () => {
       spawnTween: null,
       bossRenderer: null,
       typePlugin: null,
+      cleanupFn: null,
     });
 
     system.tick(16);
@@ -123,6 +126,7 @@ describe('EntityRenderSystem', () => {
       spawnTween: {} as never, // truthy = active tween
       bossRenderer: null,
       typePlugin: null,
+      cleanupFn: null,
     });
     world.identity.set(e1, { entityId: e1, entityType: 'basic', isGatekeeper: false });
 
@@ -156,6 +160,7 @@ describe('EntityRenderSystem', () => {
       spawnTween: null,
       bossRenderer: null,
       typePlugin: null,
+      cleanupFn: null,
     });
     world.identity.set(e1, { entityId: e1, entityType: 'bombWarning', isGatekeeper: false });
     world.bombProps.set(e1, {
@@ -187,6 +192,7 @@ describe('EntityRenderSystem', () => {
       spawnTween: null,
       bossRenderer: null,
       typePlugin: null,
+      cleanupFn: null,
     });
 
     system.tick(16);
