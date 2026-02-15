@@ -135,4 +135,20 @@ describe('AbilityConfigSyncValidator', () => {
       })
     ).toThrow(/Invalid icon\.(path|width|height)/);
   });
+
+  it('프레젠테이션 locale 키가 누락되면 실패해야 함', () => {
+    const definitions = [createDefinition({ id: 'missing_locale_ability', pluginId: 'missing_locale_ability', upgradeId: 'missing_locale_upgrade' })];
+    const upgrades = [createUpgrade('missing_locale_upgrade')];
+    const abilityFactories = { missing_locale_ability: () => createPlugin('missing_locale_ability') };
+    const registry = { getAbility: (id: string) => createPlugin(id) };
+
+    expect(() =>
+      assertAbilityConfigSyncOrThrow({
+        definitions,
+        upgrades,
+        abilityFactories,
+        registry,
+      })
+    ).toThrow(/Missing locale key/);
+  });
 });

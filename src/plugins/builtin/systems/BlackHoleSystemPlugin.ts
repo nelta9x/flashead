@@ -2,7 +2,6 @@ import { BlackHoleSystem } from './BlackHoleSystem';
 import { EntityDamageService } from '../services/EntityDamageService';
 import { BlackHoleRenderer } from '../abilities/BlackHoleRenderer';
 import { BossCombatCoordinator } from '../services/BossCombatCoordinator';
-import { AbilityDataRepository } from '../services/abilities/AbilityDataRepository';
 import { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
 import { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
@@ -14,7 +13,6 @@ export class BlackHoleSystemPlugin implements SystemPlugin {
   createSystems(ctx: SystemPluginContext): EntitySystem[] {
     return [
       new BlackHoleSystem(
-        ctx.services.get(AbilityDataRepository),
         ctx.services.get(AbilityProgressionService),
         ctx.services.get(AbilityRuntimeQueryService),
         ctx.world,

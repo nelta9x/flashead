@@ -2,7 +2,6 @@ import { OrbSystem } from './OrbSystem';
 import { EntityDamageService } from '../services/EntityDamageService';
 import { OrbRenderer } from '../abilities/OrbRenderer';
 import { BossCombatCoordinator } from '../services/BossCombatCoordinator';
-import { AbilityDataRepository } from '../services/abilities/AbilityDataRepository';
 import { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
 import { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
@@ -14,7 +13,6 @@ export class OrbSystemPlugin implements SystemPlugin {
   createSystems(ctx: SystemPluginContext): EntitySystem[] {
     return [
       new OrbSystem(
-        ctx.services.get(AbilityDataRepository),
         ctx.services.get(AbilityProgressionService),
         ctx.services.get(AbilityRuntimeQueryService),
         ctx.world,

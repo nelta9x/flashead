@@ -31,7 +31,7 @@ function createUpgrades(): SystemUpgradeData[] {
       effectType: 'cursorSizeLevel',
       previewDisplay: {
         stats: [
-          { id: 'cursorRadiusPx', labelKey: 'upgrade.stat.cursor_radius' },
+          { id: 'cursorRadiusPx', labelKey: 'upgrade.stat.cursor_radius_px' },
           { id: 'damage', labelKey: 'upgrade.stat.damage' },
         ],
       },
@@ -97,6 +97,54 @@ describe('AbilityPresentationService', () => {
 
     expect(() => presentation.getFormattedDescriptionOrThrow('missing_ability')).toThrow(
       /Unknown ability id/,
+    );
+  });
+
+  it('throws when locale key is missing for ability presentation', () => {
+    const repository = new AbilityDataRepository(
+      [
+        {
+          id: 'missing_locale_ability',
+          pluginId: 'missing_locale_ability',
+          upgradeId: 'missing_locale_upgrade',
+          icon: {
+            key: 'missing_locale_ability',
+            path: 'assets/icons/missing_locale_ability.svg',
+            width: 64,
+            height: 64,
+          },
+        },
+      ],
+      [
+        {
+          id: 'missing_locale_upgrade',
+          name: 'Missing Locale Ability',
+          description: 'Missing locale keys',
+          rarity: 'common',
+          effectType: 'test',
+          previewDisplay: {
+            stats: [{ id: 'damage', labelKey: 'upgrade.stat.damage' }],
+          },
+          levels: [{ damage: 1 }],
+        } as unknown as SystemUpgradeData,
+      ],
+    );
+    const progression = new AbilityProgressionService(repository);
+    const abilityManager = {
+      getPluginOrThrow: vi.fn(() => ({
+        id: 'missing_locale_ability',
+        init: vi.fn(),
+        update: vi.fn(),
+        clear: vi.fn(),
+        destroy: vi.fn(),
+        createRenderer: vi.fn(() => null),
+        getEffectValue: vi.fn(() => 0),
+      })),
+    } as unknown as AbilityManager;
+    const presentation = new AbilityPresentationService(progression, repository, abilityManager);
+
+    expect(() => presentation.getFormattedDescriptionOrThrow('missing_locale_ability')).toThrow(
+      /Missing locale key/,
     );
   });
 });

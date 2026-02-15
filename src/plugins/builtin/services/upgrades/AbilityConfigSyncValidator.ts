@@ -18,7 +18,11 @@ export function assertAbilityConfigSyncOrThrow(
   const upgrades = options.upgrades ?? Data.upgrades.system;
   const abilityFactories = options.abilityFactories ?? ABILITY_FACTORIES;
   const registry = options.registry ?? PluginRegistry.getInstance();
-  const upgradeIdSet = new Set(upgrades.map((upgrade) => upgrade.id));
+  const upgradesById = new Map<string, SystemUpgradeData>();
+  for (const upgrade of upgrades) {
+    upgradesById.set(upgrade.id, upgrade);
+  }
+  const upgradeIdSet = new Set(upgradesById.keys());
 
   const seenIds = new Set<string>();
   const seenPluginIds = new Set<string>();
@@ -51,6 +55,34 @@ export function assertAbilityConfigSyncOrThrow(
       errors.push(
         `Unknown upgradeId "${definition.upgradeId}" for ability "${definition.id}"`
       );
+    }
+
+    const requiredNameKey = `upgrade.${definition.id}.name`;
+    if (!Data.hasLocaleKey(requiredNameKey)) {
+      errors.push(`Missing locale key "${requiredNameKey}"`);
+    }
+
+    const requiredDescKey = `upgrade.${definition.id}.desc`;
+    if (!Data.hasLocaleKey(requiredDescKey)) {
+      errors.push(`Missing locale key "${requiredDescKey}"`);
+    }
+
+    const mappedUpgrade = upgradesById.get(definition.upgradeId);
+    if (mappedUpgrade?.descriptionTemplate) {
+      const templateKey = `upgrade.${definition.id}.desc_template`;
+      if (!Data.hasLocaleKey(templateKey)) {
+        errors.push(`Missing locale key "${templateKey}"`);
+      }
+    }
+
+    if (mappedUpgrade?.previewDisplay) {
+      for (const stat of mappedUpgrade.previewDisplay.stats) {
+        if (!Data.hasLocaleKey(stat.labelKey)) {
+          errors.push(
+            `Missing locale key "${stat.labelKey}" for ability "${definition.id}"`,
+          );
+        }
+      }
     }
 
     if (typeof definition.icon.path !== 'string' || definition.icon.path.trim().length === 0) {

@@ -28,7 +28,7 @@ export function renderUpgradeCardContent({
   const emphasisTexts: Phaser.GameObjects.Text[] = [];
 
   const levelText = scene.add
-    .text(0, topY + cfg.levelOffsetY, Data.t('upgrade.card.level_transition', previewModel.currentLevel, previewModel.nextLevel), {
+    .text(0, topY + cfg.levelOffsetY, Data.tOrThrow('upgrade.card.level_transition', previewModel.currentLevel, previewModel.nextLevel), {
       fontFamily: FONTS.KOREAN,
       fontSize: `${cfg.levelFontSize}px`,
       color: Data.getColorHex(cfg.levelColor),
@@ -43,7 +43,7 @@ export function renderUpgradeCardContent({
   const rows = previewModel.rows.slice(0, cfg.statMaxRows);
   rows.forEach((row, index) => {
     const rowY = topY + cfg.statListStartY + index * cfg.statRowHeight;
-    const rowValue = Data.t(
+    const rowValue = Data.tOrThrow(
       'upgrade.card.delta_format',
       row.currentDisplay,
       row.nextDisplay,
@@ -110,7 +110,7 @@ export function renderUpgradeCardContent({
       .text(
         0,
         infoY,
-        Data.formatTemplate('upgrade.health_pack.base_info', {
+        Data.formatTemplateOrThrow('upgrade.health_pack.base_info', {
           baseSpawnChance,
           baseSpawnIntervalSec,
         }),

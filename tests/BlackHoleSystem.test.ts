@@ -88,15 +88,19 @@ describe('BlackHoleSystem', () => {
     const mockAbilityProgression = {
       getAbilityLevel: (abilityId: string) => (abilityId === 'black_hole' ? blackHoleLevel : 0),
     };
-    const mockAbilityData = {
-      getLevelDataOrNull: (abilityId: string) => (abilityId === 'black_hole' ? blackHoleData : null),
-    };
     const mockAbilityRuntimeQuery = {
-      getEffectValueOrThrow: (abilityId: string, key: string) => (
-        abilityId === 'critical_chance' && key === 'criticalChance'
-          ? criticalChanceBonus
-          : 0
-      ),
+      getEffectValueOrThrow: (abilityId: string, key: string) => {
+        if (abilityId === 'critical_chance' && key === 'criticalChance') {
+          return criticalChanceBonus;
+        }
+        if (abilityId === 'black_hole' && blackHoleData) {
+          const value = (blackHoleData as unknown as Record<string, unknown>)[key];
+          if (typeof value === 'number') {
+            return value;
+          }
+        }
+        return 0;
+      },
     };
 
     damageBoss = vi.fn();
@@ -105,7 +109,6 @@ describe('BlackHoleSystem', () => {
       damageBoss,
     };
     system = new BlackHoleSystem(
-      mockAbilityData as never,
       mockAbilityProgression as never,
       mockAbilityRuntimeQuery as never,
       mockWorld as never,

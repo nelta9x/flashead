@@ -190,6 +190,19 @@ class DataManager {
     return str;
   }
 
+  public hasLocaleKey(key: string): boolean {
+    const locale = this.locales[this.currentLang];
+    return Object.prototype.hasOwnProperty.call(locale, key)
+      || Object.prototype.hasOwnProperty.call(this.locales['en'], key);
+  }
+
+  public tOrThrow(key: string, ...args: (string | number)[]): string {
+    if (!this.hasLocaleKey(key)) {
+      throw new Error(`Missing locale key: "${key}"`);
+    }
+    return this.t(key, ...args);
+  }
+
   public formatTemplate(templateKey: string, params: Record<string, number | string>): string {
     const locale = this.locales[this.currentLang];
     let str = locale[templateKey] || this.locales['en'][templateKey] || templateKey;
@@ -201,6 +214,16 @@ class DataManager {
     });
 
     return str;
+  }
+
+  public formatTemplateOrThrow(
+    templateKey: string,
+    params: Record<string, number | string>
+  ): string {
+    if (!this.hasLocaleKey(templateKey)) {
+      throw new Error(`Missing locale key: "${templateKey}"`);
+    }
+    return this.formatTemplate(templateKey, params);
   }
 
   public getActiveAbilityDefinitions(): readonly AbilityDefinition[] {

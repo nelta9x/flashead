@@ -217,8 +217,8 @@ export class AbilitySummaryWidget {
     if (isPaused) {
       const dockOverlayCfg = Data.gameConfig.hud.waveTimerDisplay.dockOverlay;
       const hint = isEscPaused
-        ? Data.t('pause.resume_hint')
-        : Data.t('hud.dock_leave_to_resume');
+        ? Data.tOrThrow('pause.resume_hint')
+        : Data.tOrThrow('hud.dock_leave_to_resume');
       this.dockResumeHint.setText(hint);
       this.dockResumeHint.setPosition(
         this.hoverBounds.centerX,
@@ -263,11 +263,11 @@ export class AbilitySummaryWidget {
 
   private updateTooltipContent(ability: ActiveAbility): void {
     const tooltipCfg = Data.gameConfig.hud.abilityDisplay.tooltip;
-    const name = Data.t(`upgrade.${ability.id}.name`);
-    const levelLabel = Data.t('hud.ability_level', ability.level);
+    const name = Data.tOrThrow(`upgrade.${ability.id}.name`);
+    const levelLabel = Data.tOrThrow('hud.ability_level', ability.level);
     const description = this.abilityPresentation
       ? this.abilityPresentation.getFormattedDescriptionOrThrow(ability.id)
-      : Data.t(`upgrade.${ability.id}.desc`);
+      : Data.tOrThrow(`upgrade.${ability.id}.desc`);
     const tooltipSignature = `${ability.id}:${ability.level}:${name}:${levelLabel}:${description}`;
     if (this.tooltipSignature === tooltipSignature) {
       return;

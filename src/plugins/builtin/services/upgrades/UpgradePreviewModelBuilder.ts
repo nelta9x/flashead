@@ -109,7 +109,7 @@ export class UpgradePreviewModelBuilder {
 
       rows.push({
         id: stat.id,
-        label: Data.t(stat.labelKey),
+        label: Data.tOrThrow(stat.labelKey),
         currentValue,
         nextValue,
         deltaValue,

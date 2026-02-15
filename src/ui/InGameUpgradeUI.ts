@@ -149,7 +149,7 @@ export class InGameUpgradeUI {
     // 저주 뱃지
     if (isCurse) {
       const badgeY = -BOX_HEIGHT / 2 + 20;
-      const badgeText = Data.t('upgrade.curse_label');
+      const badgeText = Data.tOrThrow('upgrade.curse_label');
       const badge = this.scene.add
         .text(0, badgeY, badgeText, {
           fontFamily: FONTS.MAIN,
@@ -189,7 +189,7 @@ export class InGameUpgradeUI {
     // 이름
     const textCfg = Data.gameConfig.textSettings;
     const name = this.scene.add
-      .text(0, -BOX_HEIGHT / 2 + 150, Data.t(`upgrade.${abilityId}.name`), {
+      .text(0, -BOX_HEIGHT / 2 + 150, Data.tOrThrow(`upgrade.${abilityId}.name`), {
         fontFamily: FONTS.KOREAN,
         fontSize: `${textCfg.upgradeUI.nameSize}px`,
         fontStyle: 'normal',

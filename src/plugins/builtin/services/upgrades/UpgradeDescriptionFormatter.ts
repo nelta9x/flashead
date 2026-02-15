@@ -16,23 +16,26 @@ export class UpgradeDescriptionFormatter {
   public getFormattedDescription(abilityId: string): string {
     const upgradeData = this.getSystemUpgrade(abilityId);
     if (!upgradeData) {
-      return Data.t(`upgrade.${abilityId}.desc`);
+      return Data.tOrThrow(`upgrade.${abilityId}.desc`);
     }
 
     const stack = this.getAbilityLevel(abilityId);
     if (stack <= 0) {
       if (abilityId === 'health_pack') {
-        return Data.formatTemplate(`upgrade.${abilityId}.desc`, this.getHealthPackBaseParams());
+        return Data.formatTemplateOrThrow(
+          `upgrade.${abilityId}.desc`,
+          this.getHealthPackBaseParams(),
+        );
       }
-      return Data.t(`upgrade.${abilityId}.desc`);
+      return Data.tOrThrow(`upgrade.${abilityId}.desc`);
     }
 
     if (!upgradeData.descriptionTemplate) {
-      return Data.t(`upgrade.${abilityId}.desc`);
+      return Data.tOrThrow(`upgrade.${abilityId}.desc`);
     }
 
     if (!upgradeData.levels) {
-      return Data.t(`upgrade.${abilityId}.desc`);
+      return Data.tOrThrow(`upgrade.${abilityId}.desc`);
     }
 
     const index = Math.min(stack, upgradeData.levels.length) - 1;
@@ -40,7 +43,7 @@ export class UpgradeDescriptionFormatter {
     const params = this.extractTemplateParams(levelData);
     this.appendSharedTemplateParams(abilityId, params);
 
-    return Data.formatTemplate(`upgrade.${abilityId}.desc_template`, params);
+    return Data.formatTemplateOrThrow(`upgrade.${abilityId}.desc_template`, params);
   }
 
   private normalizeTemplateNumericValue(key: string, value: number): number {

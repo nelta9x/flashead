@@ -10,11 +10,11 @@ import type { BossCombatCoordinator } from '../services/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../../world';
 import type { EntitySystem, SystemStartContext } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
-import type { AbilityDataRepository } from '../services/abilities/AbilityDataRepository';
 import type { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
 import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
+  BLACK_HOLE_EFFECT_KEYS,
   CRITICAL_CHANCE_EFFECT_KEYS,
 } from '../services/upgrades/AbilityEffectCatalog';
 
@@ -45,7 +45,6 @@ interface PullCallbacks {
 export class BlackHoleSystem implements EntitySystem {
   readonly id = 'core:black_hole';
   enabled = true;
-  private readonly abilityData: AbilityDataRepository;
   private readonly abilityProgression: AbilityProgressionService;
   private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly world: World;
@@ -60,7 +59,6 @@ export class BlackHoleSystem implements EntitySystem {
   private lastAppliedLevel = 0;
 
   constructor(
-    abilityData: AbilityDataRepository,
     abilityProgression: AbilityProgressionService,
     abilityRuntimeQuery: AbilityRuntimeQueryService,
     world: World,
@@ -68,7 +66,6 @@ export class BlackHoleSystem implements EntitySystem {
     bcc: BossCombatCoordinator,
     renderer: BlackHoleRenderer,
   ) {
-    this.abilityData = abilityData;
     this.abilityProgression = abilityProgression;
     this.abilityRuntimeQuery = abilityRuntimeQuery;
     this.world = world;
@@ -93,14 +90,7 @@ export class BlackHoleSystem implements EntitySystem {
       return;
     }
 
-    const blackHoleData = this.abilityData.getLevelDataOrNull<BlackHoleLevelData>(
-      ABILITY_IDS.BLACK_HOLE,
-      level,
-    );
-    if (!blackHoleData) {
-      this.clear();
-      return;
-    }
+    const blackHoleData = this.resolveBlackHoleData();
     const criticalChanceBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CRITICAL_CHANCE,
       CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
@@ -130,6 +120,59 @@ export class BlackHoleSystem implements EntitySystem {
       this.timeSinceLastDamageTick -= damageInterval;
       this.applyDamageTick(blackHoleData, criticalChanceBonus);
     }
+  }
+
+  private resolveBlackHoleData(): BlackHoleLevelData {
+    return {
+      damageInterval: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.DAMAGE_INTERVAL,
+      ),
+      damage: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.DAMAGE,
+      ),
+      force: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.FORCE,
+      ),
+      spawnInterval: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.SPAWN_INTERVAL,
+      ),
+      duration: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.DURATION,
+      ),
+      spawnCount: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.SPAWN_COUNT,
+      ),
+      radius: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.RADIUS,
+      ),
+      bombConsumeRadiusRatio: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.BOMB_CONSUME_RADIUS_RATIO,
+      ),
+      consumeRadiusGrowthRatio: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.CONSUME_RADIUS_GROWTH_RATIO,
+      ),
+      consumeRadiusGrowthFlat: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.CONSUME_RADIUS_GROWTH_FLAT,
+      ),
+      consumeDamageGrowth: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.CONSUME_DAMAGE_GROWTH,
+      ),
+      consumeDurationGrowth: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.BLACK_HOLE,
+        BLACK_HOLE_EFFECT_KEYS.CONSUME_DURATION_GROWTH,
+      ),
+    };
   }
 
   public clear(): void {

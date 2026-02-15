@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { EntityDamageService } from '../services/EntityDamageService';
 import type { OrbRenderer } from '../abilities/OrbRenderer';
-import type { OrbitingOrbLevelData, SystemUpgradeData } from '../../../data/types';
+import type { OrbitingOrbLevelData } from '../../../data/types';
 import type { BossRadiusSnapshot } from '../services/ContentContracts';
 import type { BossCombatCoordinator } from '../services/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../../world';
@@ -9,12 +9,12 @@ import { FallingBombSystem } from './FallingBombSystem';
 import type { EntitySystem, SystemStartContext } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
-import type { AbilityDataRepository } from '../services/abilities/AbilityDataRepository';
 import type { AbilityProgressionService } from '../services/abilities/AbilityProgressionService';
 import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import {
   ABILITY_IDS,
   CRITICAL_CHANCE_EFFECT_KEYS,
+  ORBITING_ORB_EFFECT_KEYS,
 } from '../services/upgrades/AbilityEffectCatalog';
 
 export interface OrbPosition {
@@ -33,7 +33,6 @@ export class OrbSystem implements EntitySystem {
   readonly id = 'core:orb';
   enabled = true;
 
-  private readonly abilityData: AbilityDataRepository;
   private readonly abilityProgression: AbilityProgressionService;
   private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly world: World;
@@ -52,7 +51,6 @@ export class OrbSystem implements EntitySystem {
   private fallingBombSystem!: FallingBombSystem;
 
   constructor(
-    abilityData: AbilityDataRepository,
     abilityProgression: AbilityProgressionService,
     abilityRuntimeQuery: AbilityRuntimeQueryService,
     world: World,
@@ -60,7 +58,6 @@ export class OrbSystem implements EntitySystem {
     bcc: BossCombatCoordinator,
     renderer: OrbRenderer,
   ) {
-    this.abilityData = abilityData;
     this.abilityProgression = abilityProgression;
     this.abilityRuntimeQuery = abilityRuntimeQuery;
     this.world = world;
@@ -102,16 +99,14 @@ export class OrbSystem implements EntitySystem {
       return;
     }
 
-    const upgradeData = this.abilityData.getUpgradeDataOrThrow(ABILITY_IDS.ORBITING_ORB);
-    const hitInterval = upgradeData?.hitInterval ?? 300;
-    const overclockConfig = this.resolveOverclockConfig(upgradeData);
+    const hitInterval = this.abilityRuntimeQuery.getEffectValueOrThrow(
+      ABILITY_IDS.ORBITING_ORB,
+      ORBITING_ORB_EFFECT_KEYS.HIT_INTERVAL,
+    );
+    const overclockConfig = this.resolveOverclockConfig();
     this.updateOverclockState(gameTime, overclockConfig);
 
-    const stats = this.abilityData.getLevelDataOrNull<OrbitingOrbLevelData>(
-      ABILITY_IDS.ORBITING_ORB,
-      level,
-    );
-    if (!stats) return;
+    const stats = this.resolveOrbStats();
     const criticalChanceBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
       ABILITY_IDS.CRITICAL_CHANCE,
       CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
@@ -119,7 +114,10 @@ export class OrbSystem implements EntitySystem {
 
     // Magnet Synergy: Increase Size
     const magnetLevel = this.abilityProgression.getAbilityLevel(ABILITY_IDS.MAGNET);
-    const magnetSynergyPerLevel = upgradeData?.magnetSynergyPerLevel ?? 0.2;
+    const magnetSynergyPerLevel = this.abilityRuntimeQuery.getEffectValueOrThrow(
+      ABILITY_IDS.ORBITING_ORB,
+      ORBITING_ORB_EFFECT_KEYS.MAGNET_SYNERGY_PER_LEVEL,
+    );
     const synergySizeMultiplier = 1 + magnetLevel * magnetSynergyPerLevel;
     const finalSize = stats.size * synergySizeMultiplier;
 
@@ -131,7 +129,7 @@ export class OrbSystem implements EntitySystem {
 
     // Calculate Positions
     this.orbPositions = [];
-    const count = stats.count;
+    const count = Math.max(1, Math.floor(stats.count));
     const radius = stats.radius;
     const angleStep = 360 / count;
 
@@ -239,10 +237,44 @@ export class OrbSystem implements EntitySystem {
     }
   }
 
-  private resolveOverclockConfig(upgradeData?: SystemUpgradeData): OrbOverclockConfig {
-    const durationMs = Math.max(0, Math.floor(upgradeData?.overclockDurationMs ?? 0));
-    const speedMultiplier = Math.max(1, upgradeData?.overclockSpeedMultiplier ?? 1);
-    const rawMaxStacks = Math.floor(upgradeData?.overclockMaxStacks ?? 0);
+  private resolveOrbStats(): OrbitingOrbLevelData {
+    return {
+      count: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.ORBITING_ORB,
+        ORBITING_ORB_EFFECT_KEYS.COUNT,
+      ),
+      damage: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.ORBITING_ORB,
+        ORBITING_ORB_EFFECT_KEYS.DAMAGE,
+      ),
+      speed: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.ORBITING_ORB,
+        ORBITING_ORB_EFFECT_KEYS.SPEED,
+      ),
+      radius: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.ORBITING_ORB,
+        ORBITING_ORB_EFFECT_KEYS.RADIUS,
+      ),
+      size: this.abilityRuntimeQuery.getEffectValueOrThrow(
+        ABILITY_IDS.ORBITING_ORB,
+        ORBITING_ORB_EFFECT_KEYS.SIZE,
+      ),
+    };
+  }
+
+  private resolveOverclockConfig(): OrbOverclockConfig {
+    const durationMs = Math.max(0, Math.floor(this.abilityRuntimeQuery.getEffectValueOrThrow(
+      ABILITY_IDS.ORBITING_ORB,
+      ORBITING_ORB_EFFECT_KEYS.OVERCLOCK_DURATION_MS,
+    )));
+    const speedMultiplier = Math.max(1, this.abilityRuntimeQuery.getEffectValueOrThrow(
+      ABILITY_IDS.ORBITING_ORB,
+      ORBITING_ORB_EFFECT_KEYS.OVERCLOCK_SPEED_MULTIPLIER,
+    ));
+    const rawMaxStacks = Math.floor(this.abilityRuntimeQuery.getEffectValueOrThrow(
+      ABILITY_IDS.ORBITING_ORB,
+      ORBITING_ORB_EFFECT_KEYS.OVERCLOCK_MAX_STACKS,
+    ));
     const maxStacks =
       durationMs > 0 && speedMultiplier > 1 ? Math.max(1, rawMaxStacks) : 0;
 

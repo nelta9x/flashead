@@ -47,7 +47,6 @@ describe('OrbSystem', () => {
     getMagnetLevel: ReturnType<typeof vi.fn>;
     getCriticalChanceBonus: ReturnType<typeof vi.fn>;
     getAbilityLevel: ReturnType<typeof vi.fn>;
-    getLevelData: ReturnType<typeof vi.fn>;
     getEffectValue: ReturnType<typeof vi.fn>;
     getSystemUpgrade: ReturnType<typeof vi.fn>;
   };
@@ -88,13 +87,19 @@ describe('OrbSystem', () => {
         if (abilityId === 'magnet') return getMagnetLevel();
         return 0;
       }),
-      getLevelData: vi.fn((abilityId: string) => {
-        if (abilityId === 'orbiting_orb') return getOrbitingOrbData();
-        return null;
-      }),
       getEffectValue: vi.fn((abilityId: string, key: string) => {
         if (abilityId === 'critical_chance' && key === 'criticalChance') {
           return getCriticalChanceBonus();
+        }
+        if (abilityId === 'orbiting_orb') {
+          const levelData = getOrbitingOrbData() as Record<string, unknown> | null;
+          if (levelData && typeof levelData[key] === 'number') {
+            return levelData[key];
+          }
+          const staticData = mockUpgradeSystem.getSystemUpgrade() as Record<string, unknown> | null;
+          if (staticData && typeof staticData[key] === 'number') {
+            return staticData[key];
+          }
         }
         return 0;
       }),
@@ -103,6 +108,7 @@ describe('OrbSystem', () => {
         overclockDurationMs: 0,
         overclockSpeedMultiplier: 1,
         overclockMaxStacks: 0,
+        magnetSynergyPerLevel: 0.2,
       }),
     };
 
@@ -117,13 +123,6 @@ describe('OrbSystem', () => {
       getAliveVisibleBossSnapshotsWithRadius: () => [],
       damageBoss: vi.fn(),
     };
-    const mockAbilityData = {
-      getLevelDataOrNull: vi.fn((abilityId: string) => {
-        if (abilityId === 'orbiting_orb') return getOrbitingOrbData();
-        return null;
-      }),
-      getUpgradeDataOrThrow: mockUpgradeSystem.getSystemUpgrade,
-    };
     const mockAbilityProgression = {
       getAbilityLevel: mockUpgradeSystem.getAbilityLevel,
     };
@@ -131,7 +130,6 @@ describe('OrbSystem', () => {
       getEffectValueOrThrow: mockUpgradeSystem.getEffectValue,
     };
     system = new OrbSystem(
-      mockAbilityData as never,
       mockAbilityProgression as never,
       mockAbilityRuntimeQuery as never,
       mockWorld as never,
