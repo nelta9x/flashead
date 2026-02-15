@@ -1,5 +1,9 @@
 {
-  "servicePlugins": ["core:services", "core:ecs", "core:game_modules"],
+  "servicePlugins": [
+    "core:services",
+    "core:ecs",
+    "core:game_modules"
+  ],
   "systemPlugins": [
     "core:initial_spawn",
     "core:world_systems",
@@ -15,12 +19,27 @@
     "core:game_wrappers"
   ],
   "entityTypes": [
-    "player", "basic", "golden", "crystal", "mini", "amber", "bomb", "boss_standard"
+    "player",
+    "basic",
+    "golden",
+    "crystal",
+    "mini",
+    "amber",
+    "bomb",
+    "boss_standard"
   ],
   "abilities": [
-    "cursor_size", "critical_chance", "missile", "health_pack",
-    "magnet", "electric_shock", "orbiting_orb", "black_hole",
-    "glass_cannon", "berserker", "volatility"
+    "cursor_size",
+    "critical_chance",
+    "missile",
+    "health_pack",
+    "magnet",
+    "electric_shock",
+    "orbiting_orb",
+    "black_hole",
+    "glass_cannon",
+    "berserker",
+    "volatility"
   ],
   "entityPipeline": [
     "core:initial_spawn",
@@ -30,6 +49,7 @@
     "core:entity_status",
     "core:entity_timing",
     "core:player",
+    "core:ability_tick",
     "core:entity_movement",
     "core:boss_reaction",
     "core:boss_coordinator",
@@ -43,7 +63,9 @@
     "core:entity_render",
     "core:mod_tick"
   ],
-  "initialEntities": ["player"],
+  "initialEntities": [
+    "player"
+  ],
   "screen": {
     "width": 1280,
     "height": 720
@@ -405,7 +427,9 @@
         "max": 1
       },
       "color": "#ffffff",
-      "colorPalette": ["#ffffff"]
+      "colorPalette": [
+        "#ffffff"
+      ]
     }
   },
   "blackHoleVisual": {

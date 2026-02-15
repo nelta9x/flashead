@@ -907,6 +907,7 @@ export interface WaveBossAttacksConfig {
 
 export interface WaveBossConfig {
   id: string;
+  entityTypeId: string;
   hpWeight: number;
   spawnRange: WaveBossSpawnRange;
   laser: WaveLaserConfig;
@@ -1254,6 +1255,7 @@ export interface ShatterEffectConfig {
 
 // ========== 보스 설정 ==========
 export interface BossConfig {
+  defaultEntityTypeId: string;
   depth: number;
   visual: {
     core: {
@@ -1360,4 +1362,3 @@ export interface LocalesConfig {
   en: LocaleData;
   ko: LocaleData;
 }
-

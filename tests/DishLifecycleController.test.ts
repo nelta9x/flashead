@@ -165,7 +165,7 @@ describe('DishLifecycleController', () => {
       getMagnetForce: () => number;
     }>;
   }): DishLifecycleController {
-    const defaultUpgradeSystem = {
+    const legacyUpgradeSystem = {
       getElectricShockLevel: () => 0,
       getElectricShockRadius: () => 50,
       getElectricShockDamage: () => 2,
@@ -175,6 +175,7 @@ describe('DishLifecycleController', () => {
       getMagnetLevel: () => 0,
       getMagnetRadius: () => 100,
       getMagnetForce: () => 100,
+      ...overrides?.upgradeSystem,
     };
 
     return new DishLifecycleController({
@@ -183,7 +184,37 @@ describe('DishLifecycleController', () => {
       dishes: dishes as never,
       healthSystem: healthSystem as never,
       comboSystem: comboSystem as never,
-      upgradeSystem: { ...defaultUpgradeSystem, ...overrides?.upgradeSystem } as never,
+      upgradeSystem: {
+        getAbilityLevel: (abilityId: string) => {
+          if (abilityId === 'electric_shock') return legacyUpgradeSystem.getElectricShockLevel();
+          if (abilityId === 'magnet') return legacyUpgradeSystem.getMagnetLevel();
+          return 0;
+        },
+        getEffectValue: (abilityId: string, key: string) => {
+          if (abilityId === 'electric_shock' && key === 'radius') {
+            return legacyUpgradeSystem.getElectricShockRadius();
+          }
+          if (abilityId === 'electric_shock' && key === 'damage') {
+            return legacyUpgradeSystem.getElectricShockDamage();
+          }
+          if (abilityId === 'cursor_size' && key === 'sizeBonus') {
+            return legacyUpgradeSystem.getCursorSizeBonus();
+          }
+          if (abilityId === 'cursor_size' && key === 'damage') {
+            return legacyUpgradeSystem.getCursorDamageBonus();
+          }
+          if (abilityId === 'critical_chance' && key === 'criticalChance') {
+            return legacyUpgradeSystem.getCriticalChanceBonus();
+          }
+          if (abilityId === 'magnet' && key === 'radius') {
+            return legacyUpgradeSystem.getMagnetRadius();
+          }
+          if (abilityId === 'magnet' && key === 'force') {
+            return legacyUpgradeSystem.getMagnetForce();
+          }
+          return 0;
+        },
+      } as never,
       feedbackSystem: feedbackSystem as never,
       soundSystem: {
         playBossImpactSound: vi.fn(),

@@ -10,6 +10,13 @@ import { HealthSystem } from '../../../systems/HealthSystem';
 import { StatusEffectManager } from '../../../systems/StatusEffectManager';
 import { UpgradeSystem } from './UpgradeSystem';
 import { setSpawnDamageServiceGetter } from '../../../entities/EntitySpawnInitializer';
+import {
+  ABILITY_IDS,
+  BERSERKER_EFFECT_KEYS,
+  GLASS_CANNON_EFFECT_KEYS,
+  VOLATILITY_EFFECT_KEYS,
+} from './upgrades/AbilityEffectCatalog';
+import { computeGlobalDamageMultiplier } from './upgrades/CurseEffectMath';
 
 export class EcsFoundationPlugin implements ServicePlugin {
   readonly id = 'core:ecs';
@@ -45,9 +52,26 @@ export class EcsFoundationPlugin implements ServicePlugin {
           const us = r.get(UpgradeSystem);
           const hs = r.get(HealthSystem);
           return {
-            globalDamageMultiplier: us.getGlobalDamageMultiplier(hs.getHp(), hs.getMaxHp()),
-            volatilityCritMultiplier: us.getVolatilityCritMultiplier(),
-            volatilityNonCritPenalty: us.getVolatilityNonCritPenalty(),
+            globalDamageMultiplier: computeGlobalDamageMultiplier({
+              currentHp: hs.getHp(),
+              maxHp: hs.getMaxHp(),
+              glassCannonDamageMultiplier: us.getEffectValue(
+                ABILITY_IDS.GLASS_CANNON,
+                GLASS_CANNON_EFFECT_KEYS.DAMAGE_MULTIPLIER,
+              ),
+              berserkerMissingHpDamagePercent: us.getEffectValue(
+                ABILITY_IDS.BERSERKER,
+                BERSERKER_EFFECT_KEYS.MISSING_HP_DAMAGE_PERCENT,
+              ),
+            }),
+            volatilityCritMultiplier: us.getEffectValue(
+              ABILITY_IDS.VOLATILITY,
+              VOLATILITY_EFFECT_KEYS.CRIT_MULTIPLIER,
+            ),
+            volatilityNonCritPenalty: us.getEffectValue(
+              ABILITY_IDS.VOLATILITY,
+              VOLATILITY_EFFECT_KEYS.NON_CRIT_PENALTY,
+            ),
           };
         });
         return svc;

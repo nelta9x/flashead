@@ -1,19 +1,9 @@
 import { Data } from '../../../data/DataManager';
 import type {
-  BerserkerLevelData,
-  BlackHoleLevelData,
-  CriticalChanceLevelData,
-  CursorSizeLevelData,
-  ElectricShockLevelData,
-  GlassCannonLevelData,
-  HealthPackLevelData,
-  MagnetLevelData,
-  MissileLevelData,
-  OrbitingOrbLevelData,
   RarityWeights,
   UpgradePreviewCardModel,
   SystemUpgradeData,
-  VolatilityLevelData,
+  SystemUpgradeLevelData,
 } from '../../../data/types/upgrades';
 import type { UpgradeSystemCore } from '../../types';
 import { EventBus, GameEvents } from '../../../utils/EventBus';
@@ -21,6 +11,11 @@ import { UpgradeDescriptionFormatter } from './upgrades/UpgradeDescriptionFormat
 import { UpgradePreviewModelBuilder } from './upgrades/UpgradePreviewModelBuilder';
 import { UpgradeRarityRoller } from '../../../systems/upgrades/UpgradeRarityRoller';
 import { UpgradeStateStore } from '../../../systems/upgrades/UpgradeStateStore';
+import {
+  ABILITY_IDS,
+  GLASS_CANNON_EFFECT_KEYS,
+  HEALTH_PACK_EFFECT_KEYS,
+} from './upgrades/AbilityEffectCatalog';
 
 export interface Upgrade {
   id: string;
@@ -52,21 +47,15 @@ function createSystemUpgrades(): Upgrade[] {
       // levels 기반 어빌리티: 스택은 applyUpgrade에서 자동 증가하므로 no-op
       // healthPackLevel 업그레이드 시 HP 보너스 적용을 위한 이벤트 발생
       if (data.effectType === 'healthPackLevel') {
-        const levelData = us.getLevelData<HealthPackLevelData>(data.id);
-        if (levelData) {
-          EventBus.getInstance().emit(GameEvents.HEALTH_PACK_UPGRADED, {
-            hpBonus: levelData.hpBonus,
-          });
-        }
+        EventBus.getInstance().emit(GameEvents.HEALTH_PACK_UPGRADED, {
+          hpBonus: us.getEffectValue(ABILITY_IDS.HEALTH_PACK, HEALTH_PACK_EFFECT_KEYS.HP_BONUS),
+        });
       }
       // 글래스 캐논: 선택 시 최대 체력 감소
       if (data.effectType === 'glassCannonLevel') {
-        const levelData = us.getLevelData<GlassCannonLevelData>(data.id);
-        if (levelData) {
-          EventBus.getInstance().emit(GameEvents.CURSE_HP_PENALTY, {
-            hpPenalty: levelData.hpPenalty,
-          });
-        }
+        EventBus.getInstance().emit(GameEvents.CURSE_HP_PENALTY, {
+          hpPenalty: us.getEffectValue(ABILITY_IDS.GLASS_CANNON, GLASS_CANNON_EFFECT_KEYS.HP_PENALTY),
+        });
       }
     },
   }));
@@ -136,153 +125,49 @@ export class UpgradeSystem implements UpgradeSystemCore {
     upgrade.effect(this, nextStack);
   }
 
+  // ========== 공통 조회 API ==========
+
+  public getAbilityLevel(abilityId: string): number {
+    this.getUpgradeDataOrThrow(abilityId);
+    return this.getUpgradeStack(abilityId);
+  }
+
+  public getEffectValue(abilityId: string, key: string): number {
+    const upgradeData = this.getUpgradeDataOrThrow(abilityId);
+    const levelData = this.getLevelData<Record<string, unknown>>(abilityId);
+
+    if (levelData) {
+      const value = levelData[key];
+      if (typeof value === 'number') return value;
+    }
+
+    const staticValue = (upgradeData as unknown as Record<string, unknown>)[key];
+    if (typeof staticValue === 'number') {
+      return staticValue;
+    }
+
+    // level 0에서는 level 기반 수치를 0으로 취급
+    const firstLevel = upgradeData.levels?.[0] as unknown as Record<string, unknown> | undefined;
+    if (!levelData && firstLevel && typeof firstLevel[key] === 'number') {
+      return 0;
+    }
+
+    throw new Error(`Unknown effect key "${key}" for ability "${abilityId}"`);
+  }
+
   // ========== 레벨 데이터 헬퍼 ==========
   public getLevelData<T>(upgradeId: string): T | null {
+    const upgradeData = this.getSystemUpgrade(upgradeId);
+    if (!upgradeData) {
+      return null;
+    }
+
     const level = this.getUpgradeStack(upgradeId);
     if (level <= 0) return null;
-    const upgradeData = Data.upgrades.system.find((u) => u.id === upgradeId);
-    if (!upgradeData?.levels) return null;
+    if (!upgradeData.levels || upgradeData.levels.length === 0) return null;
+
     const index = Math.min(level, upgradeData.levels.length) - 1;
     return upgradeData.levels[index] as T;
-  }
-
-  // ========== 커서 크기 ==========
-  getCursorSizeBonus(): number {
-    return this.getLevelData<CursorSizeLevelData>('cursor_size')?.sizeBonus ?? 0;
-  }
-
-  getCursorDamageBonus(): number {
-    return this.getLevelData<CursorSizeLevelData>('cursor_size')?.damage ?? 0;
-  }
-
-  getCursorMissileThicknessBonus(): number {
-    return this.getLevelData<CursorSizeLevelData>('cursor_size')?.missileThicknessBonus ?? 0;
-  }
-
-  // ========== 치명타 확률 ==========
-  getCriticalChanceLevel(): number {
-    return this.getUpgradeStack('critical_chance');
-  }
-
-  getCriticalChanceBonus(): number {
-    return this.getLevelData<CriticalChanceLevelData>('critical_chance')?.criticalChance ?? 0;
-  }
-
-  // ========== 전기 충격 ==========
-  getElectricShockLevel(): number {
-    return this.getUpgradeStack('electric_shock');
-  }
-
-  getElectricShockRadius(): number {
-    return this.getLevelData<ElectricShockLevelData>('electric_shock')?.radius ?? 0;
-  }
-
-  getElectricShockDamage(): number {
-    return this.getLevelData<ElectricShockLevelData>('electric_shock')?.damage ?? 0;
-  }
-
-  // ========== 자기장 ==========
-  getMagnetLevel(): number {
-    return this.getUpgradeStack('magnet');
-  }
-
-  getMagnetRadius(): number {
-    return this.getLevelData<MagnetLevelData>('magnet')?.radius ?? 0;
-  }
-
-  getMagnetForce(): number {
-    return this.getLevelData<MagnetLevelData>('magnet')?.force ?? 0;
-  }
-
-  // ========== 미사일 ==========
-  getMissileLevel(): number {
-    return this.getUpgradeStack('missile');
-  }
-
-  getMissileDamage(): number {
-    return this.getLevelData<MissileLevelData>('missile')?.damage ?? 0;
-  }
-
-  getMissileCount(): number {
-    return this.getLevelData<MissileLevelData>('missile')?.count ?? 0;
-  }
-
-  // ========== 헬스팩 ==========
-  getHealthPackLevel(): number {
-    return this.getUpgradeStack('health_pack');
-  }
-
-  getHealthPackDropBonus(): number {
-    return this.getLevelData<HealthPackLevelData>('health_pack')?.dropChanceBonus ?? 0;
-  }
-
-  // ========== 금구슬 ==========
-  getOrbitingOrbLevel(): number {
-    return this.getUpgradeStack('orbiting_orb');
-  }
-
-  getOrbitingOrbData(): OrbitingOrbLevelData | null {
-    return this.getLevelData<OrbitingOrbLevelData>('orbiting_orb');
-  }
-
-  // ========== 블랙홀 ==========
-  getBlackHoleLevel(): number {
-    return this.getUpgradeStack('black_hole');
-  }
-
-  getBlackHoleData(): BlackHoleLevelData | null {
-    return this.getLevelData<BlackHoleLevelData>('black_hole');
-  }
-
-  // ========== 저주: 글래스 캐논 ==========
-  getGlassCannonDamageMultiplier(): number {
-    return this.getLevelData<GlassCannonLevelData>('glass_cannon')?.damageMultiplier ?? 0;
-  }
-
-  getGlassCannonHpPenalty(): number {
-    return this.getLevelData<GlassCannonLevelData>('glass_cannon')?.hpPenalty ?? 0;
-  }
-
-  // ========== 저주: 광전사 ==========
-  isHealDisabled(): boolean {
-    return this.getUpgradeStack('berserker') > 0;
-  }
-
-  getBerserkerMissingHpDamagePercent(): number {
-    return this.getLevelData<BerserkerLevelData>('berserker')?.missingHpDamagePercent ?? 0;
-  }
-
-  // ========== 저주: 변덕 ==========
-  getVolatilityCritMultiplier(): number {
-    return this.getLevelData<VolatilityLevelData>('volatility')?.critMultiplier ?? 0;
-  }
-
-  getVolatilityNonCritPenalty(): number {
-    return this.getLevelData<VolatilityLevelData>('volatility')?.nonCritPenalty ?? 0;
-  }
-
-  /**
-   * 전체 데미지 승수를 반환. 글래스 캐논 + 광전사 효과 포함.
-   * @param currentHp 현재 체력 (광전사 계산용)
-   * @param maxHp 최대 체력 (광전사 계산용)
-   */
-  getGlobalDamageMultiplier(currentHp: number, maxHp: number): number {
-    let multiplier = 1;
-
-    // 글래스 캐논: +damageMultiplier%
-    const glassCannonBonus = this.getGlassCannonDamageMultiplier();
-    if (glassCannonBonus > 0) {
-      multiplier += glassCannonBonus;
-    }
-
-    // 광전사: 잃은 HP당 데미지 증가
-    const berserkerPercent = this.getBerserkerMissingHpDamagePercent();
-    if (berserkerPercent > 0 && maxHp > 0) {
-      const missingHp = maxHp - currentHp;
-      multiplier += berserkerPercent * missingHp;
-    }
-
-    return multiplier;
   }
 
   // ========== 유틸리티 ==========
@@ -308,5 +193,21 @@ export class UpgradeSystem implements UpgradeSystemCore {
   // 선택 화면용 구조화 프리뷰 모델 (현재 -> 다음 레벨)
   getPreviewCardModel(upgradeId: string): UpgradePreviewCardModel | null {
     return this.previewModelBuilder.build(upgradeId);
+  }
+
+  private getUpgradeDataOrThrow(upgradeId: string): SystemUpgradeData {
+    const upgrade = this.getSystemUpgrade(upgradeId);
+    if (!upgrade) {
+      throw new Error(`Unknown ability id: "${upgradeId}"`);
+    }
+    return upgrade;
+  }
+
+  // 정적 타입 보조: 필요 시 호출부에서 안전하게 level data를 다루기 위한 유틸
+  public hasLevelDataKey(upgradeId: string, key: string): boolean {
+    const upgrade = this.getSystemUpgrade(upgradeId);
+    const firstLevel = upgrade?.levels?.[0] as SystemUpgradeLevelData | undefined;
+    if (!firstLevel) return false;
+    return Object.prototype.hasOwnProperty.call(firstLevel, key);
   }
 }

@@ -33,6 +33,7 @@ function sanitizeLaserConfig(
 function cloneBossConfig(boss: WaveBossConfig): WaveBossConfig {
   return {
     id: boss.id,
+    entityTypeId: boss.entityTypeId,
     hpWeight: Math.max(0, boss.hpWeight),
     spawnRange: {
       minX: boss.spawnRange.minX,
@@ -41,6 +42,15 @@ function cloneBossConfig(boss: WaveBossConfig): WaveBossConfig {
       maxY: boss.spawnRange.maxY,
     },
     laser: sanitizeLaserConfig(boss.laser),
+    attacks: boss.attacks
+      ? {
+          bulletSpread: boss.attacks.bulletSpread
+            ? { ...boss.attacks.bulletSpread }
+            : undefined,
+          shockwave: boss.attacks.shockwave ? { ...boss.attacks.shockwave } : undefined,
+          dangerZone: boss.attacks.dangerZone ? { ...boss.attacks.dangerZone } : undefined,
+        }
+      : undefined,
   };
 }
 
@@ -52,8 +62,10 @@ function getWaveBossTotalHp(waveData: WaveData): number {
 function buildFallbackSingleBoss(waveData: WaveData): WaveBossConfig {
   const centerX = Math.floor((Data.gameConfig?.screen?.width ?? 1280) / 2);
   const spawnY = Math.floor(Data.boss?.spawn?.y ?? 100);
+  const fallbackEntityTypeId = Data.boss?.defaultEntityTypeId ?? 'boss_standard';
   return {
     id: 'boss_center',
+    entityTypeId: fallbackEntityTypeId,
     hpWeight: 1,
     spawnRange: {
       minX: centerX,

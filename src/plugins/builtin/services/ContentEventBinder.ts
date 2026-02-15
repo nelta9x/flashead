@@ -20,6 +20,7 @@ import type {
   BombDestroyedEventPayload,
   BombMissedEventPayload,
 } from './ContentContracts';
+import { ABILITY_IDS } from './upgrades/AbilityEffectCatalog';
 
 interface EventSubscription {
   event: string;
@@ -122,7 +123,7 @@ export class ContentEventBinder {
       s.get(FeedbackSystem).onHealthPackPassing(payload.x, payload.y);
     });
     this.on(GameEvents.HEALTH_PACK_COLLECTED, (payload: { x: number; y: number }) => {
-      if (!s.get(UpgradeSystem).isHealDisabled()) {
+      if (s.get(UpgradeSystem).getAbilityLevel(ABILITY_IDS.BERSERKER) <= 0) {
         s.get(HealthSystem).heal(1);
       }
       s.get(FeedbackSystem).onHealthPackCollected(payload.x, payload.y);

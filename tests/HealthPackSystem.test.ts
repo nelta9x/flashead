@@ -152,12 +152,9 @@ function createWorldMock() {
   return { world, activeEntities, stores };
 }
 
-const mockGetLevelData = vi.fn((): unknown => null);
+const mockGetEffectValue = vi.fn(() => 0);
 const mockUpgradeSystem = {
-  getUpgradeStack: vi.fn(() => 0),
-  getLevelData: mockGetLevelData,
-  getSystemUpgrade: vi.fn(() => undefined),
-  getAllUpgradeStacks: vi.fn(() => new Map()),
+  getEffectValue: mockGetEffectValue,
 } as unknown as UpgradeSystem;
 
 describe('HealthPackSystem', () => {
@@ -195,7 +192,7 @@ describe('HealthPackSystem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetLevelData.mockReturnValue(null);
+    mockGetEffectValue.mockReturnValue(0);
     mockPoolManager.acquire.mockReturnValue(mockEntity);
     worldMock = createWorldMock();
     system = new HealthPackSystem(mockScene, mockUpgradeSystem, worldMock.world as never, mockPoolManager as never);
@@ -217,7 +214,7 @@ describe('HealthPackSystem', () => {
     });
 
     it('should include upgrade bonus in spawn chance', () => {
-      mockGetLevelData.mockReturnValue({ dropChanceBonus: 0.02 });
+      mockGetEffectValue.mockReturnValue(0.02);
       expect(system.getSpawnChance()).toBe(0.06);
     });
 

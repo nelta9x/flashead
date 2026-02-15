@@ -59,6 +59,27 @@ describe('Wave balance config', () => {
     }
   });
 
+  it('all wave bosses and infinite template bosses declare entityTypeId registered in game-config', () => {
+    const allowedEntityTypes = new Set(Data.gameConfig.entityTypes);
+    for (const wave of Data.waves.waves) {
+      for (const boss of wave.bosses ?? []) {
+        expect(boss.entityTypeId, `wave ${wave.number} boss ${boss.id}`).toBeTruthy();
+        expect(
+          allowedEntityTypes.has(boss.entityTypeId),
+          `wave ${wave.number} boss ${boss.id} uses unknown entityTypeId "${boss.entityTypeId}"`
+        ).toBe(true);
+      }
+    }
+
+    for (const boss of Data.waves.infiniteScaling.infiniteBossTemplate ?? []) {
+      expect(boss.entityTypeId, `infinite template boss ${boss.id}`).toBeTruthy();
+      expect(
+        allowedEntityTypes.has(boss.entityTypeId),
+        `infinite template boss ${boss.id} uses unknown entityTypeId "${boss.entityTypeId}"`
+      ).toBe(true);
+    }
+  });
+
   it('wave 11 introduces dual laser (maxCount 2)', () => {
     for (let w = 1; w <= 10; w++) {
       expect(getWave(w).laser?.maxCount ?? 0).toBeLessThanOrEqual(1);

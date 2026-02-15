@@ -48,6 +48,13 @@ vi.mock('../src/data/DataManager', () => ({
       playerDamage: 1,
       resetCombo: true,
       spawnMargin: 40,
+      scaling: {
+        maxActiveBase: 2,
+        maxActivePerWave: 0,
+        maxActiveCap: 2,
+        spawnChanceBase: 0.06,
+        spawnChancePerWave: 0,
+      },
     },
     gameConfig: {
       screen: { height: 720 },
@@ -187,7 +194,7 @@ describe('FallingBombSystem', () => {
   } as never;
 
   const mockUpgradeSystem = {
-    getCursorSizeBonus: vi.fn(() => 0),
+    getEffectValue: vi.fn(() => 0),
   } as never;
 
   beforeEach(() => {

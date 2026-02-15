@@ -18,6 +18,12 @@ import type {
   DishDestroyedEventPayload,
   DishMissedEventPayload,
 } from '../ContentContracts';
+import {
+  ABILITY_IDS,
+  CRITICAL_CHANCE_EFFECT_KEYS,
+  CURSOR_SIZE_EFFECT_KEYS,
+  ELECTRIC_SHOCK_EFFECT_KEYS,
+} from '../upgrades/AbilityEffectCatalog';
 
 interface DishResolutionServiceDeps {
   world: World;
@@ -93,9 +99,12 @@ export class DishResolutionService {
     const isAbilityDamage = byAbility === true;
     const combo = isAbilityDamage ? 0 : this.comboSystem.getCombo();
 
-    const electricLevel = this.upgradeSystem.getElectricShockLevel();
+    const electricLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK);
     if (!isAbilityDamage && electricLevel > 0) {
-      const electricRadius = this.upgradeSystem.getElectricShockRadius();
+      const electricRadius = this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.ELECTRIC_SHOCK,
+        ELECTRIC_SHOCK_EFFECT_KEYS.RADIUS,
+      );
       this.applyElectricShock(x, y, snapshot.entityId, electricRadius);
     }
 
@@ -120,8 +129,14 @@ export class DishResolutionService {
 
   private applyElectricShock(x: number, y: number, excludeEntityId: EntityId, radius: number): void {
     const targets: { x: number; y: number }[] = [];
-    const damage = this.upgradeSystem.getElectricShockDamage();
-    const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
+    const damage = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.ELECTRIC_SHOCK,
+      ELECTRIC_SHOCK_EFFECT_KEYS.DAMAGE,
+    );
+    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CRITICAL_CHANCE,
+      CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
+    );
 
     for (const [entityId, , , t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
       if (entityId === excludeEntityId) continue;
@@ -147,7 +162,10 @@ export class DishResolutionService {
   }
 
   private getCursorRadius(): number {
-    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CURSOR_SIZE,
+      CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+    );
     return CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
   }
 }

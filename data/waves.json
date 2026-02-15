@@ -5,36 +5,74 @@
       "name": "첫 번개",
       "dishCount": 2,
       "spawnInterval": 1050,
-      "dishTypes": [{ "type": "basic", "weight": 1 }],
+      "dishTypes": [
+        {
+          "type": "basic",
+          "weight": 1
+        }
+      ],
       "bossTotalHp": 400,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 0,
+            "minInterval": 999999,
+            "maxInterval": 999999
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
+      "laser": {
+        "maxCount": 0,
+        "minInterval": 999999,
+        "maxInterval": 999999
+      }
     },
     {
       "number": 2,
       "name": "가속",
       "dishCount": 3,
       "spawnInterval": 950,
-      "dishTypes": [{ "type": "basic", "weight": 1 }],
+      "dishTypes": [
+        {
+          "type": "basic",
+          "weight": 1
+        }
+      ],
       "bossTotalHp": 500,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 0,
+            "minInterval": 999999,
+            "maxInterval": 999999
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
+      "laser": {
+        "maxCount": 0,
+        "minInterval": 999999,
+        "maxInterval": 999999
+      }
     },
     {
       "number": 3,
@@ -42,21 +80,44 @@
       "dishCount": 2,
       "spawnInterval": 1100,
       "dishTypes": [
-        { "type": "basic", "weight": 0.55 },
-        { "type": "golden", "weight": 0.3 },
-        { "type": "mini", "weight": 0.15 }
+        {
+          "type": "basic",
+          "weight": 0.55
+        },
+        {
+          "type": "golden",
+          "weight": 0.3
+        },
+        {
+          "type": "mini",
+          "weight": 0.15
+        }
       ],
       "bossTotalHp": 440,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 0,
+            "minInterval": 999999,
+            "maxInterval": 999999
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 0, "minInterval": 999999, "maxInterval": 999999 }
+      "laser": {
+        "maxCount": 0,
+        "minInterval": 999999,
+        "maxInterval": 999999
+      }
     },
     {
       "number": 4,
@@ -64,21 +125,44 @@
       "dishCount": 3,
       "spawnInterval": 920,
       "dishTypes": [
-        { "type": "basic", "weight": 0.82 },
-        { "type": "golden", "weight": 0.13 },
-        { "type": "mini", "weight": 0.05 }
+        {
+          "type": "basic",
+          "weight": 0.82
+        },
+        {
+          "type": "golden",
+          "weight": 0.13
+        },
+        {
+          "type": "mini",
+          "weight": 0.05
+        }
       ],
       "bossTotalHp": 620,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 1, "minInterval": 6500, "maxInterval": 10000 }
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 6500,
+            "maxInterval": 10000
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 1, "minInterval": 6500, "maxInterval": 10000 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 6500,
+        "maxInterval": 10000
+      }
     },
     {
       "number": 5,
@@ -86,21 +170,44 @@
       "dishCount": 4,
       "spawnInterval": 880,
       "dishTypes": [
-        { "type": "basic", "weight": 0.72 },
-        { "type": "golden", "weight": 0.18 },
-        { "type": "mini", "weight": 0.1 }
+        {
+          "type": "basic",
+          "weight": 0.72
+        },
+        {
+          "type": "golden",
+          "weight": 0.18
+        },
+        {
+          "type": "mini",
+          "weight": 0.1
+        }
       ],
       "bossTotalHp": 800,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 9000 }
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 5500,
+            "maxInterval": 9000
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 9000 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 5500,
+        "maxInterval": 9000
+      }
     },
     {
       "number": 6,
@@ -108,24 +215,51 @@
       "dishCount": 3,
       "spawnInterval": 1050,
       "dishTypes": [
-        { "type": "basic", "weight": 0.3 },
-        { "type": "golden", "weight": 0.35 },
-        { "type": "mini", "weight": 0.35 }
+        {
+          "type": "basic",
+          "weight": 0.3
+        },
+        {
+          "type": "golden",
+          "weight": 0.35
+        },
+        {
+          "type": "mini",
+          "weight": 0.35
+        }
       ],
       "bossTotalHp": 700,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 1, "minInterval": 6500, "maxInterval": 10000 },
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 6500,
+            "maxInterval": 10000
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 10000, "maxInterval": 16000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 10000,
+              "maxInterval": 16000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 1, "minInterval": 6500, "maxInterval": 10000 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 6500,
+        "maxInterval": 10000
+      }
     },
     {
       "number": 7,
@@ -133,25 +267,55 @@
       "dishCount": 4,
       "spawnInterval": 900,
       "dishTypes": [
-        { "type": "basic", "weight": 0.8 },
-        { "type": "golden", "weight": 0.1 },
-        { "type": "bomb", "weight": 0.05 },
-        { "type": "mini", "weight": 0.05 }
+        {
+          "type": "basic",
+          "weight": 0.8
+        },
+        {
+          "type": "golden",
+          "weight": 0.1
+        },
+        {
+          "type": "bomb",
+          "weight": 0.05
+        },
+        {
+          "type": "mini",
+          "weight": 0.05
+        }
       ],
       "bossTotalHp": 980,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 8500 },
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 5500,
+            "maxInterval": 8500
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 9000, "maxInterval": 14000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 9000,
+              "maxInterval": 14000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 8500 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 5500,
+        "maxInterval": 8500
+      }
     },
     {
       "number": 8,
@@ -159,26 +323,60 @@
       "dishCount": 5,
       "spawnInterval": 840,
       "dishTypes": [
-        { "type": "basic", "weight": 0.63 },
-        { "type": "golden", "weight": 0.17 },
-        { "type": "bomb", "weight": 0.12 },
-        { "type": "mini", "weight": 0.08 }
+        {
+          "type": "basic",
+          "weight": 0.63
+        },
+        {
+          "type": "golden",
+          "weight": 0.17
+        },
+        {
+          "type": "bomb",
+          "weight": 0.12
+        },
+        {
+          "type": "mini",
+          "weight": 0.08
+        }
       ],
       "bossTotalHp": 1200,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 1, "minInterval": 4500, "maxInterval": 7500 },
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 4500,
+            "maxInterval": 7500
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 8000, "maxInterval": 13000 },
-            "shockwave": { "enabled": true, "minInterval": 12000, "maxInterval": 18000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 8000,
+              "maxInterval": 13000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 12000,
+              "maxInterval": 18000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 1, "minInterval": 4500, "maxInterval": 7500 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 4500,
+        "maxInterval": 7500
+      }
     },
     {
       "number": 9,
@@ -186,26 +384,60 @@
       "dishCount": 3,
       "spawnInterval": 1050,
       "dishTypes": [
-        { "type": "basic", "weight": 0.25 },
-        { "type": "golden", "weight": 0.4 },
-        { "type": "bomb", "weight": 0.05 },
-        { "type": "mini", "weight": 0.3 }
+        {
+          "type": "basic",
+          "weight": 0.25
+        },
+        {
+          "type": "golden",
+          "weight": 0.4
+        },
+        {
+          "type": "bomb",
+          "weight": 0.05
+        },
+        {
+          "type": "mini",
+          "weight": 0.3
+        }
       ],
       "bossTotalHp": 1050,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 9000 },
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 5500,
+            "maxInterval": 9000
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 8000, "maxInterval": 13000 },
-            "shockwave": { "enabled": true, "minInterval": 11000, "maxInterval": 16000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 8000,
+              "maxInterval": 13000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 11000,
+              "maxInterval": 16000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 1, "minInterval": 5500, "maxInterval": 9000 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 5500,
+        "maxInterval": 9000
+      }
     },
     {
       "number": 10,
@@ -213,28 +445,69 @@
       "dishCount": 4,
       "spawnInterval": 880,
       "dishTypes": [
-        { "type": "basic", "weight": 0.55 },
-        { "type": "golden", "weight": 0.15 },
-        { "type": "crystal", "weight": 0.1 },
-        { "type": "bomb", "weight": 0.1 },
-        { "type": "mini", "weight": 0.1 }
+        {
+          "type": "basic",
+          "weight": 0.55
+        },
+        {
+          "type": "golden",
+          "weight": 0.15
+        },
+        {
+          "type": "crystal",
+          "weight": 0.1
+        },
+        {
+          "type": "bomb",
+          "weight": 0.1
+        },
+        {
+          "type": "mini",
+          "weight": 0.1
+        }
       ],
       "bossTotalHp": 1400,
       "bosses": [
         {
           "id": "boss_center",
           "hpWeight": 1,
-          "spawnRange": { "minX": 640, "maxX": 640, "minY": 100, "maxY": 100 },
-          "laser": { "maxCount": 1, "minInterval": 4500, "maxInterval": 7500 },
+          "spawnRange": {
+            "minX": 640,
+            "maxX": 640,
+            "minY": 100,
+            "maxY": 100
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 4500,
+            "maxInterval": 7500
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 7000, "maxInterval": 12000 },
-            "shockwave": { "enabled": true, "minInterval": 10000, "maxInterval": 15000 },
-            "dangerZone": { "enabled": true, "minInterval": 14000, "maxInterval": 20000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 7000,
+              "maxInterval": 12000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 10000,
+              "maxInterval": 15000
+            },
+            "dangerZone": {
+              "enabled": true,
+              "minInterval": 14000,
+              "maxInterval": 20000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 150,
-      "laser": { "maxCount": 1, "minInterval": 4500, "maxInterval": 7500 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 4500,
+        "maxInterval": 7500
+      }
     },
     {
       "number": 11,
@@ -242,39 +515,102 @@
       "dishCount": 5,
       "spawnInterval": 820,
       "dishTypes": [
-        { "type": "basic", "weight": 0.45 },
-        { "type": "golden", "weight": 0.18 },
-        { "type": "crystal", "weight": 0.12 },
-        { "type": "bomb", "weight": 0.15 },
-        { "type": "mini", "weight": 0.1 }
+        {
+          "type": "basic",
+          "weight": 0.45
+        },
+        {
+          "type": "golden",
+          "weight": 0.18
+        },
+        {
+          "type": "crystal",
+          "weight": 0.12
+        },
+        {
+          "type": "bomb",
+          "weight": 0.15
+        },
+        {
+          "type": "mini",
+          "weight": 0.1
+        }
       ],
       "bossTotalHp": 1700,
       "bosses": [
         {
           "id": "boss_left",
           "hpWeight": 1,
-          "spawnRange": { "minX": 320, "maxX": 440, "minY": 90, "maxY": 120 },
-          "laser": { "maxCount": 1, "minInterval": 3800, "maxInterval": 6500 },
+          "spawnRange": {
+            "minX": 320,
+            "maxX": 440,
+            "minY": 90,
+            "maxY": 120
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 3800,
+            "maxInterval": 6500
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 7000, "maxInterval": 11000 },
-            "shockwave": { "enabled": true, "minInterval": 9000, "maxInterval": 14000 },
-            "dangerZone": { "enabled": true, "minInterval": 12000, "maxInterval": 18000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 7000,
+              "maxInterval": 11000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 9000,
+              "maxInterval": 14000
+            },
+            "dangerZone": {
+              "enabled": true,
+              "minInterval": 12000,
+              "maxInterval": 18000
+            }
+          },
+          "entityTypeId": "boss_standard"
         },
         {
           "id": "boss_right",
           "hpWeight": 1,
-          "spawnRange": { "minX": 840, "maxX": 960, "minY": 90, "maxY": 120 },
-          "laser": { "maxCount": 1, "minInterval": 3800, "maxInterval": 6500 },
+          "spawnRange": {
+            "minX": 840,
+            "maxX": 960,
+            "minY": 90,
+            "maxY": 120
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 3800,
+            "maxInterval": 6500
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 7000, "maxInterval": 11000 },
-            "shockwave": { "enabled": true, "minInterval": 9000, "maxInterval": 14000 },
-            "dangerZone": { "enabled": true, "minInterval": 12000, "maxInterval": 18000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 7000,
+              "maxInterval": 11000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 9000,
+              "maxInterval": 14000
+            },
+            "dangerZone": {
+              "enabled": true,
+              "minInterval": 12000,
+              "maxInterval": 18000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 280,
-      "laser": { "maxCount": 2, "minInterval": 3800, "maxInterval": 6500 }
+      "laser": {
+        "maxCount": 2,
+        "minInterval": 3800,
+        "maxInterval": 6500
+      }
     },
     {
       "number": 12,
@@ -282,39 +618,102 @@
       "dishCount": 3,
       "spawnInterval": 1000,
       "dishTypes": [
-        { "type": "basic", "weight": 0.2 },
-        { "type": "golden", "weight": 0.4 },
-        { "type": "crystal", "weight": 0.05 },
-        { "type": "bomb", "weight": 0.05 },
-        { "type": "mini", "weight": 0.3 }
+        {
+          "type": "basic",
+          "weight": 0.2
+        },
+        {
+          "type": "golden",
+          "weight": 0.4
+        },
+        {
+          "type": "crystal",
+          "weight": 0.05
+        },
+        {
+          "type": "bomb",
+          "weight": 0.05
+        },
+        {
+          "type": "mini",
+          "weight": 0.3
+        }
       ],
       "bossTotalHp": 1500,
       "bosses": [
         {
           "id": "boss_left",
           "hpWeight": 1,
-          "spawnRange": { "minX": 320, "maxX": 440, "minY": 90, "maxY": 120 },
-          "laser": { "maxCount": 1, "minInterval": 5000, "maxInterval": 8500 },
+          "spawnRange": {
+            "minX": 320,
+            "maxX": 440,
+            "minY": 90,
+            "maxY": 120
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 5000,
+            "maxInterval": 8500
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 7000, "maxInterval": 11000 },
-            "shockwave": { "enabled": true, "minInterval": 9000, "maxInterval": 14000 },
-            "dangerZone": { "enabled": true, "minInterval": 12000, "maxInterval": 18000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 7000,
+              "maxInterval": 11000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 9000,
+              "maxInterval": 14000
+            },
+            "dangerZone": {
+              "enabled": true,
+              "minInterval": 12000,
+              "maxInterval": 18000
+            }
+          },
+          "entityTypeId": "boss_standard"
         },
         {
           "id": "boss_right",
           "hpWeight": 1,
-          "spawnRange": { "minX": 840, "maxX": 960, "minY": 90, "maxY": 120 },
-          "laser": { "maxCount": 1, "minInterval": 5000, "maxInterval": 8500 },
+          "spawnRange": {
+            "minX": 840,
+            "maxX": 960,
+            "minY": 90,
+            "maxY": 120
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 5000,
+            "maxInterval": 8500
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 7000, "maxInterval": 11000 },
-            "shockwave": { "enabled": true, "minInterval": 9000, "maxInterval": 14000 },
-            "dangerZone": { "enabled": true, "minInterval": 12000, "maxInterval": 18000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 7000,
+              "maxInterval": 11000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 9000,
+              "maxInterval": 14000
+            },
+            "dangerZone": {
+              "enabled": true,
+              "minInterval": 12000,
+              "maxInterval": 18000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 280,
-      "laser": { "maxCount": 1, "minInterval": 5000, "maxInterval": 8500 }
+      "laser": {
+        "maxCount": 1,
+        "minInterval": 5000,
+        "maxInterval": 8500
+      }
     },
     {
       "number": 13,
@@ -322,39 +721,102 @@
       "dishCount": 5,
       "spawnInterval": 850,
       "dishTypes": [
-        { "type": "basic", "weight": 0.4 },
-        { "type": "golden", "weight": 0.18 },
-        { "type": "crystal", "weight": 0.14 },
-        { "type": "bomb", "weight": 0.14 },
-        { "type": "mini", "weight": 0.14 }
+        {
+          "type": "basic",
+          "weight": 0.4
+        },
+        {
+          "type": "golden",
+          "weight": 0.18
+        },
+        {
+          "type": "crystal",
+          "weight": 0.14
+        },
+        {
+          "type": "bomb",
+          "weight": 0.14
+        },
+        {
+          "type": "mini",
+          "weight": 0.14
+        }
       ],
       "bossTotalHp": 2200,
       "bosses": [
         {
           "id": "boss_left",
           "hpWeight": 1,
-          "spawnRange": { "minX": 320, "maxX": 440, "minY": 90, "maxY": 120 },
-          "laser": { "maxCount": 1, "minInterval": 3400, "maxInterval": 6000 },
+          "spawnRange": {
+            "minX": 320,
+            "maxX": 440,
+            "minY": 90,
+            "maxY": 120
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 3400,
+            "maxInterval": 6000
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 6000, "maxInterval": 10000 },
-            "shockwave": { "enabled": true, "minInterval": 8000, "maxInterval": 13000 },
-            "dangerZone": { "enabled": true, "minInterval": 10000, "maxInterval": 16000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 6000,
+              "maxInterval": 10000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 8000,
+              "maxInterval": 13000
+            },
+            "dangerZone": {
+              "enabled": true,
+              "minInterval": 10000,
+              "maxInterval": 16000
+            }
+          },
+          "entityTypeId": "boss_standard"
         },
         {
           "id": "boss_right",
           "hpWeight": 1,
-          "spawnRange": { "minX": 840, "maxX": 960, "minY": 90, "maxY": 120 },
-          "laser": { "maxCount": 1, "minInterval": 3400, "maxInterval": 6000 },
+          "spawnRange": {
+            "minX": 840,
+            "maxX": 960,
+            "minY": 90,
+            "maxY": 120
+          },
+          "laser": {
+            "maxCount": 1,
+            "minInterval": 3400,
+            "maxInterval": 6000
+          },
           "attacks": {
-            "bulletSpread": { "enabled": true, "minInterval": 6000, "maxInterval": 10000 },
-            "shockwave": { "enabled": true, "minInterval": 8000, "maxInterval": 13000 },
-            "dangerZone": { "enabled": true, "minInterval": 10000, "maxInterval": 16000 }
-          }
+            "bulletSpread": {
+              "enabled": true,
+              "minInterval": 6000,
+              "maxInterval": 10000
+            },
+            "shockwave": {
+              "enabled": true,
+              "minInterval": 8000,
+              "maxInterval": 13000
+            },
+            "dangerZone": {
+              "enabled": true,
+              "minInterval": 10000,
+              "maxInterval": 16000
+            }
+          },
+          "entityTypeId": "boss_standard"
         }
       ],
       "bossSpawnMinDistance": 280,
-      "laser": { "maxCount": 2, "minInterval": 3400, "maxInterval": 6000 }
+      "laser": {
+        "maxCount": 2,
+        "minInterval": 3400,
+        "maxInterval": 6000
+      }
     }
   ],
   "fever": {
@@ -362,10 +824,22 @@
     "dishCount": 999,
     "spawnInterval": 150,
     "dishTypes": [
-      { "type": "basic", "weight": 0.2 },
-      { "type": "golden", "weight": 0.25 },
-      { "type": "crystal", "weight": 0.3 },
-      { "type": "bomb", "weight": 0.25 }
+      {
+        "type": "basic",
+        "weight": 0.2
+      },
+      {
+        "type": "golden",
+        "weight": 0.25
+      },
+      {
+        "type": "crystal",
+        "weight": 0.3
+      },
+      {
+        "type": "bomb",
+        "weight": 0.25
+      }
     ]
   },
   "infiniteScaling": {
@@ -383,35 +857,101 @@
       {
         "id": "boss_left",
         "hpWeight": 1,
-        "spawnRange": { "minX": 280, "maxX": 400, "minY": 90, "maxY": 120 },
-        "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5500 },
+        "spawnRange": {
+          "minX": 280,
+          "maxX": 400,
+          "minY": 90,
+          "maxY": 120
+        },
+        "laser": {
+          "maxCount": 1,
+          "minInterval": 3000,
+          "maxInterval": 5500
+        },
         "attacks": {
-          "bulletSpread": { "enabled": true, "minInterval": 6000, "maxInterval": 10000 },
-          "shockwave": { "enabled": true, "minInterval": 8000, "maxInterval": 12000 },
-          "dangerZone": { "enabled": true, "minInterval": 10000, "maxInterval": 15000 }
-        }
+          "bulletSpread": {
+            "enabled": true,
+            "minInterval": 6000,
+            "maxInterval": 10000
+          },
+          "shockwave": {
+            "enabled": true,
+            "minInterval": 8000,
+            "maxInterval": 12000
+          },
+          "dangerZone": {
+            "enabled": true,
+            "minInterval": 10000,
+            "maxInterval": 15000
+          }
+        },
+        "entityTypeId": "boss_standard"
       },
       {
         "id": "boss_center",
         "hpWeight": 1,
-        "spawnRange": { "minX": 560, "maxX": 720, "minY": 90, "maxY": 120 },
-        "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5500 },
+        "spawnRange": {
+          "minX": 560,
+          "maxX": 720,
+          "minY": 90,
+          "maxY": 120
+        },
+        "laser": {
+          "maxCount": 1,
+          "minInterval": 3000,
+          "maxInterval": 5500
+        },
         "attacks": {
-          "bulletSpread": { "enabled": true, "minInterval": 6000, "maxInterval": 10000 },
-          "shockwave": { "enabled": true, "minInterval": 8000, "maxInterval": 12000 },
-          "dangerZone": { "enabled": true, "minInterval": 10000, "maxInterval": 15000 }
-        }
+          "bulletSpread": {
+            "enabled": true,
+            "minInterval": 6000,
+            "maxInterval": 10000
+          },
+          "shockwave": {
+            "enabled": true,
+            "minInterval": 8000,
+            "maxInterval": 12000
+          },
+          "dangerZone": {
+            "enabled": true,
+            "minInterval": 10000,
+            "maxInterval": 15000
+          }
+        },
+        "entityTypeId": "boss_standard"
       },
       {
         "id": "boss_right",
         "hpWeight": 1,
-        "spawnRange": { "minX": 880, "maxX": 1000, "minY": 90, "maxY": 120 },
-        "laser": { "maxCount": 1, "minInterval": 3000, "maxInterval": 5500 },
+        "spawnRange": {
+          "minX": 880,
+          "maxX": 1000,
+          "minY": 90,
+          "maxY": 120
+        },
+        "laser": {
+          "maxCount": 1,
+          "minInterval": 3000,
+          "maxInterval": 5500
+        },
         "attacks": {
-          "bulletSpread": { "enabled": true, "minInterval": 6000, "maxInterval": 10000 },
-          "shockwave": { "enabled": true, "minInterval": 8000, "maxInterval": 12000 },
-          "dangerZone": { "enabled": true, "minInterval": 10000, "maxInterval": 15000 }
-        }
+          "bulletSpread": {
+            "enabled": true,
+            "minInterval": 6000,
+            "maxInterval": 10000
+          },
+          "shockwave": {
+            "enabled": true,
+            "minInterval": 8000,
+            "maxInterval": 12000
+          },
+          "dangerZone": {
+            "enabled": true,
+            "minInterval": 10000,
+            "maxInterval": 15000
+          }
+        },
+        "entityTypeId": "boss_standard"
       }
     ],
     "minDishCountIncrease": 0,

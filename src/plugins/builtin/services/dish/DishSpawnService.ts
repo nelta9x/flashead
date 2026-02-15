@@ -9,6 +9,11 @@ import type { UpgradeSystem } from '../UpgradeSystem';
 import type { World } from '../../../../world';
 import { INVALID_ENTITY_ID } from '../../../../world/EntityId';
 import { PluginRegistry } from '../../../../plugins/PluginRegistry';
+import {
+  ABILITY_IDS,
+  CRITICAL_CHANCE_EFFECT_KEYS,
+  CURSOR_SIZE_EFFECT_KEYS,
+} from '../upgrades/AbilityEffectCatalog';
 
 interface DishSpawnServiceDeps {
   dishPool: ObjectPool<Entity>;
@@ -64,9 +69,18 @@ export class DishSpawnService {
     const bombData = Data.getBombData(type);
     const dishData = bombData ? undefined : Data.getDishData(type);
     const options = {
-      cursorSizeBonus: this.upgradeSystem.getCursorSizeBonus(),
-      damageBonus: this.upgradeSystem.getCursorDamageBonus(),
-      criticalChance: this.upgradeSystem.getCriticalChanceBonus(),
+      cursorSizeBonus: this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.CURSOR_SIZE,
+        CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+      ),
+      damageBonus: this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.CURSOR_SIZE,
+        CURSOR_SIZE_EFFECT_KEYS.DAMAGE,
+      ),
+      criticalChance: this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.CRITICAL_CHANCE,
+        CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
+      ),
     };
 
     const config = {

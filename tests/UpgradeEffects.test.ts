@@ -1,4 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  ABILITY_IDS,
+  CRITICAL_CHANCE_EFFECT_KEYS,
+  CURSOR_SIZE_EFFECT_KEYS,
+  ELECTRIC_SHOCK_EFFECT_KEYS,
+  HEALTH_PACK_EFFECT_KEYS,
+  MAGNET_EFFECT_KEYS,
+  MISSILE_EFFECT_KEYS,
+} from '../src/plugins/builtin/services/upgrades/AbilityEffectCatalog';
 
 // Mock constants
 vi.mock('../src/data/constants', () => ({
@@ -44,22 +53,22 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const { UpgradeSystem } = await import('../src/plugins/builtin/services/UpgradeSystem');
       const upgrade = new UpgradeSystem();
 
-      expect(upgrade.getCursorSizeBonus()).toBe(0);
-      expect(upgrade.getCursorDamageBonus()).toBe(0);
-      expect(upgrade.getCursorMissileThicknessBonus()).toBe(0);
-      expect(upgrade.getCriticalChanceLevel()).toBe(0);
-      expect(upgrade.getCriticalChanceBonus()).toBe(0);
-      expect(upgrade.getElectricShockLevel()).toBe(0);
-      expect(upgrade.getElectricShockRadius()).toBe(0);
-      expect(upgrade.getElectricShockDamage()).toBe(0);
-      expect(upgrade.getMagnetLevel()).toBe(0);
-      expect(upgrade.getMagnetRadius()).toBe(0);
-      expect(upgrade.getMagnetForce()).toBe(0);
-      expect(upgrade.getMissileLevel()).toBe(0);
-      expect(upgrade.getMissileDamage()).toBe(0);
-      expect(upgrade.getMissileCount()).toBe(0);
-      expect(upgrade.getBlackHoleLevel()).toBe(0);
-      expect(upgrade.getBlackHoleData()).toBeNull();
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.DAMAGE)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.MISSILE_THICKNESS_BONUS)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.CRITICAL_CHANCE)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CRITICAL_CHANCE, CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.RADIUS)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.DAMAGE)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.MAGNET)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.RADIUS)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.FORCE)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.MISSILE)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.BLACK_HOLE)).toBe(0);
+      expect(upgrade.getLevelData(ABILITY_IDS.BLACK_HOLE)).toBeNull();
     });
   });
 
@@ -113,9 +122,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       upgrade.applyUpgrade(cursorUpgrade);
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(1);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.4);
-      expect(upgrade.getCursorDamageBonus()).toBe(3);
-      expect(upgrade.getCursorMissileThicknessBonus()).toBeCloseTo(0.25);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS)).toBeCloseTo(0.4);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.DAMAGE)).toBe(3);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.MISSILE_THICKNESS_BONUS)).toBeCloseTo(0.25);
     });
 
     it('레벨 3 (맥스) 수치 확인', async () => {
@@ -125,9 +134,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       for (let i = 0; i < 3; i++) upgrade.applyUpgrade(cursorUpgrade);
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(3);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.5);
-      expect(upgrade.getCursorDamageBonus()).toBe(10);
-      expect(upgrade.getCursorMissileThicknessBonus()).toBeCloseTo(1.0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS)).toBeCloseTo(0.5);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.DAMAGE)).toBe(10);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.MISSILE_THICKNESS_BONUS)).toBeCloseTo(1.0);
     });
   });
 
@@ -138,8 +147,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const criticalUpgrade = UPGRADES.find((u) => u.id === 'critical_chance')!;
 
       upgrade.applyUpgrade(criticalUpgrade);
-      expect(upgrade.getCriticalChanceLevel()).toBe(1);
-      expect(upgrade.getCriticalChanceBonus()).toBeCloseTo(0.10);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.CRITICAL_CHANCE)).toBe(1);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CRITICAL_CHANCE, CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE)).toBeCloseTo(0.10);
     });
 
     it('레벨 5 수치 확인', async () => {
@@ -148,8 +157,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const criticalUpgrade = UPGRADES.find((u) => u.id === 'critical_chance')!;
 
       for (let i = 0; i < 5; i++) upgrade.applyUpgrade(criticalUpgrade);
-      expect(upgrade.getCriticalChanceLevel()).toBe(5);
-      expect(upgrade.getCriticalChanceBonus()).toBeCloseTo(0.50);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.CRITICAL_CHANCE)).toBe(5);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CRITICAL_CHANCE, CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE)).toBeCloseTo(0.50);
     });
   });
 
@@ -160,9 +169,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const electricUpgrade = UPGRADES.find((u) => u.id === 'electric_shock')!;
 
       upgrade.applyUpgrade(electricUpgrade);
-      expect(upgrade.getElectricShockLevel()).toBe(1);
-      expect(upgrade.getElectricShockRadius()).toBe(320);
-      expect(upgrade.getElectricShockDamage()).toBe(2);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK)).toBe(1);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.RADIUS)).toBe(320);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.DAMAGE)).toBe(2);
     });
 
     it('레벨 3 수치 확인', async () => {
@@ -171,8 +180,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const electricUpgrade = UPGRADES.find((u) => u.id === 'electric_shock')!;
 
       for (let i = 0; i < 3; i++) upgrade.applyUpgrade(electricUpgrade);
-      expect(upgrade.getElectricShockRadius()).toBe(400);
-      expect(upgrade.getElectricShockDamage()).toBe(4);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.RADIUS)).toBe(400);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.DAMAGE)).toBe(4);
     });
 
     it('레벨 5 수치 확인', async () => {
@@ -181,8 +190,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const electricUpgrade = UPGRADES.find((u) => u.id === 'electric_shock')!;
 
       for (let i = 0; i < 5; i++) upgrade.applyUpgrade(electricUpgrade);
-      expect(upgrade.getElectricShockRadius()).toBe(600);
-      expect(upgrade.getElectricShockDamage()).toBe(5);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.RADIUS)).toBe(600);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.DAMAGE)).toBe(5);
     });
   });
 
@@ -193,9 +202,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const magnetUpgrade = UPGRADES.find((u) => u.id === 'magnet')!;
 
       upgrade.applyUpgrade(magnetUpgrade);
-      expect(upgrade.getMagnetLevel()).toBe(1);
-      expect(upgrade.getMagnetRadius()).toBe(180);
-      expect(upgrade.getMagnetForce()).toBe(300);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.MAGNET)).toBe(1);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.RADIUS)).toBe(180);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.FORCE)).toBe(300);
     });
 
     it('레벨 5 수치 확인', async () => {
@@ -204,8 +213,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const magnetUpgrade = UPGRADES.find((u) => u.id === 'magnet')!;
 
       for (let i = 0; i < 5; i++) upgrade.applyUpgrade(magnetUpgrade);
-      expect(upgrade.getMagnetRadius()).toBe(260);
-      expect(upgrade.getMagnetForce()).toBe(380);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.RADIUS)).toBe(260);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.FORCE)).toBe(380);
     });
   });
 
@@ -216,9 +225,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const missileUpgrade = UPGRADES.find((u) => u.id === 'missile')!;
 
       upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileLevel()).toBe(1);
-      expect(upgrade.getMissileDamage()).toBe(80);
-      expect(upgrade.getMissileCount()).toBe(2);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.MISSILE)).toBe(1);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(80);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(2);
     });
 
     it('레벨 3 수치 확인', async () => {
@@ -227,8 +236,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const missileUpgrade = UPGRADES.find((u) => u.id === 'missile')!;
 
       for (let i = 0; i < 3; i++) upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileDamage()).toBe(93);
-      expect(upgrade.getMissileCount()).toBe(3);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(93);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(3);
     });
 
     it('레벨 2~5 수치 진행 확인', async () => {
@@ -238,23 +247,23 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       // 레벨 2: 발당 피해 증가
       for (let i = 0; i < 2; i++) upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileDamage()).toBe(110);
-      expect(upgrade.getMissileCount()).toBe(2);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(110);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(2);
 
       // 레벨 3: 미사일 수 증가, 발당 피해 감소
       upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileCount()).toBe(3);
-      expect(upgrade.getMissileDamage()).toBe(93);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(3);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(93);
 
       // 레벨 4: 미사일 수 증가, 발당 피해 감소
       upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileCount()).toBe(4);
-      expect(upgrade.getMissileDamage()).toBe(85);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(4);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(85);
 
       // 레벨 5: 미사일 수 증가, 발당 피해 감소
       upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileCount()).toBe(5);
-      expect(upgrade.getMissileDamage()).toBe(80);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(5);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(80);
     });
 
     it('강한 강화 구간이 L2->L3, L4->L5에 존재해야 함', async () => {
@@ -265,7 +274,7 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const totalDamageByLevel: number[] = [];
       for (let i = 0; i < 5; i++) {
         upgrade.applyUpgrade(missileUpgrade);
-        totalDamageByLevel.push(upgrade.getMissileDamage() * upgrade.getMissileCount());
+        totalDamageByLevel.push(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE) * upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT));
       }
 
       // 총 데미지가 레벨마다 증가해야 함
@@ -280,9 +289,9 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const missileUpgrade = UPGRADES.find((u) => u.id === 'missile')!;
 
       for (let i = 0; i < 8; i++) upgrade.applyUpgrade(missileUpgrade);
-      expect(upgrade.getMissileLevel()).toBe(5);
-      expect(upgrade.getMissileDamage()).toBe(80);
-      expect(upgrade.getMissileCount()).toBe(5);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.MISSILE)).toBe(5);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(80);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(5);
     });
   });
 
@@ -293,8 +302,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const blackHoleUpgrade = UPGRADES.find((u) => u.id === 'black_hole')!;
 
       upgrade.applyUpgrade(blackHoleUpgrade);
-      expect(upgrade.getBlackHoleLevel()).toBe(1);
-      expect(upgrade.getBlackHoleData()).toEqual({
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.BLACK_HOLE)).toBe(1);
+      expect(upgrade.getLevelData(ABILITY_IDS.BLACK_HOLE)).toEqual({
         damageInterval: 300,
         damage: 1,
         force: 260,
@@ -317,8 +326,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
 
       for (let i = 0; i < 5; i++) upgrade.applyUpgrade(blackHoleUpgrade);
 
-      expect(upgrade.getBlackHoleLevel()).toBe(5);
-      expect(upgrade.getBlackHoleData()).toEqual({
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.BLACK_HOLE)).toBe(5);
+      expect(upgrade.getLevelData(ABILITY_IDS.BLACK_HOLE)).toEqual({
         damageInterval: 200,
         damage: 5,
         force: 340,
@@ -342,8 +351,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const hpUpgrade = UPGRADES.find((u) => u.id === 'health_pack')!;
 
       upgrade.applyUpgrade(hpUpgrade);
-      expect(upgrade.getHealthPackLevel()).toBe(1);
-      expect(upgrade.getHealthPackDropBonus()).toBeCloseTo(0.03);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.HEALTH_PACK)).toBe(1);
+      expect(upgrade.getEffectValue(ABILITY_IDS.HEALTH_PACK, HEALTH_PACK_EFFECT_KEYS.DROP_CHANCE_BONUS)).toBeCloseTo(0.03);
 
       // 이벤트 발생 확인
       expect(mockEmit).toHaveBeenCalledWith('healthPack:upgraded', { hpBonus: 1 });
@@ -355,8 +364,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       const hpUpgrade = UPGRADES.find((u) => u.id === 'health_pack')!;
 
       for (let i = 0; i < 3; i++) upgrade.applyUpgrade(hpUpgrade);
-      expect(upgrade.getHealthPackLevel()).toBe(3);
-      expect(upgrade.getHealthPackDropBonus()).toBeCloseTo(0.09);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.HEALTH_PACK)).toBe(3);
+      expect(upgrade.getEffectValue(ABILITY_IDS.HEALTH_PACK, HEALTH_PACK_EFFECT_KEYS.DROP_CHANCE_BONUS)).toBeCloseTo(0.09);
 
       // 마지막 호출 이벤트 확인
       expect(mockEmit).toHaveBeenLastCalledWith('healthPack:upgraded', { hpBonus: 3 });
@@ -372,8 +381,8 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       for (let i = 0; i < 7; i++) upgrade.applyUpgrade(cursorUpgrade);
 
       expect(upgrade.getUpgradeStack('cursor_size')).toBe(3);
-      expect(upgrade.getCursorSizeBonus()).toBeCloseTo(0.5);
-      expect(upgrade.getCursorDamageBonus()).toBe(10);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS)).toBeCloseTo(0.5);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.DAMAGE)).toBe(10);
     });
 
     it('모든 어빌리티 maxStack이 데이터의 levels.length와 일치', async () => {
@@ -405,21 +414,21 @@ describe('UpgradeSystem - 레벨 배열 기반 시스템', () => {
       upgrade.reset();
 
       // 확인
-      expect(upgrade.getCursorSizeBonus()).toBe(0);
-      expect(upgrade.getCursorDamageBonus()).toBe(0);
-      expect(upgrade.getCriticalChanceLevel()).toBe(0);
-      expect(upgrade.getCriticalChanceBonus()).toBe(0);
-      expect(upgrade.getElectricShockLevel()).toBe(0);
-      expect(upgrade.getElectricShockRadius()).toBe(0);
-      expect(upgrade.getElectricShockDamage()).toBe(0);
-      expect(upgrade.getMagnetLevel()).toBe(0);
-      expect(upgrade.getMagnetRadius()).toBe(0);
-      expect(upgrade.getMagnetForce()).toBe(0);
-      expect(upgrade.getMissileLevel()).toBe(0);
-      expect(upgrade.getMissileDamage()).toBe(0);
-      expect(upgrade.getMissileCount()).toBe(0);
-      expect(upgrade.getBlackHoleLevel()).toBe(0);
-      expect(upgrade.getBlackHoleData()).toBeNull();
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CURSOR_SIZE, CURSOR_SIZE_EFFECT_KEYS.DAMAGE)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.CRITICAL_CHANCE)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.CRITICAL_CHANCE, CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.RADIUS)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.ELECTRIC_SHOCK, ELECTRIC_SHOCK_EFFECT_KEYS.DAMAGE)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.MAGNET)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.RADIUS)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MAGNET, MAGNET_EFFECT_KEYS.FORCE)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.MISSILE)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)).toBe(0);
+      expect(upgrade.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)).toBe(0);
+      expect(upgrade.getAbilityLevel(ABILITY_IDS.BLACK_HOLE)).toBe(0);
+      expect(upgrade.getLevelData(ABILITY_IDS.BLACK_HOLE)).toBeNull();
     });
   });
 

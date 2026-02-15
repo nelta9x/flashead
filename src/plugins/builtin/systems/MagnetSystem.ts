@@ -7,6 +7,10 @@ import type { EntityDamageService } from '../services/EntityDamageService';
 import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { ParticleManager } from '../../../effects/ParticleManager';
 import type { GameEnvironment } from '../../../scenes/game/GameEnvironment';
+import {
+  ABILITY_IDS,
+  MAGNET_EFFECT_KEYS,
+} from '../services/upgrades/AbilityEffectCatalog';
 
 interface MagnetSystemDeps {
   world: World;
@@ -35,7 +39,7 @@ export class MagnetSystem implements EntitySystem {
   }
 
   tick(delta: number): void {
-    const magnetLevel = this.upgradeSystem.getMagnetLevel();
+    const magnetLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MAGNET);
     const cursor = this.gameEnv.getCursorPosition();
 
     if (magnetLevel <= 0) {
@@ -45,8 +49,14 @@ export class MagnetSystem implements EntitySystem {
       return;
     }
 
-    const magnetRadius = this.upgradeSystem.getMagnetRadius();
-    const magnetForce = this.upgradeSystem.getMagnetForce();
+    const magnetRadius = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.MAGNET,
+      MAGNET_EFFECT_KEYS.RADIUS,
+    );
+    const magnetForce = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.MAGNET,
+      MAGNET_EFFECT_KEYS.FORCE,
+    );
     const deltaSeconds = delta / 1000;
 
     for (const [entityId, , , t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {

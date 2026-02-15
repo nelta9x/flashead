@@ -96,30 +96,33 @@ export class BossRosterSync {
       this.waveSystem.getCurrentWaveBossSpawnMinDistance()
     );
 
-    const plugin = PluginRegistry.getInstance().getEntityType('boss_standard');
-
     for (const bossConfig of bossConfigs) {
       let boss = this.bosses.get(bossConfig.id);
       const spawnPosition = spawnPositions.get(bossConfig.id);
       if (!spawnPosition) continue;
+
+      const plugin = PluginRegistry.getInstance().getEntityType(bossConfig.entityTypeId);
+      if (!plugin) {
+        throw new Error(
+          `Missing boss entity plugin for boss "${bossConfig.id}" (entityTypeId="${bossConfig.entityTypeId}")`
+        );
+      }
 
       if (!boss) {
         boss = new Entity(this.scene);
         this.bosses.set(bossConfig.id, boss);
       }
 
-      if (plugin) {
-        const config = {
-          entityId: INVALID_ENTITY_ID,
-          entityType: 'boss_standard',
-          hp: this.monsterSystem.getMaxHp(bossConfig.id) || 1,
-          lifetime: null,
-          isGatekeeper: true,
-          bossDataId: bossConfig.id,
-        };
-        boss.active = true;
-        initializeEntitySpawn(boss, this.world, config, plugin, spawnPosition.x, spawnPosition.y);
-      }
+      const config = {
+        entityId: INVALID_ENTITY_ID,
+        entityType: bossConfig.entityTypeId,
+        hp: this.monsterSystem.getMaxHp(bossConfig.id) || 1,
+        lifetime: null,
+        isGatekeeper: true,
+        bossDataId: bossConfig.id,
+      };
+      boss.active = true;
+      initializeEntitySpawn(boss, this.world, config, plugin, spawnPosition.x, spawnPosition.y);
 
       this.monsterSystem.publishBossHpSnapshot(bossConfig.id);
       this.setNextLaserTime(bossConfig.id, this.getCurrentGameTime());

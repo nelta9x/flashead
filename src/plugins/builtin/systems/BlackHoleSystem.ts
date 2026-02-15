@@ -11,6 +11,10 @@ import type { BossCombatCoordinator } from '../services/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../../world';
 import type { EntitySystem, SystemStartContext } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
+import {
+  ABILITY_IDS,
+  CRITICAL_CHANCE_EFFECT_KEYS,
+} from '../services/upgrades/AbilityEffectCatalog';
 
 export interface BlackHoleSnapshot {
   x: number;
@@ -75,18 +79,21 @@ export class BlackHoleSystem implements EntitySystem {
   }
 
   update(delta: number, gameTime: number): void {
-    const level = this.upgradeSystem.getBlackHoleLevel();
+    const level = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.BLACK_HOLE);
     if (level <= 0) {
       this.clear();
       return;
     }
 
-    const blackHoleData = this.upgradeSystem.getBlackHoleData();
+    const blackHoleData = this.upgradeSystem.getLevelData<BlackHoleLevelData>(ABILITY_IDS.BLACK_HOLE);
     if (!blackHoleData) {
       this.clear();
       return;
     }
-    const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
+    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CRITICAL_CHANCE,
+      CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
+    );
 
     this.expireBlackHoles(delta);
 

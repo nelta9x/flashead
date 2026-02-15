@@ -7,6 +7,11 @@ import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { HealthSystem } from '../../../systems/HealthSystem';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import { computeCursorSmoothing } from '../../../utils/cursorSmoothing';
+import {
+  ABILITY_IDS,
+  CURSOR_SIZE_EFFECT_KEYS,
+  MAGNET_EFFECT_KEYS,
+} from '../services/upgrades/AbilityEffectCatalog';
 
 /**
  * PlayerTickSystem: Player entity의 위치 보간, 커서 트레일, 커서 렌더링을 처리.
@@ -62,7 +67,10 @@ export class PlayerTickSystem implements EntitySystem {
   }
 
   private computeCursorRadius(): number {
-    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CURSOR_SIZE,
+      CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+    );
     return CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
   }
 
@@ -78,9 +86,12 @@ export class PlayerTickSystem implements EntitySystem {
     const playerRender = this.world.playerRender.get(id);
     if (!transform || !playerRender) return;
 
-    const magnetLevel = this.upgradeSystem.getMagnetLevel();
-    const magnetRadius = this.upgradeSystem.getMagnetRadius();
-    const electricLevel = this.upgradeSystem.getElectricShockLevel();
+    const magnetLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MAGNET);
+    const magnetRadius = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.MAGNET,
+      MAGNET_EFFECT_KEYS.RADIUS,
+    );
+    const electricLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.ELECTRIC_SHOCK);
     const currentHp = this.healthSystem.getHp();
     const maxHp = this.healthSystem.getMaxHp();
 

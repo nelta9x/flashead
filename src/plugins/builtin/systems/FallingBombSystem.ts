@@ -10,6 +10,10 @@ import type { World } from '../../../world';
 import type { EntityPoolManager } from '../../../systems/EntityPoolManager';
 import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
+import {
+  ABILITY_IDS,
+  CURSOR_SIZE_EFFECT_KEYS,
+} from '../services/upgrades/AbilityEffectCatalog';
 
 const OFFSCREEN_MARGIN = 40;
 
@@ -67,7 +71,10 @@ export class FallingBombSystem implements EntitySystem {
     // Cursor collision check (post-movement)
     const playerT = this.world.transform.get(this.world.context.playerId);
     if (playerT) {
-      const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+      const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.CURSOR_SIZE,
+        CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+      );
       const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
       this.checkCursorCollision(playerT.x, playerT.y, cursorRadius);
     }

@@ -90,6 +90,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
   - `BossCoordinatorSystem` (`core:boss_coordinator`): BossCombatCoordinator.update() 위임
   - `InitialEntitySpawnSystem` (`core:initial_spawn`): data-driven 초기 엔티티 스폰. `game-config.json`의 `initialEntities` 배열 순서대로 `EntityTypePlugin.spawn()` 호출. `start()`만 사용, `tick()`은 no-op.
   - **`PlayerTickSystem` (`core:player`)**: Player entity의 위치 보간(smoothing), 커서 트레일, 커서 렌더링 처리. World store에서 읽고 CursorRenderer/CursorTrail에 위임. `renderOnly(delta)` 메서드로 pause 시 visual만 실행.
+  - `AbilityTickSystem` (`core:ability_tick`): `AbilityManager.update(delta, gameTime, playerX, playerY)` 호출을 ECS 파이프라인으로 통합 실행.
   - `BossReactionSystem` (`core:boss_reaction`): `BossStateComponent` 기반 보스 피격/사망 리액션 트윈
   - `EntityRenderSystem` (`core:entity_render`): World → Phaser Container 동기화 + DishRenderer/BossRenderer 렌더 + typePlugin.onUpdate
   - `BlackHoleSystem` (`core:black_hole`): World query로 접시/폭탄 흡인 + 피해 + 렌더링
@@ -97,9 +98,9 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
   - `FallingBombSystem` (`core:falling_bomb`): World query로 낙하 폭탄 스폰/이동/충돌 + 커서 충돌 체크
   - `HealthPackSystem` (`core:health_pack`): World query로 힐팩 스폰/이동/충돌 + 수집 체크
   - `ModTickSystem` (`core:mod_tick`): ModSystemRegistry.runAll()
-- **`EntitySystemPipeline.ts`** (`src/systems/`): data-driven 엔티티 시스템 실행 파이프라인. `game-config.json`의 `entityPipeline` 배열이 실행 순서의 SSOT (19개 시스템). `register(system)`, `unregister(id)`, `setEnabled(id, enabled)`, `run(delta)`. config 순서대로 배치 → config에 없는 등록 시스템은 끝에 추가. `getMissingSystems()`, `getUnmappedSystems()`, `getRegisteredIds()` 진단 메서드 제공.
-  - GameScene 호출 순서: `syncWorldContext()` → `entitySystemPipeline.run(delta)` (19개 시스템 순차, 모든 tick 로직 포함)
-  - 파이프라인 순서: initial_spawn → wave → combo → status_effect_tick → entity_status → entity_timing → player → entity_movement → boss_reaction → boss_coordinator → magnet → cursor_attack → black_hole → orb → falling_bomb → health_pack → entity_visual → entity_render → mod_tick
+- **`EntitySystemPipeline.ts`** (`src/systems/`): data-driven 엔티티 시스템 실행 파이프라인. `game-config.json`의 `entityPipeline` 배열이 실행 순서의 SSOT (20개 시스템). `register(system)`, `unregister(id)`, `setEnabled(id, enabled)`, `run(delta)`. config 순서대로 배치 → config에 없는 등록 시스템은 끝에 추가. `getMissingSystems()`, `getUnmappedSystems()`, `getRegisteredIds()` 진단 메서드 제공.
+  - GameScene 호출 순서: `syncWorldContext()` → `entitySystemPipeline.run(delta)` (20개 시스템 순차, 모든 tick 로직 포함)
+  - 파이프라인 순서: initial_spawn → wave → combo → status_effect_tick → entity_status → entity_timing → player → ability_tick → entity_movement → boss_reaction → boss_coordinator → magnet → cursor_attack → black_hole → orb → falling_bomb → health_pack → entity_visual → entity_render → mod_tick
 - **`builtin/systems/GameLevelSystemsPlugin.ts`**: ComboTickSystem(colocate) + StatusEffectTickSystem을 파이프라인에 등록하는 SystemPlugin.
 - **`Entity.ts` 연동**: 경량 Phaser wrapper (~182줄). `deactivate()` 시 `StatusEffectManager.clearEntity()` 및 `World.destroyEntity()` 자동 호출로 풀 반환 시 잔류 효과/컴포넌트 방지. `spawn()` 시 `EntitySpawnInitializer`를 통해 World 컴포넌트를 초기화. freeze/slow는 StatusEffectManager로 위임. 모든 tick 로직은 외부 ECS 시스템이 World 스토어를 직접 읽어 처리.
 
@@ -143,9 +144,9 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
     - `wave/WaveConfigResolver.ts`: 웨이브/무한/피버 구성 계산
     - `wave/WavePhaseController.ts`: waiting/countdown/spawning 상태와 카운트다운 이벤트 틱
     - `wave/WaveSpawnPlanner.ts`: 접시 타입 롤 + 스폰 위치 제약 검증(보스/접시 거리)
-  - **`waveBossConfig.ts`**: 웨이브별 보스 구성 해석 유틸리티. `bossTotalHp`/`hpWeight` 분배, 무한 웨이브 보스 수/총 HP 스케일링.
+  - **`waveBossConfig.ts`**: 웨이브별 보스 구성 해석 유틸리티. `bossTotalHp`/`hpWeight` 분배, 무한 웨이브 보스 수/총 HP 스케일링, 보스별 `entityTypeId` 보존 및 fallback(`boss.defaultEntityTypeId`) 적용.
   - **`ComboSystem.ts`**: 콤보 증가, 타임아웃 처리, 마일스톤 관리. `COMBO_MILESTONE` 이벤트 발행.
-  - **`UpgradeSystem.ts`**: 업그레이드 파사드. 저주 업그레이드 쿼리 메서드 제공.
+  - **`UpgradeSystem.ts`**: 업그레이드 파사드. 전용 getter 대신 공통 조회 API(`getAbilityLevel`, `getEffectValue`, `getLevelData`, `getSystemUpgrade`)를 공식 진입점으로 사용.
     - `upgrades/UpgradeDescriptionFormatter.ts`: 로케일 템플릿 기반 설명 문자열 생성
     - `upgrades/UpgradePreviewModelBuilder.ts`: 카드 프리뷰 모델 생성
   - **`MonsterSystem.ts`**: 보스 몬스터 HP/사망 상태를 `bossId`별 `Map`으로 관리. `MONSTER_HP_CHANGED`/`MONSTER_DIED` 발행.
@@ -155,7 +156,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
   - **`FeedbackSystem.ts`**: 시각적/청각적 피드백 조율. `ParticleManager`, `ScreenShake`, `DamageText` 통합 제어.
   - **`EntityDamageService.ts`**: 엔티티 데미지 처리/해석 서비스.
   - **`DishDamageResolver.ts`**, **`DishEventPayloadFactory.ts`**: 접시 데미지 로직 및 이벤트 payload 생성.
-  - **`BossCombatCoordinator.ts`**: 멀티 보스 동기화, 보스 스폰 배치, 레이저 스케줄/취소/충돌, 보스 접촉 데미지, 다중 공격 스케줄링, 보스 스냅샷 제공.
+  - **`BossCombatCoordinator.ts`**: 멀티 보스 동기화, 보스 스폰 배치, 레이저 스케줄/취소/충돌, 보스 접촉 데미지, 다중 공격 스케줄링, 보스 스냅샷 제공. `BossRosterSync`는 `waves[].bosses[].entityTypeId` 기반으로 EntityType 플러그인을 조회한다.
     - `boss/BossRosterSync.ts`, `boss/BossLaserController.ts`, `boss/BossContactDamageController.ts`, `boss/BossAttackScheduler.ts`
     - `boss/BossBulletSpreadController.ts`, `boss/BossShockwaveController.ts`, `boss/BossDangerZoneController.ts`
   - **`DishLifecycleController.ts`**: 접시 이벤트 처리 및 스폰 전담. `dish/DishSpawnService.ts`, `dish/DishResolutionService.ts`.
@@ -223,14 +224,14 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 - **`src/data/constants.ts`**: JSON 기반 데이터 중 코드에서 자주 쓰이는 물리/기하학적 상수.
 - **`src/data/game.config.ts`**: Phaser 엔진 기술 설정 (물리, 렌더링, 스케일, 오디오 등).
 - **데이터 파일 목록 (`data/*.json`)**:
-  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT. **`entityPipeline`**: 19개 엔티티 시스템 실행 순서 배열 (초기 스폰 1개 + 게임 레벨 5개 + 엔티티 13개). **`systemPlugins`**: 서비스/시스템 플러그인 활성화 목록. **`entityTypes`**: 활성화할 빌트인 엔티티 타입 ID 배열 (factory map 기반 동적 등록). **`abilities`**: 활성화할 빌트인 어빌리티 ID 배열 (factory map 기반 동적 등록). **`initialEntities`**: 게임 시작 시 data-driven 스폰할 엔티티 타입 ID 배열.
+  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT. **`entityPipeline`**: 20개 엔티티 시스템 실행 순서 배열 (초기 스폰 1개 + 게임 레벨 6개 + 엔티티 13개). **`systemPlugins`**: 서비스/시스템 플러그인 활성화 목록. **`entityTypes`**: 활성화할 빌트인 엔티티 타입 ID 배열 (factory map 기반 동적 등록). **`abilities`**: 활성화할 빌트인 어빌리티 ID 배열 (factory map 기반 동적 등록). **`initialEntities`**: 게임 시작 시 data-driven 스폰할 엔티티 타입 ID 배열.
   - `locales.json`: 다국어(EN, KO) 번역 데이터 및 업그레이드 설명/카드 라벨 템플릿 (`upgrade.stat.*`, `upgrade.card.*`).
   - `main-menu.json`: 메인 메뉴 씬 설정 (별 배경, 보스 애니메이션, 메뉴 접시 스폰, 언어 UI 설정).
   - `colors.json`: 게임 내 모든 색상 팔레트 및 테마 (숫자값/hex).
   - `entities.json` (신규): dishes.json + boss.json을 통합한 엔티티 타입 정의 + **`archetypes` 섹션**(6종 아키타입의 컴포넌트 구성을 문자열 배열로 정의). 접시/보스/폭탄 모두 동일한 스키마로 관리하며, `cursorInteraction`, `isGatekeeper`, `movement`, `visual` 등 타입별 설정 포함. 폭탄 타입은 `bombWarning` 필드를 가지며 `DataManager.getBombData()`로 조회.
   - `dishes.json`: 적 종류별 체력, 크기, 수명, 특수 속성 설정 (레거시, entities.json으로 마이그레이션 예정).
-  - `waves.json`: 웨이브별 구성, 난이도 곡선, 멀티 보스 구성(`bossTotalHp`, `bosses[]`, `bossSpawnMinDistance`), 무한 웨이브 스케일링 설정(`infiniteBossCount`, `amberStart*`, `maxAmberWeight`, `dishTypeScaling[]` 포함).
-  - `boss.json`: 보스 비주얼 및 공격 설정 (레거시, entities.json으로 마이그레이션 예정).
+  - `waves.json`: 웨이브별 구성, 난이도 곡선, 멀티 보스 구성(`bossTotalHp`, `bosses[].entityTypeId`, `bossSpawnMinDistance`), 무한 웨이브 스케일링 설정(`infiniteBossCount`, `amberStart*`, `maxAmberWeight`, `dishTypeScaling[]` 포함).
+  - `boss.json`: 보스 비주얼 및 공격 설정 + fallback 스폰용 `defaultEntityTypeId` (레거시, entities.json으로 마이그레이션 예정).
   - `upgrades.json`: 업그레이드 어빌리티 정의, 확률(Rarity), 효과 수치, 카드 프리뷰 표시 스키마(`previewDisplay`).
   - `feedback.json`: 연출용 수치 (흔들림 강도, 파티클 개수, 슬로우모션 강도, 커서 트레일 설정).
   - `combo.json`: 콤보 타임아웃, 마일스톤, 배율 공식, 게이지 보너스.

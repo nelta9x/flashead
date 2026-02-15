@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, CURSOR_HITBOX, HEAL_PACK } from '../../../data/constants';
 import { Data } from '../../../data/DataManager';
-import type { HealthPackLevelData } from '../../../data/types';
 import type { Entity } from '../../../entities/Entity';
 import { HealthPackRenderer } from '../abilities/HealthPackRenderer';
 import { EventBus, GameEvents } from '../../../utils/EventBus';
@@ -11,6 +10,11 @@ import type { World } from '../../../world';
 import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { EntityPoolManager } from '../../../systems/EntityPoolManager';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
+import {
+  ABILITY_IDS,
+  CURSOR_SIZE_EFFECT_KEYS,
+  HEALTH_PACK_EFFECT_KEYS,
+} from '../services/upgrades/AbilityEffectCatalog';
 
 const OFFSCREEN_MARGIN = 40;
 
@@ -68,7 +72,10 @@ export class HealthPackSystem implements EntitySystem {
     // Cursor collection check (post-movement)
     const playerT = this.world.transform.get(this.world.context.playerId);
     if (playerT) {
-      const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+      const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.CURSOR_SIZE,
+        CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+      );
       const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
       this.checkCollection(playerT.x, playerT.y, cursorRadius);
     }
@@ -95,7 +102,10 @@ export class HealthPackSystem implements EntitySystem {
   }
 
   getSpawnChance(): number {
-    const upgradeBonus = this.upgradeSystem.getLevelData<HealthPackLevelData>('health_pack')?.dropChanceBonus ?? 0;
+    const upgradeBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.HEALTH_PACK,
+      HEALTH_PACK_EFFECT_KEYS.DROP_CHANCE_BONUS,
+    );
     return HEAL_PACK.BASE_SPAWN_CHANCE + upgradeBonus;
   }
 

@@ -56,7 +56,7 @@ sequenceDiagram
   GS->>CFG: systemPlugins[] 읽기
   GS->>PR: getSystemPlugin(id).createSystems()
   GS->>CFG: entityPipeline[] 읽기
-  GS->>PP: register() (19개 시스템, config 순서)
+  GS->>PP: register() (20개 시스템, config 순서)
   GS->>PP: startAll() → initialEntities[] 스폰
 ```
 
@@ -208,6 +208,13 @@ const ABILITY_FACTORIES: Record<string, () => AbilityPlugin> = {
 5. **팩토리 맵 등록**: `src/plugins/builtin/entities/index.ts`의 `ENTITY_TYPE_FACTORIES`에 한 줄 추가
 6. **활성화**: `data/game-config.json`의 `entityTypes` 배열에 ID 추가
 
+#### 보스 타입 선택 규칙
+
+- 보스 스폰 타입은 하드코딩하지 않고 `data/waves.json`의 `waves[].bosses[].entityTypeId`를 SSOT로 사용한다.
+- 무한 웨이브 템플릿(`infiniteBossTemplate[]`)도 동일하게 `entityTypeId`를 명시한다.
+- 웨이브 보스 배열이 비어 fallback 생성이 필요한 경우 `data/boss.json.defaultEntityTypeId`를 사용한다.
+- `BossRosterSync`는 `PluginRegistry.getEntityType(entityTypeId)`를 사용하며, 미등록이면 즉시 예외를 던진다.
+
 ```typescript
 // entities/index.ts — 팩토리 맵에 한 줄 추가
 const ENTITY_TYPE_FACTORIES: Record<string, () => EntityTypePlugin> = {
@@ -258,7 +265,7 @@ const ENTITY_TYPE_FACTORIES: Record<string, () => EntityTypePlugin> = {
 | `systemPlugins` | 활성 SystemPlugin ID | `["core:initial_spawn", "core:world_systems", ...]` |
 | `entityTypes` | 활성 EntityType ID | `["player", "basic", "golden", ..., "boss_standard"]` |
 | `abilities` | 활성 Ability ID | `["cursor_size", "critical_chance", ...]` |
-| `entityPipeline` | 시스템 실행 순서 (19개) | `["core:initial_spawn", "core:wave", ...]` |
+| `entityPipeline` | 시스템 실행 순서 (20개) | `["core:initial_spawn", "core:wave", ..., "core:player", "core:ability_tick", ...]` |
 | `initialEntities` | 게임 시작 시 스폰할 엔티티 | `["player"]` |
 
 **추가/제거는 이 배열만 수정하면 된다.** 코어 코드 변경 불필요.

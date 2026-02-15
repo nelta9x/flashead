@@ -222,6 +222,7 @@ vi.mock('../src/plugins/PluginRegistry', () => ({
 
 interface WaveBossConfigStub {
   id: string;
+  entityTypeId: string;
   spawnRange: { minX: number; maxX: number; minY: number; maxY: number };
   laser: { maxCount: number; minInterval: number; maxInterval: number };
 }
@@ -335,9 +336,7 @@ describe('BossCombatCoordinator', () => {
       laserRenderer: laserRenderer as never,
       healthSystem: healthSystem as never,
       upgradeSystem: {
-        getCursorSizeBonus: () => 0,
-        getCursorDamageBonus: () => 0,
-        getCriticalChanceBonus: () => 0,
+        getEffectValue: () => 0,
       } as never,
       damageService: { freeze: vi.fn(), unfreeze: vi.fn() } as never,
       world: {
@@ -355,11 +354,13 @@ describe('BossCombatCoordinator', () => {
     waveBosses = [
       {
         id: 'boss_left',
+        entityTypeId: 'boss_standard',
         spawnRange: { minX: 300, maxX: 320, minY: 100, maxY: 120 },
         laser: { maxCount: 1, minInterval: 0, maxInterval: 0 },
       },
       {
         id: 'boss_right',
+        entityTypeId: 'boss_standard',
         spawnRange: { minX: 900, maxX: 920, minY: 100, maxY: 120 },
         laser: { maxCount: 1, minInterval: 0, maxInterval: 0 },
       },
@@ -387,6 +388,7 @@ describe('BossCombatCoordinator', () => {
     waveBosses = [
       {
         id: 'boss_right',
+        entityTypeId: 'boss_standard',
         spawnRange: { minX: 900, maxX: 920, minY: 100, maxY: 120 },
         laser: { maxCount: 1, minInterval: 0, maxInterval: 0 },
       },
@@ -455,6 +457,7 @@ describe('BossCombatCoordinator', () => {
     waveBosses = [
       {
         id: 'boss_left',
+        entityTypeId: 'boss_standard',
         spawnRange: { minX: 300, maxX: 320, minY: 100, maxY: 120 },
         laser: { maxCount: 1, minInterval: 0, maxInterval: 0 },
       },
@@ -489,6 +492,7 @@ describe('BossCombatCoordinator', () => {
     waveBosses = [
       {
         id: 'boss_left',
+        entityTypeId: 'boss_standard',
         spawnRange: { minX: 300, maxX: 320, minY: 100, maxY: 120 },
         laser: { maxCount: 1, minInterval: 0, maxInterval: 0 },
       },

@@ -15,6 +15,16 @@ import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
 import type { BossInteractionGateway } from './ContentContracts';
 import type { GameEnvironment } from '../../../scenes/game/GameEnvironment';
+import {
+  ABILITY_IDS,
+  BERSERKER_EFFECT_KEYS,
+  CRITICAL_CHANCE_EFFECT_KEYS,
+  CURSOR_SIZE_EFFECT_KEYS,
+  GLASS_CANNON_EFFECT_KEYS,
+  MISSILE_EFFECT_KEYS,
+  VOLATILITY_EFFECT_KEYS,
+} from './upgrades/AbilityEffectCatalog';
+import { computeGlobalDamageMultiplier } from './upgrades/CurseEffectMath';
 
 interface PlayerAttackControllerDeps {
   scene: Phaser.Scene;
@@ -99,8 +109,8 @@ export class PlayerAttackController {
 
         const baseAttack = Data.gameConfig.playerAttack;
         const missileCount =
-          this.upgradeSystem.getMissileLevel() > 0
-            ? this.upgradeSystem.getMissileCount()
+          this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MISSILE) > 0
+            ? this.upgradeSystem.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.COUNT)
             : baseAttack.baseMissileCount;
 
         for (let i = 0; i < missileCount; i++) {
@@ -147,7 +157,10 @@ export class PlayerAttackController {
     const speed = config.fire.duration * (1 - intensity * 0.3);
     const missileThicknessMultiplier = Math.max(
       0.1,
-      1 + this.upgradeSystem.getCursorMissileThicknessBonus()
+      1 + this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.CURSOR_SIZE,
+        CURSOR_SIZE_EFFECT_KEYS.MISSILE_THICKNESS_BONUS,
+      )
     );
 
     const offsetRange = 30 * intensity;
@@ -258,32 +271,50 @@ export class PlayerAttackController {
 
         const attackConfig = Data.gameConfig.playerAttack;
         let totalDamage =
-          this.upgradeSystem.getMissileLevel() > 0
-            ? this.upgradeSystem.getMissileDamage()
+          this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MISSILE) > 0
+            ? this.upgradeSystem.getEffectValue(ABILITY_IDS.MISSILE, MISSILE_EFFECT_KEYS.DAMAGE)
             : attackConfig.baseMissileDamage;
 
+        const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+          ABILITY_IDS.CRITICAL_CHANCE,
+          CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
+        );
         const criticalChance = Math.min(
           1,
-          attackConfig.criticalChance + this.upgradeSystem.getCriticalChanceBonus()
+          attackConfig.criticalChance + criticalChanceBonus
         );
         const isCritical = Math.random() < criticalChance;
 
         // 변덕 저주: 치명타 배율 오버라이드 / 비치명타 패널티
-        const volatilityCritMult = this.upgradeSystem.getVolatilityCritMultiplier();
+        const volatilityCritMult = this.upgradeSystem.getEffectValue(
+          ABILITY_IDS.VOLATILITY,
+          VOLATILITY_EFFECT_KEYS.CRIT_MULTIPLIER,
+        );
         if (isCritical) {
           totalDamage *= volatilityCritMult > 0 ? volatilityCritMult : attackConfig.criticalMultiplier;
         } else {
-          const nonCritPenalty = this.upgradeSystem.getVolatilityNonCritPenalty();
+          const nonCritPenalty = this.upgradeSystem.getEffectValue(
+            ABILITY_IDS.VOLATILITY,
+            VOLATILITY_EFFECT_KEYS.NON_CRIT_PENALTY,
+          );
           if (nonCritPenalty > 0) {
             totalDamage *= nonCritPenalty;
           }
         }
 
         // 글로벌 데미지 승수 (글래스 캐논 + 광전사)
-        totalDamage *= this.upgradeSystem.getGlobalDamageMultiplier(
-          this.healthSystem.getHp(),
-          this.healthSystem.getMaxHp()
-        );
+        totalDamage *= computeGlobalDamageMultiplier({
+          currentHp: this.healthSystem.getHp(),
+          maxHp: this.healthSystem.getMaxHp(),
+          glassCannonDamageMultiplier: this.upgradeSystem.getEffectValue(
+            ABILITY_IDS.GLASS_CANNON,
+            GLASS_CANNON_EFFECT_KEYS.DAMAGE_MULTIPLIER,
+          ),
+          berserkerMissingHpDamagePercent: this.upgradeSystem.getEffectValue(
+            ABILITY_IDS.BERSERKER,
+            BERSERKER_EFFECT_KEYS.MISSING_HP_DAMAGE_PERCENT,
+          ),
+        });
 
         this.monsterSystem.takeDamage(targetBossId, totalDamage, curStartX, curStartY);
 
@@ -375,7 +406,10 @@ export class PlayerAttackController {
   }
 
   private getCursorRadius(): number {
-    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CURSOR_SIZE,
+      CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+    );
     return CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
   }
 }

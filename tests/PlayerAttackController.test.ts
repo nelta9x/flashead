@@ -109,15 +109,19 @@ describe('PlayerAttackController', () => {
       world: mockWorld as never,
       damageService: mockDamageService as never,
       upgradeSystem: {
-        getMissileLevel: () => 0,
-        getMissileCount: () => 1,
-        getMissileDamage: () => 20,
-        getCriticalChanceBonus: () => 0,
-        getCursorMissileThicknessBonus: () => 0,
-        getCursorSizeBonus: () => 0,
-        getVolatilityCritMultiplier: () => 0,
-        getVolatilityNonCritPenalty: () => 0,
-        getGlobalDamageMultiplier: () => 1,
+        getAbilityLevel: (abilityId: string) => (abilityId === 'missile' ? 0 : 0),
+        getEffectValue: (abilityId: string, key: string) => {
+          if (abilityId === 'cursor_size' && key === 'missileThicknessBonus') return 0;
+          if (abilityId === 'cursor_size' && key === 'sizeBonus') return 0;
+          if (abilityId === 'critical_chance' && key === 'criticalChance') return 0;
+          if (abilityId === 'volatility' && key === 'critMultiplier') return 0;
+          if (abilityId === 'volatility' && key === 'nonCritPenalty') return 0;
+          if (abilityId === 'glass_cannon' && key === 'damageMultiplier') return 0;
+          if (abilityId === 'berserker' && key === 'missingHpDamagePercent') return 0;
+          if (abilityId === 'missile' && key === 'count') return 1;
+          if (abilityId === 'missile' && key === 'damage') return 20;
+          return 0;
+        },
       } as never,
       healthSystem: {
         getHp: () => 5,

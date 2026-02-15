@@ -13,6 +13,10 @@ import type { WaveSystem } from '../WaveSystem';
 import type { EntityDamageService } from '../EntityDamageService';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
 import type { ActiveLaser } from './BossCombatTypes';
+import {
+  ABILITY_IDS,
+  CURSOR_SIZE_EFFECT_KEYS,
+} from '../upgrades/AbilityEffectCatalog';
 
 interface BossLaserControllerDeps {
   scene: Phaser.Scene;
@@ -168,7 +172,11 @@ export class BossLaserController {
 
   public checkLaserCollisions(_delta: number, gameTime: number, cursor: CursorSnapshot): void {
     const config = Data.gameConfig.monsterAttack.laser;
-    const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + this.upgradeSystem.getCursorSizeBonus());
+    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CURSOR_SIZE,
+      CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+    );
+    const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 
     for (const laser of this.getActiveLasers()) {
       if (!laser.isFiring) continue;

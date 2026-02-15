@@ -47,6 +47,9 @@ describe('OrbSystem', () => {
     getOrbitingOrbData: ReturnType<typeof vi.fn>;
     getMagnetLevel: ReturnType<typeof vi.fn>;
     getCriticalChanceBonus: ReturnType<typeof vi.fn>;
+    getAbilityLevel: ReturnType<typeof vi.fn>;
+    getLevelData: ReturnType<typeof vi.fn>;
+    getEffectValue: ReturnType<typeof vi.fn>;
     getSystemUpgrade: ReturnType<typeof vi.fn>;
   };
 
@@ -71,11 +74,31 @@ describe('OrbSystem', () => {
     vi.clearAllMocks();
     resetEntityIdCounter();
 
+    const getOrbitingOrbLevel = vi.fn();
+    const getOrbitingOrbData = vi.fn();
+    const getMagnetLevel = vi.fn().mockReturnValue(0);
+    const getCriticalChanceBonus = vi.fn().mockReturnValue(0);
+
     mockUpgradeSystem = {
-      getOrbitingOrbLevel: vi.fn(),
-      getOrbitingOrbData: vi.fn(),
-      getMagnetLevel: vi.fn().mockReturnValue(0),
-      getCriticalChanceBonus: vi.fn().mockReturnValue(0),
+      getOrbitingOrbLevel,
+      getOrbitingOrbData,
+      getMagnetLevel,
+      getCriticalChanceBonus,
+      getAbilityLevel: vi.fn((abilityId: string) => {
+        if (abilityId === 'orbiting_orb') return getOrbitingOrbLevel();
+        if (abilityId === 'magnet') return getMagnetLevel();
+        return 0;
+      }),
+      getLevelData: vi.fn((abilityId: string) => {
+        if (abilityId === 'orbiting_orb') return getOrbitingOrbData();
+        return null;
+      }),
+      getEffectValue: vi.fn((abilityId: string, key: string) => {
+        if (abilityId === 'critical_chance' && key === 'criticalChance') {
+          return getCriticalChanceBonus();
+        }
+        return 0;
+      }),
       getSystemUpgrade: vi.fn().mockReturnValue({
         hitInterval: 300,
         overclockDurationMs: 0,

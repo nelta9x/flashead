@@ -6,6 +6,10 @@ import type { World } from '../../../world';
 import type { EntityDamageService } from '../services/EntityDamageService';
 import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { GameEnvironment } from '../../../scenes/game/GameEnvironment';
+import {
+  ABILITY_IDS,
+  CURSOR_SIZE_EFFECT_KEYS,
+} from '../services/upgrades/AbilityEffectCatalog';
 
 interface CursorAttackSystemDeps {
   world: World;
@@ -32,7 +36,10 @@ export class CursorAttackSystem implements EntitySystem {
 
   tick(_delta: number): void {
     const cursor = this.gameEnv.getCursorPosition();
-    const cursorSizeBonus = this.upgradeSystem.getCursorSizeBonus();
+    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CURSOR_SIZE,
+      CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+    );
     const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
 
     for (const [entityId, , dp, t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {

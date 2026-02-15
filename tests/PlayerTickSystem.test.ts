@@ -24,10 +24,8 @@ function createMockCursorTrail(): CursorTrail {
 
 function createMockUpgradeSystem(): UpgradeSystem {
   return {
-    getCursorSizeBonus: vi.fn(() => 0),
-    getMagnetLevel: vi.fn(() => 0),
-    getMagnetRadius: vi.fn(() => 0),
-    getElectricShockLevel: vi.fn(() => 0),
+    getAbilityLevel: vi.fn(() => 0),
+    getEffectValue: vi.fn(() => 0),
     update: vi.fn(),
   } as unknown as UpgradeSystem;
 }

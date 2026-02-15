@@ -87,9 +87,13 @@ describe('BlackHoleSystem', () => {
 
   const setupSystem = (): void => {
     const upgradeSystem = {
-      getBlackHoleLevel: () => blackHoleLevel,
-      getBlackHoleData: () => blackHoleData,
-      getCriticalChanceBonus: () => criticalChanceBonus,
+      getAbilityLevel: (abilityId: string) => (abilityId === 'black_hole' ? blackHoleLevel : 0),
+      getLevelData: (abilityId: string) => (abilityId === 'black_hole' ? blackHoleData : null),
+      getEffectValue: (abilityId: string, key: string) => (
+        abilityId === 'critical_chance' && key === 'criticalChance'
+          ? criticalChanceBonus
+          : 0
+      ),
     } as unknown as UpgradeSystem;
 
     damageBoss = vi.fn();

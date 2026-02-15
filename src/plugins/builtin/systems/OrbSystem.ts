@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { UpgradeSystem } from '../services/UpgradeSystem';
 import type { EntityDamageService } from '../services/EntityDamageService';
 import type { OrbRenderer } from '../abilities/OrbRenderer';
-import type { SystemUpgradeData } from '../../../data/types';
+import type { OrbitingOrbLevelData, SystemUpgradeData } from '../../../data/types';
 import type { BossRadiusSnapshot } from '../services/ContentContracts';
 import type { BossCombatCoordinator } from '../services/BossCombatCoordinator';
 import { C_DishTag, C_DishProps, C_Transform, C_BombProps } from '../../../world';
@@ -10,6 +10,10 @@ import { FallingBombSystem } from './FallingBombSystem';
 import type { EntitySystem, SystemStartContext } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
+import {
+  ABILITY_IDS,
+  CRITICAL_CHANCE_EFFECT_KEYS,
+} from '../services/upgrades/AbilityEffectCatalog';
 
 export interface OrbPosition {
   x: number;
@@ -83,24 +87,27 @@ export class OrbSystem implements EntitySystem {
     getBossSnapshots: () => BossRadiusSnapshot[] = () => [],
     onBossDamage: (bossId: string, damage: number, x: number, y: number) => void = () => {},
   ): void {
-    const level = this.upgradeSystem.getOrbitingOrbLevel();
+    const level = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.ORBITING_ORB);
     if (level <= 0) {
       this.orbPositions = [];
       this.resetOverclock();
       return;
     }
 
-    const upgradeData = this.upgradeSystem.getSystemUpgrade('orbiting_orb');
+    const upgradeData = this.upgradeSystem.getSystemUpgrade(ABILITY_IDS.ORBITING_ORB);
     const hitInterval = upgradeData?.hitInterval ?? 300;
     const overclockConfig = this.resolveOverclockConfig(upgradeData);
     this.updateOverclockState(gameTime, overclockConfig);
 
-    const stats = this.upgradeSystem.getOrbitingOrbData();
+    const stats = this.upgradeSystem.getLevelData<OrbitingOrbLevelData>(ABILITY_IDS.ORBITING_ORB);
     if (!stats) return;
-    const criticalChanceBonus = this.upgradeSystem.getCriticalChanceBonus();
+    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CRITICAL_CHANCE,
+      CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
+    );
 
     // Magnet Synergy: Increase Size
-    const magnetLevel = this.upgradeSystem.getMagnetLevel();
+    const magnetLevel = this.upgradeSystem.getAbilityLevel(ABILITY_IDS.MAGNET);
     const magnetSynergyPerLevel = upgradeData?.magnetSynergyPerLevel ?? 0.2;
     const synergySizeMultiplier = 1 + magnetLevel * magnetSynergyPerLevel;
     const finalSize = stats.size * synergySizeMultiplier;

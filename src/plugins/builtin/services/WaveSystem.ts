@@ -150,6 +150,15 @@ export class WaveSystem {
         ...boss,
         spawnRange: { ...boss.spawnRange },
         laser: { ...boss.laser },
+        attacks: boss.attacks
+          ? {
+              bulletSpread: boss.attacks.bulletSpread
+                ? { ...boss.attacks.bulletSpread }
+                : undefined,
+              shockwave: boss.attacks.shockwave ? { ...boss.attacks.shockwave } : undefined,
+              dangerZone: boss.attacks.dangerZone ? { ...boss.attacks.dangerZone } : undefined,
+            }
+          : undefined,
       })) ?? []
     );
   }

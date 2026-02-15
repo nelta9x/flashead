@@ -6,6 +6,15 @@ import type { HealthSystem } from '../../../../systems/HealthSystem';
 import type { MonsterSystem } from '../MonsterSystem';
 import type { UpgradeSystem } from '../UpgradeSystem';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
+import {
+  ABILITY_IDS,
+  BERSERKER_EFFECT_KEYS,
+  CRITICAL_CHANCE_EFFECT_KEYS,
+  CURSOR_SIZE_EFFECT_KEYS,
+  GLASS_CANNON_EFFECT_KEYS,
+  VOLATILITY_EFFECT_KEYS,
+} from '../upgrades/AbilityEffectCatalog';
+import { computeGlobalDamageMultiplier } from '../upgrades/CurseEffectMath';
 
 interface BossContactDamageControllerDeps {
   bosses: Map<string, Entity>;
@@ -39,9 +48,17 @@ export class BossContactDamageController {
     gameTime: number
   ): void {
     const damageConfig = Data.dishes.damage;
-    const baseDamage = Math.max(0, damageConfig.playerDamage + this.upgradeSystem.getCursorDamageBonus());
+    const cursorDamageBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CURSOR_SIZE,
+      CURSOR_SIZE_EFFECT_KEYS.DAMAGE,
+    );
+    const baseDamage = Math.max(0, damageConfig.playerDamage + cursorDamageBonus);
+    const criticalChanceBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CRITICAL_CHANCE,
+      CRITICAL_CHANCE_EFFECT_KEYS.CRITICAL_CHANCE,
+    );
     const criticalChance = Phaser.Math.Clamp(
-      (damageConfig.criticalChance ?? 0) + this.upgradeSystem.getCriticalChanceBonus(),
+      (damageConfig.criticalChance ?? 0) + criticalChanceBonus,
       0,
       1
     );
@@ -70,21 +87,35 @@ export class BossContactDamageController {
       const isCritical = Math.random() < criticalChance;
 
       // 변덕 저주: 치명타 배율 오버라이드 / 비치명타 패널티
-      const volatilityCritMult = this.upgradeSystem.getVolatilityCritMultiplier();
+      const volatilityCritMult = this.upgradeSystem.getEffectValue(
+        ABILITY_IDS.VOLATILITY,
+        VOLATILITY_EFFECT_KEYS.CRIT_MULTIPLIER,
+      );
       if (isCritical) {
         damage *= volatilityCritMult > 0 ? volatilityCritMult : criticalMultiplier;
       } else {
-        const nonCritPenalty = this.upgradeSystem.getVolatilityNonCritPenalty();
+        const nonCritPenalty = this.upgradeSystem.getEffectValue(
+          ABILITY_IDS.VOLATILITY,
+          VOLATILITY_EFFECT_KEYS.NON_CRIT_PENALTY,
+        );
         if (nonCritPenalty > 0) {
           damage *= nonCritPenalty;
         }
       }
 
       // 글로벌 데미지 승수 (글래스 캐논 + 광전사)
-      damage *= this.upgradeSystem.getGlobalDamageMultiplier(
-        this.healthSystem.getHp(),
-        this.healthSystem.getMaxHp()
-      );
+      damage *= computeGlobalDamageMultiplier({
+        currentHp: this.healthSystem.getHp(),
+        maxHp: this.healthSystem.getMaxHp(),
+        glassCannonDamageMultiplier: this.upgradeSystem.getEffectValue(
+          ABILITY_IDS.GLASS_CANNON,
+          GLASS_CANNON_EFFECT_KEYS.DAMAGE_MULTIPLIER,
+        ),
+        berserkerMissingHpDamagePercent: this.upgradeSystem.getEffectValue(
+          ABILITY_IDS.BERSERKER,
+          BERSERKER_EFFECT_KEYS.MISSING_HP_DAMAGE_PERCENT,
+        ),
+      });
 
       this.monsterSystem.takeDamage(bossId, damage, cursor.x, cursor.y);
       this.feedbackSystem.onBossContactDamaged(boss.x, boss.y, damage, isCritical);

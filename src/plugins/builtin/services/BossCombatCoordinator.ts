@@ -26,6 +26,10 @@ import { BossContactDamageController } from './boss/BossContactDamageController'
 import { BossLaserController } from './boss/BossLaserController';
 import { BossRosterSync } from './boss/BossRosterSync';
 import type { ActiveLaser } from './boss/BossCombatTypes';
+import {
+  ABILITY_IDS,
+  CURSOR_SIZE_EFFECT_KEYS,
+} from './upgrades/AbilityEffectCatalog';
 
 interface BossCombatCoordinatorDeps {
   scene: Phaser.Scene;
@@ -160,7 +164,11 @@ export class BossCombatCoordinator implements BossInteractionGateway {
       return;
     }
 
-    const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + this.upgradeSystem.getCursorSizeBonus());
+    const cursorSizeBonus = this.upgradeSystem.getEffectValue(
+      ABILITY_IDS.CURSOR_SIZE,
+      CURSOR_SIZE_EFFECT_KEYS.SIZE_BONUS,
+    );
+    const cursorRadius = CURSOR_HITBOX.BASE_RADIUS * (1 + cursorSizeBonus);
     this.bossContactDamageController.updateBossOverlapDamage(cursor, cursorRadius, gameTime);
     this.updateLaser(delta, gameTime, cursor);
     this.bossAttackScheduler.update(delta, gameTime, cursor, cursorRadius);

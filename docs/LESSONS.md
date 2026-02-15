@@ -252,3 +252,19 @@
 ### 사례 요약
 - `MenuBossRenderer`와 `ParticleManager`에서 `{x,y}` 리터럴을 `new Phaser.Math.Vector2(x,y)`로 변경 (총 4곳)
 - 그 외 59개 `import Phaser from 'phaser'` 파일, 37개 테스트 파일 모두 수정 없이 통과
+
+---
+
+## 16. 업그레이드 조회 API 단일화 `occurrences: 1`
+
+### 원칙
+- `UpgradeSystem`에 어빌리티별 전용 getter를 계속 추가하는 방식은 확장 시 결합도를 키운다.
+- 런타임 호출부는 `abilityId + effect key` 기반 공통 API(`getAbilityLevel`, `getEffectValue`, `getLevelData`, `getSystemUpgrade`)만 사용한다.
+- 잘못된 `abilityId`/`effect key`는 조용히 0 처리하지 않고 즉시 예외로 실패시켜 데이터/호출부 오타를 조기 발견한다.
+- 효과 키 난립을 막기 위해 카탈로그 상수(`AbilityEffectCatalog`)를 SSOT로 사용한다.
+- 복합 계산식(예: 저주 배수 합성)은 별도 유틸(`CurseEffectMath`)로 분리해 중복을 제거한다.
+
+### 사례 요약
+- `UpgradeSystem`의 전용 getter 집합을 제거하고 공통 조회 API로 일괄 전환
+- Player/Boss/Dish/System 전역 호출부를 `abilityId + key` 접근으로 통일
+- 테스트 mock shape를 공통 API 기준으로 맞춰 회귀 검증 안정성 확보

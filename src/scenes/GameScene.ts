@@ -101,6 +101,8 @@ export class GameScene extends Phaser.Scene {
     // ── 1. ServiceRegistry ──
     this.serviceRegistry = new ServiceRegistry();
     this.serviceRegistry.set(Phaser.Scene, this as Phaser.Scene);
+    this.abilityManager = new AbilityManager();
+    this.serviceRegistry.set(AbilityManager, this.abilityManager);
 
     // ── 2. ServicePlugin resolve (core:services → core:ecs → core:game_modules) ──
     registerBuiltinServicePlugins();
@@ -147,7 +149,6 @@ export class GameScene extends Phaser.Scene {
       world,
     );
 
-    this.abilityManager = new AbilityManager();
     this.abilityManager.init({
       scene: this,
       upgradeSystem: this.serviceRegistry.get(UpgradeSystem),
