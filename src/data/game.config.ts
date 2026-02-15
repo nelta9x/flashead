@@ -28,6 +28,10 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     pixelArt: Data.gameConfig.render.pixelArt,
     antialias: Data.gameConfig.render.antialias,
   },
+  fps: {
+    target: 60,
+    forceSetTimeOut: false,
+  },
   audio: {
     disableWebAudio: false,
   },
