@@ -28,6 +28,7 @@ export type DamageSource = 'cursor' | 'ability' | 'orb' | 'blackHole' | 'missile
  * 엔티티 타입 플러그인 인터페이스
  * - BasicDish: 일반 접시 타입들 (basic, golden, crystal, mini, amber)
  * - BombDish: 폭탄 접시
+ * - SpaceshipPlugin: 우주선 (dish 아키타입, 드리프트 이동, 발사체 공격)
  * - StandardBoss: 표준 보스
  */
 export interface EntityTypePlugin {

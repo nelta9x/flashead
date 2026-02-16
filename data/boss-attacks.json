@@ -13,18 +13,6 @@
     "projectileColor": "#ff4444",
     "projectileCoreColor": "#ffffff"
   },
-  "shockwave": {
-    "warningDuration": 800,
-    "ringSpeed": 320,
-    "ringThickness": 12,
-    "maxRadius": 600,
-    "damage": 1,
-    "hitboxThickness": 20,
-    "invincibilityDuration": 300,
-    "warningColor": "#ff8800",
-    "ringColor": "#ff8800",
-    "ringCoreColor": "#ffffff"
-  },
   "dangerZone": {
     "warningDuration": 1200,
     "zoneCount": { "min": 2, "max": 3 },

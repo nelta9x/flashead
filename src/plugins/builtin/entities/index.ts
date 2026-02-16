@@ -3,6 +3,7 @@ import { PluginRegistry } from '../../PluginRegistry';
 import { BasicDishPlugin } from './BasicDish';
 import { BombEntityPlugin } from './BombEntity';
 import { StandardBossPlugin } from './StandardBoss';
+import { SpaceshipPlugin } from './SpaceshipPlugin';
 import { PlayerEntityPlugin } from './PlayerEntity';
 import entitiesJson from '../../../../data/entities.json';
 
@@ -26,6 +27,17 @@ const ENTITY_TYPE_FACTORIES: Record<string, () => EntityTypePlugin> = {
   mini: () => createBasicDish('mini'),
   amber: () => createBasicDish('amber'),
   bomb: () => new BombEntityPlugin(),
+  spaceship: () => {
+    const d = entitiesJson.types.spaceship;
+    const mc = 'movement' in d ? d.movement : undefined;
+    return new SpaceshipPlugin(
+      mc as {
+        type: string;
+        drift: { xAmplitude: number; xFrequency: number; yAmplitude: number; yFrequency: number };
+        bounds: { minX: number; maxX: number; minY: number; maxY: number };
+      },
+    );
+  },
   boss_standard: () => {
     const d = entitiesJson.types.boss_standard;
     const mc = 'movement' in d ? d.movement : undefined;

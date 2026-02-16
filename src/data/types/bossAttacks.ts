@@ -15,19 +15,6 @@ export interface BulletSpreadConfig {
   projectileCoreColor: string;
 }
 
-export interface ShockwaveConfig {
-  warningDuration: number;
-  ringSpeed: number;
-  ringThickness: number;
-  maxRadius: number;
-  damage: number;
-  hitboxThickness: number;
-  invincibilityDuration: number;
-  warningColor: string;
-  ringColor: string;
-  ringCoreColor: string;
-}
-
 export interface DangerZoneConfig {
   warningDuration: number;
   zoneCount: { min: number; max: number };
@@ -43,7 +30,6 @@ export interface DangerZoneConfig {
 
 export interface BossAttacksConfig {
   bulletSpread: BulletSpreadConfig;
-  shockwave: ShockwaveConfig;
   dangerZone: DangerZoneConfig;
 }
 
@@ -56,8 +42,7 @@ export interface WaveBossAttackEntry {
 
 export interface WaveBossAttacksConfig {
   bulletSpread?: WaveBossAttackEntry;
-  shockwave?: WaveBossAttackEntry;
   dangerZone?: WaveBossAttackEntry;
 }
 
-export type BossAttackType = 'bulletSpread' | 'shockwave' | 'dangerZone';
+export type BossAttackType = 'bulletSpread' | 'dangerZone';

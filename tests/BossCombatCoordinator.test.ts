@@ -117,11 +117,6 @@ vi.mock('../src/data/DataManager', () => ({
         damage: 1, hitboxRadius: 8, invincibilityDuration: 300,
         warningColor: '#ff4444', projectileColor: '#ff4444', projectileCoreColor: '#ffffff',
       },
-      shockwave: {
-        warningDuration: 800, ringSpeed: 320, ringThickness: 12, maxRadius: 600,
-        damage: 1, hitboxThickness: 20, invincibilityDuration: 300,
-        warningColor: '#ff8800', ringColor: '#ff8800', ringCoreColor: '#ffffff',
-      },
       dangerZone: {
         warningDuration: 1200, zoneCount: { min: 2, max: 3 }, zoneRadius: { min: 80, max: 120 },
         explosionDuration: 300, damage: 1, invincibilityDuration: 300, spawnPadding: 60,

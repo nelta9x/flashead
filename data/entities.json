@@ -81,6 +81,49 @@
       "playerDamage": 1,
       "spawnAnimation": { "duration": 200, "ease": "Back.easeOut" }
     },
+    "spaceship": {
+      "name": "우주선",
+      "hp": 45,
+      "color": "#1a8a5a",
+      "size": 28,
+      "lifetime": 25000,
+      "poolSize": 8,
+      "cursorInteraction": "dps",
+      "playerDamage": 1,
+      "spawnAnimation": { "duration": 200, "ease": "Back.easeOut" },
+      "movement": {
+        "type": "drift",
+        "drift": {
+          "xAmplitude": 400,
+          "xFrequency": 0.0003,
+          "yAmplitude": 120,
+          "yFrequency": 0.0005
+        },
+        "bounds": {
+          "minX": 60, "maxX": 1220,
+          "minY": 60, "maxY": 500
+        }
+      },
+      "projectile": {
+        "speed": 180,
+        "size": 4,
+        "hitboxRadius": 10,
+        "lifetime": 5000,
+        "color": "#ff4444",
+        "coreColor": "#ffaaaa",
+        "damage": 1,
+        "invincibilityDuration": 500,
+        "minInterval": 3000,
+        "maxInterval": 5000,
+        "aimVarianceDeg": 12
+      },
+      "visual": {
+        "bodyColor": "#1a3a5a",
+        "accentColor": "#00ccff",
+        "engineColor": "#00aaff",
+        "enginePulseSpeed": 0.008
+      }
+    },
     "boss_standard": {
       "name": "표준 보스",
       "size": 55,

@@ -9,7 +9,6 @@ import type { FeedbackSystem } from '../FeedbackSystem';
 import type { SoundSystem } from '../SoundSystem';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
 import { BossBulletSpreadController } from './BossBulletSpreadController';
-import { BossShockwaveController } from './BossShockwaveController';
 import { BossDangerZoneController } from './BossDangerZoneController';
 
 interface BossAttackSchedulerDeps {
@@ -44,7 +43,6 @@ export class BossAttackScheduler {
   private readonly bossTimers = new Map<string, BossAttackTimers>();
 
   private readonly bulletSpreadController: BossBulletSpreadController;
-  private readonly shockwaveController: BossShockwaveController;
   private readonly dangerZoneController: BossDangerZoneController;
 
   constructor(deps: BossAttackSchedulerDeps) {
@@ -58,13 +56,6 @@ export class BossAttackScheduler {
     this.isGameOver = deps.isGameOver;
 
     this.bulletSpreadController = new BossBulletSpreadController({
-      scene: this.scene,
-      healthSystem: this.healthSystem,
-      feedbackSystem: this.feedbackSystem,
-      soundSystem: this.soundSystem,
-      isGameOver: this.isGameOver,
-    });
-    this.shockwaveController = new BossShockwaveController({
       scene: this.scene,
       healthSystem: this.healthSystem,
       feedbackSystem: this.feedbackSystem,
@@ -90,7 +81,7 @@ export class BossAttackScheduler {
       isAttacking: false,
     };
 
-    const attackTypes: BossAttackType[] = ['bulletSpread', 'shockwave', 'dangerZone'];
+    const attackTypes: BossAttackType[] = ['bulletSpread', 'dangerZone'];
     for (const type of attackTypes) {
       const entry = attacksConfig[type];
       if (entry?.enabled) {
@@ -164,7 +155,6 @@ export class BossAttackScheduler {
 
     // 3) 각 컨트롤러 업데이트 (활성 공격 갱신/충돌 처리)
     this.bulletSpreadController.update(delta, gameTime, cursor, cursorRadius);
-    this.shockwaveController.update(delta, gameTime, cursor, cursorRadius);
     this.dangerZoneController.update(delta, gameTime, cursor, cursorRadius);
   }
 
@@ -179,14 +169,12 @@ export class BossAttackScheduler {
   public clear(): void {
     this.bossTimers.clear();
     this.bulletSpreadController.clear();
-    this.shockwaveController.clear();
     this.dangerZoneController.clear();
   }
 
   public destroy(): void {
     this.clear();
     this.bulletSpreadController.destroy();
-    this.shockwaveController.destroy();
     this.dangerZoneController.destroy();
   }
 
@@ -204,9 +192,6 @@ export class BossAttackScheduler {
       case 'bulletSpread':
         this.bulletSpreadController.trigger(bossId, boss.x, boss.y, gameTime, waveNumber, onComplete);
         break;
-      case 'shockwave':
-        this.shockwaveController.trigger(bossId, boss.x, boss.y, gameTime, waveNumber, onComplete);
-        break;
       case 'dangerZone':
         this.dangerZoneController.trigger(bossId, boss.x, boss.y, gameTime, waveNumber, cursor, onComplete);
         break;
@@ -223,12 +208,10 @@ export class BossAttackScheduler {
   /** 렌더러 그래픽스 객체 반환 (GameScene에서 depth 관리용) */
   public getRenderers(): {
     bulletSpread: BossBulletSpreadController;
-    shockwave: BossShockwaveController;
     dangerZone: BossDangerZoneController;
   } {
     return {
       bulletSpread: this.bulletSpreadController,
-      shockwave: this.shockwaveController,
       dangerZone: this.dangerZoneController,
     };
   }

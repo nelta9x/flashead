@@ -922,7 +922,6 @@ export interface WaveBossAttackEntry {
 
 export interface WaveBossAttacksConfig {
   bulletSpread?: WaveBossAttackEntry;
-  shockwave?: WaveBossAttackEntry;
   dangerZone?: WaveBossAttackEntry;
 }
 
