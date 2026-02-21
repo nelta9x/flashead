@@ -364,11 +364,15 @@
       "dishTypes": [
         {
           "type": "basic",
-          "weight": 0.21
+          "weight": 0.13
         },
         {
           "type": "golden",
           "weight": 0.38
+        },
+        {
+          "type": "crystal",
+          "weight": 0.08
         },
         {
           "type": "bomb",
@@ -540,11 +544,6 @@
               "enabled": true,
               "minInterval": 7000,
               "maxInterval": 11000
-            },
-            "dangerZone": {
-              "enabled": true,
-              "minInterval": 12000,
-              "maxInterval": 18000
             }
           },
           "entityTypeId": "gatekeeper_spaceship"
@@ -568,11 +567,6 @@
               "enabled": true,
               "minInterval": 7000,
               "maxInterval": 11000
-            },
-            "dangerZone": {
-              "enabled": true,
-              "minInterval": 12000,
-              "maxInterval": 18000
             }
           },
           "entityTypeId": "gatekeeper_spaceship"
@@ -789,19 +783,23 @@
     "dishTypes": [
       {
         "type": "basic",
-        "weight": 0.2
+        "weight": 0.25
       },
       {
         "type": "golden",
+        "weight": 0.35
+      },
+      {
+        "type": "mini",
         "weight": 0.25
       },
       {
         "type": "crystal",
-        "weight": 0.3
+        "weight": 0.05
       },
       {
         "type": "bomb",
-        "weight": 0.25
+        "weight": 0.10
       }
     ]
   },
@@ -812,8 +810,8 @@
     "maxBombWeight": 0.18,
     "goldenWeightDecrease": 0.002,
     "minGoldenWeight": 0.16,
-    "bossHpIncrease": 150,
-    "bossTotalHpIncrease": 150,
+    "bossHpIncrease": 200,
+    "bossTotalHpIncrease": 200,
     "infiniteBossCount": 3,
     "infiniteBossFullHp": true,
     "infiniteBossTemplate": [

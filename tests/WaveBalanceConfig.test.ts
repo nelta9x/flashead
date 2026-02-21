@@ -15,16 +15,16 @@ describe('Wave balance config', () => {
     expect(Data.waves.waves).toHaveLength(12);
   });
 
-  it('introduces bomb at wave 6 and crystal at wave 9', () => {
+  it('introduces bomb at wave 6 and crystal at wave 8', () => {
     for (let w = 1; w <= 5; w++) {
       expect(getWeight(w, 'bomb')).toBe(0);
     }
     expect(getWeight(6, 'bomb')).toBeGreaterThan(0);
 
-    for (let w = 1; w <= 8; w++) {
+    for (let w = 1; w <= 7; w++) {
       expect(getWeight(w, 'crystal')).toBe(0);
     }
-    expect(getWeight(9, 'crystal')).toBeGreaterThan(0);
+    expect(getWeight(8, 'crystal')).toBeGreaterThan(0);
   });
 
   it('uses mini dishes in recovery waves for combo learning', () => {
@@ -95,8 +95,8 @@ describe('Wave balance config', () => {
     expect(scaling.maxBombWeight).toBe(0.18);
     expect(scaling.goldenWeightDecrease).toBe(0.002);
     expect(scaling.minGoldenWeight).toBe(0.16);
-    expect(scaling.bossHpIncrease).toBe(150);
-    expect(scaling.bossTotalHpIncrease).toBe(150);
+    expect(scaling.bossHpIncrease).toBe(200);
+    expect(scaling.bossTotalHpIncrease).toBe(200);
     expect(scaling.infiniteBossCount).toBe(3);
     expect(scaling.infiniteBossFullHp).toBe(true);
     expect(scaling.infiniteBossTemplate).toHaveLength(3);
@@ -151,7 +151,7 @@ describe('Wave balance config', () => {
       const perBossHp = waveConfig.bossTotalHp / waveConfig.bosses.length;
       const baseTotalHp = getWave(12).bossTotalHp ?? 0;
       const wavesBeyond = waveNumber - 12;
-      const expectedPerBoss = baseTotalHp + wavesBeyond * 150;
+      const expectedPerBoss = baseTotalHp + wavesBeyond * 200;
       expect(perBossHp).toBe(expectedPerBoss);
     }
   });
