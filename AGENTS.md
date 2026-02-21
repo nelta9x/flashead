@@ -32,6 +32,7 @@ FLASHEAD - Phaser 4 기반 웹 슈팅 게임
 4. `docs/GAME_DESIGN_PHILOSOPHY.md` - 게임/UI 철학 (통합 UI, 최소 UI 노출)
 5. `docs/VISUAL_STYLE_GUIDELINES.md` - 비주얼 원칙 (보스 HP 실루엣, 형태/스타일 제약)
 6. `docs/PLUGIN_ARCHITECTURE.md` - 플러그인 아키텍처/추가 절차 가이드
+7. `docs/SOFTWARE_ENGINEERING_PRIME_DIRECTIVES.md` - 언어 무관 설계 철학 (응집도/결합도/데이터 흐름/예측 가능성)
 
 ## AI 에이전트 핵심 원칙 (필수)
 
