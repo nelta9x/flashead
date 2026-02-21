@@ -102,7 +102,8 @@
         "bounds": {
           "minX": 60, "maxX": 1220,
           "minY": 60, "maxY": 500
-        }
+        },
+        "entry": { "offsetY": -400, "speed": 0.15 }
       },
       "dishAttack": {
         "chaseSpeed": 120,

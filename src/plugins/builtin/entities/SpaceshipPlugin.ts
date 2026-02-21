@@ -23,6 +23,15 @@ interface SpaceshipMovementConfig {
     minY: number;
     maxY: number;
   };
+  entry?: {
+    offsetY: number;
+    speed: number;
+  };
+}
+
+interface EntryState {
+  targetHomeY: number;
+  originalMinY: number;
 }
 
 const spaceshipData = entitiesJson.types.spaceship;
@@ -70,6 +79,7 @@ export class SpaceshipPlugin implements EntityTypePlugin {
   };
 
   private readonly movementConfig: SpaceshipMovementConfig | null;
+  private readonly entryState = new Map<EntityId, EntryState>();
 
   constructor(movementConfig?: SpaceshipMovementConfig) {
     this.movementConfig = movementConfig ?? null;
@@ -100,11 +110,29 @@ export class SpaceshipPlugin implements EntityTypePlugin {
     });
   }
 
-  onUpdate(entityId: EntityId, world: World, _delta: number, gameTime: number): void {
+  onUpdate(entityId: EntityId, world: World, delta: number, gameTime: number): void {
     const pn = world.phaserNode.get(entityId);
     const health = world.health.get(entityId);
     const visualState = world.visualState.get(entityId);
     if (!pn || !health) return;
+
+    const entry = this.entryState.get(entityId);
+    if (entry) {
+      const mov = world.movement.get(entityId);
+      if (mov) {
+        const speed = this.movementConfig?.entry?.speed ?? 0.15;
+        const step = speed * delta;
+        if (mov.homeY < entry.targetHomeY - step) {
+          mov.homeY += step;
+        } else {
+          mov.homeY = entry.targetHomeY;
+          if (mov.drift) {
+            mov.drift.bounds.minY = entry.originalMinY;
+          }
+          this.entryState.delete(entityId);
+        }
+      }
+    }
 
     SpaceshipRenderer.render(pn.graphics, {
       currentHp: health.currentHp,
@@ -116,26 +144,48 @@ export class SpaceshipPlugin implements EntityTypePlugin {
     });
   }
 
-  createMovementData(_entityId: EntityId, homeX: number, homeY: number): MovementComponent {
+  onDestroyed(entityId: EntityId, _world: World): void {
+    this.entryState.delete(entityId);
+  }
+
+  onTimeout(entityId: EntityId, _world: World): void {
+    this.entryState.delete(entityId);
+  }
+
+  createMovementData(entityId: EntityId, homeX: number, homeY: number): MovementComponent {
     if (!this.movementConfig || this.movementConfig.type !== 'drift') {
       return { type: 'none', homeX, homeY, movementTime: 0, drift: null };
     }
 
     const d = this.movementConfig.drift;
     const b = this.movementConfig.bounds;
+    const entry = this.movementConfig.entry;
+
+    let startHomeY = homeY;
+    let boundsMinY = b.minY;
+
+    if (entry) {
+      startHomeY = homeY + entry.offsetY;
+      boundsMinY = Math.min(b.minY, startHomeY - d.yAmplitude);
+      this.entryState.set(entityId, {
+        targetHomeY: homeY,
+        originalMinY: b.minY,
+      });
+    }
+
     return {
       type: 'drift',
       homeX,
-      homeY,
+      homeY: startHomeY,
       movementTime: 0,
       drift: {
         xAmplitude: d.xAmplitude,
         xFrequency: d.xFrequency,
         yAmplitude: d.yAmplitude,
         yFrequency: d.yFrequency,
-        phaseX: resolvePhase(_entityId, 0),
-        phaseY: resolvePhase(_entityId, 1),
-        bounds: { minX: b.minX, maxX: b.maxX, minY: b.minY, maxY: b.maxY },
+        phaseX: resolvePhase(entityId, 0),
+        phaseY: resolvePhase(entityId, 1),
+        bounds: { minX: b.minX, maxX: b.maxX, minY: boundsMinY, maxY: b.maxY },
       },
     };
   }
