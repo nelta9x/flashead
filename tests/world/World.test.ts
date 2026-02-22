@@ -128,7 +128,7 @@ describe('World', () => {
         targetY: 200,
         isKeyboardInput: false, smoothingConfig: { halfLifeMs: 22.6, keyboardHalfLifeMs: 8, snapThreshold: 175, convergenceThreshold: 0.5, deadZone: 2.5 },
       });
-      world.playerRender.set(player, { gaugeRatio: 0.5, gameTime: 1000 });
+      world.playerRender.set(player, { gaugeRatio: 0.5, gameTime: 1000, hitFlashAlpha: 0 });
 
       expect(world.playerInput.getRequired(player).targetX).toBe(100);
       expect(world.playerRender.getRequired(player).gaugeRatio).toBe(0.5);
@@ -140,7 +140,7 @@ describe('World', () => {
         targetX: 0, targetY: 0,
         isKeyboardInput: false, smoothingConfig: { halfLifeMs: 22.6, keyboardHalfLifeMs: 8, snapThreshold: 175, convergenceThreshold: 0.5, deadZone: 2.5 },
       });
-      world.playerRender.set(player, { gaugeRatio: 0, gameTime: 0 });
+      world.playerRender.set(player, { gaugeRatio: 0, gameTime: 0, hitFlashAlpha: 0 });
 
       world.destroyEntity(player);
 

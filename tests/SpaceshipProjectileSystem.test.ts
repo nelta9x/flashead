@@ -56,9 +56,11 @@ function createMockScene() {
     fillCircle: vi.fn(),
     destroy: vi.fn(),
   };
+  const tweenMock = { stop: vi.fn(), remove: vi.fn() };
   return {
     add: { graphics: vi.fn(() => graphicsMock) },
     cameras: { main: { shake: vi.fn() } },
+    tweens: { add: vi.fn(() => tweenMock) },
     _graphics: graphicsMock,
   };
 }
@@ -68,15 +70,19 @@ function createMockWorld(playerX = 640, playerY = 360) {
   const transforms = new Map<string | number, { x: number; y: number }>();
   transforms.set('player', { x: playerX, y: playerY });
   const dishPropsStore = new Map<string | number, { size: number }>();
+  const playerRenderStore = new Map<string | number, { gaugeRatio: number; gameTime: number; hitFlashAlpha: number }>();
+  playerRenderStore.set('player', { gaugeRatio: 0, gameTime: 0, hitFlashAlpha: 0 });
   const activeSet = new Set<string | number>(['player']);
 
   return {
     context,
     transform: { get: (id: string | number) => transforms.get(id) },
     dishProps: { get: (id: string | number) => dishPropsStore.get(id) },
+    playerRender: { get: (id: string | number) => playerRenderStore.get(id) },
     isActive: (id: string | number) => activeSet.has(id),
     _transforms: transforms,
     _dishProps: dishPropsStore,
+    _playerRender: playerRenderStore,
     _activeSet: activeSet,
   };
 }
@@ -147,7 +153,6 @@ describe('SpaceshipProjectileSystem', () => {
   let scene: ReturnType<typeof createMockScene>;
   let world: ReturnType<typeof createMockWorld>;
   let mockHealthSystem: { takeDamage: ReturnType<typeof vi.fn> };
-  let mockFeedbackSystem: { onHpLost: ReturnType<typeof vi.fn> };
   let mockAbilityQuery: { getEffectValueOrThrow: ReturnType<typeof vi.fn> };
   let mockSoundSystem: { playSpaceshipChargeSound: ReturnType<typeof vi.fn> };
   let mockRendererCtx: ReturnType<typeof createMockPlayerAttackRenderer>;
@@ -157,7 +162,6 @@ describe('SpaceshipProjectileSystem', () => {
     scene = createMockScene();
     world = createMockWorld();
     mockHealthSystem = { takeDamage: vi.fn() };
-    mockFeedbackSystem = { onHpLost: vi.fn() };
     mockAbilityQuery = { getEffectValueOrThrow: vi.fn().mockReturnValue(0) };
     mockSoundSystem = { playSpaceshipChargeSound: vi.fn() };
     mockRendererCtx = createMockPlayerAttackRenderer();
@@ -166,7 +170,6 @@ describe('SpaceshipProjectileSystem', () => {
       scene as never,
       world as never,
       mockHealthSystem as never,
-      mockFeedbackSystem as never,
       mockAbilityQuery as never,
       mockSoundSystem as never,
       mockRendererCtx.renderer as never,
@@ -325,8 +328,9 @@ describe('SpaceshipProjectileSystem', () => {
     system.tick(10);
 
     expect(mockHealthSystem.takeDamage).toHaveBeenCalledWith(projConfig.damage);
-    expect(mockFeedbackSystem.onHpLost).toHaveBeenCalled();
-    expect(scene.cameras.main.shake).toHaveBeenCalledWith(200, 0.008);
+    // Visual feedback is centralized in ContentEventBinder via HP_CHANGED
+    // SpaceshipProjectileSystem should NOT directly call feedback/shake/flash
+    expect(scene.cameras.main.shake).not.toHaveBeenCalled();
 
     vi.restoreAllMocks();
   });
@@ -394,7 +398,6 @@ describe('SpaceshipProjectileSystem', () => {
       scene as never,
       world as never,
       mockHealthSystem as never,
-      mockFeedbackSystem as never,
       mockAbilityQuery as never,
       mockSoundSystem as never,
       freshRendererCtx.renderer as never,

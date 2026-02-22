@@ -12,6 +12,7 @@ export class FeedbackSystem {
   private screenShake: ScreenShake;
   private damageText: DamageText;
   private soundSystem: SoundSystem;
+  private cachedPlayerHitSparkColor: number | null = null;
 
   constructor(
     _scene: Phaser.Scene,
@@ -128,6 +129,15 @@ export class FeedbackSystem {
   onHpLost(): void {
     const hpShake = Data.feedback.shakePresets['hpLost'];
     if (hpShake) this.screenShake.shake(hpShake.intensity, hpShake.duration);
+  }
+
+  onPlayerHit(x: number, y: number): void {
+    if (this.cachedPlayerHitSparkColor === null) {
+      this.cachedPlayerHitSparkColor = Phaser.Display.Color.HexStringToColor(
+        Data.feedback.playerHit.sparkColor
+      ).color;
+    }
+    this.particleManager.createSparkBurst(x, y, this.cachedPlayerHitSparkColor);
   }
 
   onHealthPackCollected(x: number, y: number): void {

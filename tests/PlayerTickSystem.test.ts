@@ -57,7 +57,7 @@ function setupPlayerEntity(world: World): EntityId {
       deadZone: 2.5,
     },
   });
-  world.playerRender.set(playerId, { gaugeRatio: 0.5, gameTime: 1000 });
+  world.playerRender.set(playerId, { gaugeRatio: 0.5, gameTime: 1000, hitFlashAlpha: 0 });
   return playerId;
 }
 
@@ -252,6 +252,57 @@ describe('PlayerTickSystem', () => {
       // 시작 (100, 200) → 타겟 (200, 200): x축만 100px 이동, 보간 중
       expect(transform.x).toBeGreaterThan(100);
       expect(transform.x).toBeLessThan(200);
+    });
+  });
+
+  describe('decayHitFlash', () => {
+    it('hitFlashAlpha가 0이면 감쇠하지 않아야 함', () => {
+      const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
+      const system = createSystem();
+      system.tick(16);
+
+      const pr = world.playerRender.getRequired(playerId);
+      expect(pr.hitFlashAlpha).toBe(0);
+    });
+
+    it('hitFlashAlpha가 1이면 tick 후 감쇠해야 함', () => {
+      const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
+      const pr = world.playerRender.getRequired(playerId);
+      pr.hitFlashAlpha = 1;
+
+      const system = createSystem();
+      system.tick(16);
+
+      expect(pr.hitFlashAlpha).toBeLessThan(1);
+      expect(pr.hitFlashAlpha).toBeGreaterThan(0);
+    });
+
+    it('충분한 시간이 지나면 hitFlashAlpha가 0으로 클램핑되어야 함', () => {
+      const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
+      const pr = world.playerRender.getRequired(playerId);
+      pr.hitFlashAlpha = 1;
+
+      const system = createSystem();
+      // flashDuration is 80ms — delta of 100 should fully decay
+      system.tick(100);
+
+      expect(pr.hitFlashAlpha).toBe(0);
+    });
+
+    it('renderTick에서도 hitFlashAlpha가 감쇠해야 함', () => {
+      const playerId = setupPlayerEntity(world);
+      world.context.playerId = playerId;
+      const pr = world.playerRender.getRequired(playerId);
+      pr.hitFlashAlpha = 1;
+
+      const system = createSystem();
+      system.renderTick(16);
+
+      expect(pr.hitFlashAlpha).toBeLessThan(1);
+      expect(pr.hitFlashAlpha).toBeGreaterThan(0);
     });
   });
 

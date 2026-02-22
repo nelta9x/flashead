@@ -58,7 +58,8 @@ export class CursorRenderer {
     electricLevel: number = 0,
     time: number = 0,
     currentHp: number = 0,
-    maxHp: number = 0
+    maxHp: number = 0,
+    hitFlashAlpha: number = 0
   ): void {
     this.graphics.clear();
 
@@ -108,6 +109,15 @@ export class CursorRenderer {
     // 7. 중앙 점
     this.graphics.fillStyle(COLORS.WHITE, 1);
     this.graphics.fillCircle(x, y, 2);
+
+    // 8. 피격 플래시 (보스 hitFlash와 동일 패턴: 흰색 오버레이 페이드아웃)
+    if (hitFlashAlpha > 0) {
+      const hitCfg = Data.feedback.playerHit;
+      this.graphics.fillStyle(COLORS.WHITE, hitFlashAlpha * hitCfg.flashFillAlpha);
+      this.graphics.fillCircle(x, y, radius);
+      this.graphics.lineStyle(hitCfg.flashStrokeWidth, COLORS.WHITE, hitFlashAlpha * hitCfg.flashStrokeAlpha);
+      this.graphics.strokeCircle(x, y, radius + hitCfg.flashRadiusOffset);
+    }
   }
 
   private drawHpRing(

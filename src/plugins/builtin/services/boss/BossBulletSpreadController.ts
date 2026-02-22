@@ -2,14 +2,12 @@ import Phaser from 'phaser';
 import { Data } from '../../../../data/DataManager';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../../../data/constants';
 import type { HealthSystem } from '../../../../systems/HealthSystem';
-import type { FeedbackSystem } from '../FeedbackSystem';
 import type { SoundSystem } from '../SoundSystem';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
 
 interface BossBulletSpreadControllerDeps {
   scene: Phaser.Scene;
   healthSystem: HealthSystem;
-  feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   isGameOver: () => boolean;
 }
@@ -38,7 +36,6 @@ interface ActiveBulletSpread {
 export class BossBulletSpreadController {
   private readonly scene: Phaser.Scene;
   private readonly healthSystem: HealthSystem;
-  private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly isGameOver: () => boolean;
 
@@ -49,7 +46,6 @@ export class BossBulletSpreadController {
   constructor(deps: BossBulletSpreadControllerDeps) {
     this.scene = deps.scene;
     this.healthSystem = deps.healthSystem;
-    this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.isGameOver = deps.isGameOver;
 
@@ -167,9 +163,7 @@ export class BossBulletSpreadController {
       if (dist < cursorRadius + config.hitboxRadius) {
         this.lastHitTime = gameTime;
         this.healthSystem.takeDamage(config.damage);
-        this.feedbackSystem.onHpLost();
         this.soundSystem.playBossImpactSound();
-        this.scene.cameras.main.shake(200, 0.008);
         return;
       }
     }

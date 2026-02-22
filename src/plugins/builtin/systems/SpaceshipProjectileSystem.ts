@@ -7,7 +7,6 @@ import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem'
 import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
 import type { HealthSystem } from '../../../systems/HealthSystem';
-import type { FeedbackSystem } from '../services/FeedbackSystem';
 import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
 import type { SoundSystem } from '../services/SoundSystem';
 import type { SpaceshipFireProjectilePayload } from './SpaceshipAISystem';
@@ -49,7 +48,6 @@ export class SpaceshipProjectileSystem implements EntitySystem {
   private readonly scene: Phaser.Scene;
   private readonly world: World;
   private readonly healthSystem: HealthSystem;
-  private readonly feedbackSystem: FeedbackSystem;
   private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
   private readonly soundSystem: SoundSystem;
   private readonly playerAttackRenderer: IPlayerAttackRenderer;
@@ -68,7 +66,6 @@ export class SpaceshipProjectileSystem implements EntitySystem {
     scene: Phaser.Scene,
     world: World,
     healthSystem: HealthSystem,
-    feedbackSystem: FeedbackSystem,
     abilityRuntimeQuery: AbilityRuntimeQueryService,
     soundSystem: SoundSystem,
     playerAttackRenderer: IPlayerAttackRenderer,
@@ -76,7 +73,6 @@ export class SpaceshipProjectileSystem implements EntitySystem {
     this.scene = scene;
     this.world = world;
     this.healthSystem = healthSystem;
-    this.feedbackSystem = feedbackSystem;
     this.abilityRuntimeQuery = abilityRuntimeQuery;
     this.soundSystem = soundSystem;
     this.playerAttackRenderer = playerAttackRenderer;
@@ -207,8 +203,6 @@ export class SpaceshipProjectileSystem implements EntitySystem {
         this.projectiles.splice(i, 1);
         this.lastHitTime = gameTime;
         this.healthSystem.takeDamage(projConfig.damage);
-        this.feedbackSystem.onHpLost();
-        this.scene.cameras.main.shake(200, 0.008);
         return;
       }
     }

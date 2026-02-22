@@ -179,5 +179,6 @@ export const C_PlayerInput = defineComponent<PlayerInputComponent>('playerInput'
 export interface PlayerRenderComponent {
   gaugeRatio: number;
   gameTime: number;
+  hitFlashAlpha: number;
 }
 export const C_PlayerRender = defineComponent<PlayerRenderComponent>('playerRender');

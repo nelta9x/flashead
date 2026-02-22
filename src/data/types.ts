@@ -877,6 +877,15 @@ export interface UpgradeAbsorptionConfig {
   impactGlowEase: string;
 }
 
+export interface PlayerHitFeedbackConfig {
+  flashDuration: number;
+  sparkColor: string;
+  flashFillAlpha: number;
+  flashStrokeAlpha: number;
+  flashStrokeWidth: number;
+  flashRadiusOffset: number;
+}
+
 export interface FeedbackConfig {
   damageText: DamageTextConfig;
   comboMilestones: Record<string, ComboMilestoneEffect>;
@@ -885,6 +894,7 @@ export interface FeedbackConfig {
   energyEffect: EnergyEffectConfig;
   cursorTrail: CursorTrailConfig;
   bossAttack: BossAttackConfig;
+  playerHit: PlayerHitFeedbackConfig;
   upgradeAbsorption: UpgradeAbsorptionConfig;
   shakePresets: Record<string, ShakePreset>;
 }

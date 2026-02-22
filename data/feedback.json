@@ -206,6 +206,14 @@
       "rainbowParticleMultiplier": 2
     }
   },
+  "playerHit": {
+    "flashDuration": 80,
+    "sparkColor": "#ff4444",
+    "flashFillAlpha": 0.6,
+    "flashStrokeAlpha": 0.8,
+    "flashStrokeWidth": 3,
+    "flashRadiusOffset": 3
+  },
   "shakePresets": {
     "dishDestroyed": { "intensity": 4, "duration": 100 },
     "goldenDestroyed": { "intensity": 6, "duration": 100 },

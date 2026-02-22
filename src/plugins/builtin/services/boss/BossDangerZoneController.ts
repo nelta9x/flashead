@@ -2,14 +2,12 @@ import Phaser from 'phaser';
 import { Data } from '../../../../data/DataManager';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../../../data/constants';
 import type { HealthSystem } from '../../../../systems/HealthSystem';
-import type { FeedbackSystem } from '../FeedbackSystem';
 import type { SoundSystem } from '../SoundSystem';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
 
 interface BossDangerZoneControllerDeps {
   scene: Phaser.Scene;
   healthSystem: HealthSystem;
-  feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   isGameOver: () => boolean;
 }
@@ -35,7 +33,6 @@ interface ActiveDangerZone {
 export class BossDangerZoneController {
   private readonly scene: Phaser.Scene;
   private readonly healthSystem: HealthSystem;
-  private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly isGameOver: () => boolean;
 
@@ -46,7 +43,6 @@ export class BossDangerZoneController {
   constructor(deps: BossDangerZoneControllerDeps) {
     this.scene = deps.scene;
     this.healthSystem = deps.healthSystem;
-    this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.isGameOver = deps.isGameOver;
 
@@ -159,9 +155,7 @@ export class BossDangerZoneController {
         dz.hitApplied = true;
         this.lastHitTime = gameTime;
         this.healthSystem.takeDamage(config.damage);
-        this.feedbackSystem.onHpLost();
         this.soundSystem.playBossImpactSound();
-        this.scene.cameras.main.shake(300, 0.01);
         return;
       }
     }

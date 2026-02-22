@@ -1,4 +1,5 @@
 import { CURSOR_HITBOX } from '../../../data/constants';
+import { Data } from '../../../data/DataManager';
 import type { World } from '../../../world';
 import type { EntityId } from '../../../world/EntityId';
 import type { CursorRenderer } from '../entities/CursorRenderer';
@@ -37,6 +38,7 @@ export class PlayerTickSystem implements EntitySystem {
     if (!this.world.isActive(playerId)) return;
 
     this.updatePosition(playerId, delta);
+    this.decayHitFlash(playerId, delta);
 
     const cursorRadius = this.computeCursorRadius();
     this.updateVisual(playerId, delta, cursorRadius);
@@ -47,6 +49,8 @@ export class PlayerTickSystem implements EntitySystem {
   renderTick(delta: number): void {
     const playerId = this.world.context.playerId;
     if (!this.world.isActive(playerId)) return;
+
+    this.decayHitFlash(playerId, delta);
 
     const cursorRadius = this.computeCursorRadius();
     this.updateVisual(playerId, delta, cursorRadius);
@@ -90,6 +94,13 @@ export class PlayerTickSystem implements EntitySystem {
     this.cursorTrail.update(delta, cursorRadius, transform.x, transform.y);
   }
 
+  private decayHitFlash(id: EntityId, delta: number): void {
+    const playerRender = this.world.playerRender.get(id);
+    if (!playerRender || playerRender.hitFlashAlpha <= 0) return;
+    const flashDuration = Data.feedback.playerHit.flashDuration;
+    playerRender.hitFlashAlpha = Math.max(0, playerRender.hitFlashAlpha - delta / flashDuration);
+  }
+
   private renderCursor(id: EntityId, cursorRadius: number): void {
     const transform = this.world.transform.get(id);
     const playerRender = this.world.playerRender.get(id);
@@ -114,7 +125,8 @@ export class PlayerTickSystem implements EntitySystem {
       electricLevel,
       playerRender.gameTime,
       currentHp,
-      maxHp
+      maxHp,
+      playerRender.hitFlashAlpha
     );
   }
 }

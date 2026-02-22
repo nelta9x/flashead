@@ -4,7 +4,6 @@ import { COLORS, CURSOR_HITBOX, GAME_HEIGHT, GAME_WIDTH } from '../../../../data
 import type { Entity } from '../../../../entities/Entity';
 import type { LaserRenderer } from '../../entities/LaserRenderer';
 import type { DamageText } from '../../../../ui/DamageText';
-import type { FeedbackSystem } from '../FeedbackSystem';
 import type { HealthSystem } from '../../../../systems/HealthSystem';
 import type { MonsterSystem } from '../MonsterSystem';
 import type { SoundSystem } from '../SoundSystem';
@@ -22,7 +21,6 @@ interface BossLaserControllerDeps {
   scene: Phaser.Scene;
   waveSystem: WaveSystem;
   monsterSystem: MonsterSystem;
-  feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   damageText: DamageText;
   laserRenderer: LaserRenderer;
@@ -42,7 +40,6 @@ export class BossLaserController {
   private readonly scene: Phaser.Scene;
   private readonly waveSystem: WaveSystem;
   private readonly monsterSystem: MonsterSystem;
-  private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly damageText: DamageText;
   private readonly laserRenderer: LaserRenderer;
@@ -62,7 +59,6 @@ export class BossLaserController {
     this.scene = deps.scene;
     this.waveSystem = deps.waveSystem;
     this.monsterSystem = deps.monsterSystem;
-    this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.damageText = deps.damageText;
     this.laserRenderer = deps.laserRenderer;
@@ -362,8 +358,6 @@ export class BossLaserController {
 
     this.setLastLaserHitTime(gameTime);
     this.healthSystem.takeDamage(1);
-    this.feedbackSystem.onHpLost();
     this.soundSystem.playBossImpactSound();
-    this.scene.cameras.main.shake(300, 0.01);
   }
 }

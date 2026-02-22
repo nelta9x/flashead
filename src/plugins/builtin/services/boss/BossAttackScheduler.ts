@@ -5,7 +5,6 @@ import type { BossAttackType } from '../../../../data/types/bossAttacks';
 import type { MonsterSystem } from '../MonsterSystem';
 import type { WaveSystem } from '../WaveSystem';
 import type { HealthSystem } from '../../../../systems/HealthSystem';
-import type { FeedbackSystem } from '../FeedbackSystem';
 import type { SoundSystem } from '../SoundSystem';
 import type { CursorSnapshot } from '../../../../scenes/game/GameSceneContracts';
 import { BossBulletSpreadController } from './BossBulletSpreadController';
@@ -16,7 +15,6 @@ interface BossAttackSchedulerDeps {
   waveSystem: WaveSystem;
   monsterSystem: MonsterSystem;
   healthSystem: HealthSystem;
-  feedbackSystem: FeedbackSystem;
   soundSystem: SoundSystem;
   bosses: Map<string, Entity>;
   isGameOver: () => boolean;
@@ -35,7 +33,6 @@ export class BossAttackScheduler {
   private readonly waveSystem: WaveSystem;
   private readonly monsterSystem: MonsterSystem;
   private readonly healthSystem: HealthSystem;
-  private readonly feedbackSystem: FeedbackSystem;
   private readonly soundSystem: SoundSystem;
   private readonly bosses: Map<string, Entity>;
   private readonly isGameOver: () => boolean;
@@ -50,7 +47,6 @@ export class BossAttackScheduler {
     this.waveSystem = deps.waveSystem;
     this.monsterSystem = deps.monsterSystem;
     this.healthSystem = deps.healthSystem;
-    this.feedbackSystem = deps.feedbackSystem;
     this.soundSystem = deps.soundSystem;
     this.bosses = deps.bosses;
     this.isGameOver = deps.isGameOver;
@@ -58,14 +54,12 @@ export class BossAttackScheduler {
     this.bulletSpreadController = new BossBulletSpreadController({
       scene: this.scene,
       healthSystem: this.healthSystem,
-      feedbackSystem: this.feedbackSystem,
       soundSystem: this.soundSystem,
       isGameOver: this.isGameOver,
     });
     this.dangerZoneController = new BossDangerZoneController({
       scene: this.scene,
       healthSystem: this.healthSystem,
-      feedbackSystem: this.feedbackSystem,
       soundSystem: this.soundSystem,
       isGameOver: this.isGameOver,
     });

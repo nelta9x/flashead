@@ -47,7 +47,7 @@ export class PlayerEntityPlugin implements EntityTypePlugin {
         isKeyboardInput: false,
         smoothingConfig: Data.gameConfig.player.input.smoothing,
       },
-      playerRender: { gaugeRatio: 0, gameTime: 0 },
+      playerRender: { gaugeRatio: 0, gameTime: 0, hitFlashAlpha: 0 },
     });
 
     const identity = world.identity.get(entityId);

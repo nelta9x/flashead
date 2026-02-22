@@ -114,6 +114,14 @@ export class ContentEventBinder {
       }
       if (data.delta < 0) {
         s.get(FeedbackSystem).onHpLost();
+        const world = s.get(World);
+        const playerId = world.context.playerId;
+        const t = world.transform.get(playerId);
+        if (t) {
+          s.get(FeedbackSystem).onPlayerHit(t.x, t.y);
+          const pr = world.playerRender.get(playerId);
+          if (pr) pr.hitFlashAlpha = 1;
+        }
       }
     });
     this.on(GameEvents.HEALTH_PACK_PASSING, (payload: { x: number; y: number }) => {
