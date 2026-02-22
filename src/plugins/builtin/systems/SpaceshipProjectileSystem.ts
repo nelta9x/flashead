@@ -229,7 +229,7 @@ export class SpaceshipProjectileSystem implements EntitySystem {
       this.graphics.fillCircle(p.x, p.y, projConfig.size);
 
       // Center light
-      this.graphics.fillStyle(parsedLightColor, 0.8);
+      this.graphics.fillStyle(parsedLightColor, visual.lightAlpha);
       this.graphics.fillCircle(p.x, p.y, projConfig.size * visual.lightRadiusRatio);
     }
   }
