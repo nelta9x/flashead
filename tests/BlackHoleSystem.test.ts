@@ -546,7 +546,7 @@ describe('BlackHoleSystem', () => {
     expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledWith(normalDishId, 2, 0, 0);
     expect(system.getBlackHoles()[0].radius).toBe(105);
     expect(damageBoss).toHaveBeenCalledWith('boss_1', 5, 640, 360, false);
-    expect(mockEmit).not.toHaveBeenCalled();
+    expect(mockEmit).toHaveBeenCalledWith('blackHole:consumed', { x: 640, y: 360 });
   });
 
   it('new spawns have fresh stats while old holes keep grown values', () => {
@@ -711,5 +711,118 @@ describe('BlackHoleSystem', () => {
 
     expect(damageBoss).toHaveBeenCalledWith('boss_1', 6, 640, 360, true);
     randomSpy.mockRestore();
+  });
+
+  it('each black hole has an independent damage timer', () => {
+    blackHoleLevel = 1;
+    blackHoleData = {
+      damageInterval: 400,
+      damage: 2,
+      force: 0,
+      spawnInterval: 250,
+      duration: 9999,
+      spawnCount: 1,
+      radius: 180,
+      bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0,
+      consumeRadiusGrowthFlat: 0,
+      consumeDamageGrowth: 0,
+      consumeDurationGrowth: 0,
+    };
+    // Hole 1 at (640, 360), Hole 2 at (300, 150) — distance ≈ 400, well outside radius 180
+    mockFloatBetween
+      .mockReturnValueOnce(640)
+      .mockReturnValueOnce(360)
+      .mockReturnValueOnce(300)
+      .mockReturnValueOnce(150);
+
+    // Place dishes near each hole position
+    const dish1Id = addDishToWorld(640, 360);
+    const dish2Id = addDishToWorld(300, 150);
+
+    // Spawn hole 1 via level change. hole1.timer += 16 = 16
+    system.update(16, 16);
+    expect(system.getBlackHoles()).toHaveLength(1);
+
+    // Spawn hole 2 via spawnInterval (250ms). hole1.timer += 250 = 266. hole2.timer += 250 = 250.
+    system.update(250, 266);
+    expect(system.getBlackHoles()).toHaveLength(2);
+
+    // Advance 134ms. hole1.timer = 266+134 = 400 → fires! hole2.timer = 250+134 = 384 → not yet
+    system.update(134, 400);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledWith(dish1Id, 2, 0, 0);
+
+    // Advance 16ms. hole1.timer = 0+16 = 16. hole2.timer = 384+16 = 400 → fires!
+    mockDamageService.applyUpgradeDamage.mockClear();
+    system.update(16, 416);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledTimes(1);
+    expect(mockDamageService.applyUpgradeDamage).toHaveBeenCalledWith(dish2Id, 2, 0, 0);
+  });
+});
+
+describe('BlackHoleAbility.getEffectValue', () => {
+  it('returns correct values for all 12 BlackHoleLevelData keys', async () => {
+    const { BlackHoleAbility } = await import(
+      '../src/plugins/builtin/abilities/BlackHoleAbility'
+    );
+
+    const testData: BlackHoleLevelData = {
+      damageInterval: 1200,
+      damage: 5,
+      force: 260,
+      spawnInterval: 7600,
+      duration: 7600,
+      spawnCount: 2,
+      radius: 130,
+      bombConsumeRadiusRatio: 0.3,
+      consumeRadiusGrowthRatio: 0.1,
+      consumeRadiusGrowthFlat: 10,
+      consumeDamageGrowth: 2,
+      consumeDurationGrowth: 500,
+    };
+
+    const ability = new BlackHoleAbility();
+    ability.init({
+      abilityData: {
+        getLevelData: () => testData,
+      },
+    } as never);
+
+    const keys: (keyof BlackHoleLevelData)[] = [
+      'damage',
+      'radius',
+      'force',
+      'duration',
+      'spawnInterval',
+      'spawnCount',
+      'damageInterval',
+      'bombConsumeRadiusRatio',
+      'consumeRadiusGrowthRatio',
+      'consumeRadiusGrowthFlat',
+      'consumeDamageGrowth',
+      'consumeDurationGrowth',
+    ];
+
+    for (const key of keys) {
+      expect(ability.getEffectValue(key)).toBe(testData[key]);
+    }
+  });
+
+  it('throws on unknown key', async () => {
+    const { BlackHoleAbility } = await import(
+      '../src/plugins/builtin/abilities/BlackHoleAbility'
+    );
+
+    const ability = new BlackHoleAbility();
+    ability.init({
+      abilityData: {
+        getLevelData: () => ({ damage: 1 }),
+      },
+    } as never);
+
+    expect(() => ability.getEffectValue('nonExistentKey')).toThrow(
+      'Unknown effect key "nonExistentKey"',
+    );
   });
 });

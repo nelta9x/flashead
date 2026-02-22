@@ -8,6 +8,7 @@ import { WaveSystem } from './WaveSystem';
 import { DamageText } from '../../../ui/DamageText';
 import { World } from '../../../world';
 import { EventBus, GameEvents } from '../../../utils/EventBus';
+import { BlackHoleSystem } from '../systems/BlackHoleSystem';
 import { BossCombatCoordinator } from './BossCombatCoordinator';
 import { DishLifecycleController } from './DishLifecycleController';
 import { PlayerAttackController } from './PlayerAttackController';
@@ -44,6 +45,7 @@ export class ContentEventBinder {
     this.on(GameEvents.WAVE_TRANSITION, () => {
       s.get(BossCombatCoordinator).clearForWaveTransition();
       s.get(DishLifecycleController).clearAll();
+      s.get(BlackHoleSystem).clear();
     });
 
     // Dish events

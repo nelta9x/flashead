@@ -41,6 +41,16 @@ export class BlackHoleAbility implements AbilityPlugin {
         return data.spawnCount;
       case 'damageInterval':
         return data.damageInterval;
+      case 'bombConsumeRadiusRatio':
+        return data.bombConsumeRadiusRatio;
+      case 'consumeRadiusGrowthRatio':
+        return data.consumeRadiusGrowthRatio;
+      case 'consumeRadiusGrowthFlat':
+        return data.consumeRadiusGrowthFlat;
+      case 'consumeDamageGrowth':
+        return data.consumeDamageGrowth;
+      case 'consumeDurationGrowth':
+        return data.consumeDurationGrowth;
       default:
         throw new Error(`Unknown effect key "${key}" for ability "${this.id}"`);
     }
