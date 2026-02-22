@@ -21,7 +21,7 @@
       "lifetime": 17000,
       "poolSize": 50,
       "cursorInteraction": "dps",
-      "playerDamage": 1,
+      "playerDamage": 0,
       "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
     },
     "golden": {
@@ -32,7 +32,7 @@
       "lifetime": 17000,
       "poolSize": 50,
       "cursorInteraction": "dps",
-      "playerDamage": 1,
+      "playerDamage": 0,
       "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
     },
     "crystal": {
@@ -43,7 +43,7 @@
       "lifetime": 17500,
       "poolSize": 50,
       "cursorInteraction": "dps",
-      "playerDamage": 1,
+      "playerDamage": 0,
       "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
     },
     "bomb": {
@@ -67,7 +67,7 @@
       "lifetime": 17000,
       "poolSize": 50,
       "cursorInteraction": "dps",
-      "playerDamage": 1,
+      "playerDamage": 0,
       "spawnAnimation": { "duration": 150, "ease": "Back.easeOut" }
     },
     "amber": {
@@ -78,7 +78,7 @@
       "lifetime": 19500,
       "poolSize": 50,
       "cursorInteraction": "dps",
-      "playerDamage": 1,
+      "playerDamage": 0,
       "spawnAnimation": { "duration": 200, "ease": "Back.easeOut" }
     },
     "spaceship": {
