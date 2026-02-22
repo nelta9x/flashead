@@ -117,13 +117,17 @@ export class WaveSystem {
     if (!this.waveConfig?.spaceship) return;
     if (this.isFeverTime) return;
 
-    this.timeSinceLastSpaceshipSpawn += delta;
     const { maxActive, spawnInterval } = this.waveConfig.spaceship;
+    const activeCount = this.getActiveCountByType?.('spaceship') ?? 0;
+
+    if (activeCount >= maxActive) {
+      this.timeSinceLastSpaceshipSpawn = 0;
+      return;
+    }
+
+    this.timeSinceLastSpaceshipSpawn += delta;
 
     if (this.timeSinceLastSpaceshipSpawn < spawnInterval) return;
-
-    const activeCount = this.getActiveCountByType?.('spaceship') ?? 0;
-    if (activeCount >= maxActive) return;
 
     const planned = this.spawnPlanner.planSpaceshipSpawn(this.waveConfig, this.currentWave);
     if (planned) {

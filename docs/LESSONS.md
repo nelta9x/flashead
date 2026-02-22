@@ -148,3 +148,14 @@
 - 6차: drift 억제/복원/phase 리셋 → 코드 복잡도만 증가, 텔레포트 문제
 - 7차: 타겟 잠금 + anchor 기반 선택 → drift가 시각적으로 chase를 완전히 가림
 - 8차(확정): **drift amplitude = 0**. 근본 원인(drift) 제거. AI 코드 대폭 단순화
+
+---
+
+## 9. 게이트 뒤 타이머 누적 `occurrences: 1`
+
+### 원칙
+- 게이트(maxActive 등) 뒤에서 타이머가 무한 누적되면, 게이트 해제 즉시 조건이 충족되어 의도하지 않은 즉시 발동이 일어난다.
+- 타이머는 게이트가 열려 있을 때만 누적하거나, 게이트 활성 중 주기적으로 리셋해야 한다.
+
+### 사례 요약
+- 우주선 `maxActive` 도달 상태에서 `timeSinceLastSpaceshipSpawn`이 매 프레임 누적 → 우주선 파괴 직후 timer >= spawnInterval이 이미 충족되어 즉시 재소환. maxActive 도달 시 타이머를 0으로 리셋하여 해결

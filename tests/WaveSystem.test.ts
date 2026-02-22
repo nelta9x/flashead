@@ -428,6 +428,34 @@ describe('WaveSystem', () => {
       expect(spaceshipCalls.length).toBe(0);
     });
 
+    it('should wait full spawnInterval after spaceship count drops below maxActive', () => {
+      const ws = createSpaceshipWaveSystem();
+      // Wave 1 spaceship: maxActive=2, spawnInterval=3000
+      ws.startWave(1);
+
+      // maxActive reached — timer should be held at 0
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'spaceship' ? 2 : 0));
+      ws.update(9000); // 3x spawnInterval passes while maxActive is reached
+
+      // Now one spaceship destroyed — count drops below maxActive
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'spaceship' ? 1 : 0));
+      mockSpawnDelegate.spawnDish.mockClear();
+
+      // Advance spawnInterval - 1ms — should NOT spawn yet
+      ws.update(2999);
+      const callsBefore = mockSpawnDelegate.spawnDish.mock.calls.filter(
+        (args) => args[0] === 'spaceship',
+      );
+      expect(callsBefore.length).toBe(0);
+
+      // Advance 1ms more — now full spawnInterval elapsed, should spawn
+      ws.update(1);
+      const callsAfter = mockSpawnDelegate.spawnDish.mock.calls.filter(
+        (args) => args[0] === 'spaceship',
+      );
+      expect(callsAfter.length).toBe(1);
+    });
+
     it('should not spawn spaceship during fever time', () => {
       const ws = createSpaceshipWaveSystem();
       ws.startWave(1);
