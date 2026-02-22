@@ -67,7 +67,6 @@ export class EntityRenderSystem implements EntitySystem {
           currentHp: health.currentHp,
           maxHp: health.maxHp,
           isFrozen: statusCache?.isFrozen ?? false,
-          blinkPhase: visualState.blinkPhase,
         });
       }
 

@@ -50,7 +50,6 @@ export class BasicDishPlugin implements EntityTypePlugin {
       currentHp: health.currentHp,
       maxHp: health.maxHp,
       isFrozen: false,
-      blinkPhase: 0,
     });
   }
 }

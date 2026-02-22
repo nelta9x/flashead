@@ -7,7 +7,6 @@ export interface DishVisualState {
   currentHp: number;
   maxHp: number;
   isFrozen: boolean;
-  blinkPhase: number;
 }
 
 /**
@@ -32,7 +31,7 @@ export class DishRenderer {
   }
 
   public static renderDish(graphics: Phaser.GameObjects.Graphics, state: DishVisualState): void {
-    const stateKey = `${state.size}|${state.baseColor}|${state.currentHp}|${state.maxHp}|${state.isFrozen ? 1 : 0}|${(state.blinkPhase * 100) | 0}`;
+    const stateKey = `${state.size}|${state.baseColor}|${state.currentHp}|${state.maxHp}|${state.isFrozen ? 1 : 0}`;
     if (dishStateCache.get(graphics) === stateKey) return;
     dishStateCache.set(graphics, stateKey);
 
@@ -42,7 +41,7 @@ export class DishRenderer {
 
   public static renderDangerDish(
     graphics: Phaser.GameObjects.Graphics,
-    state: Pick<DishVisualState, 'size' | 'blinkPhase'>
+    state: { size: number; blinkPhase: number }
   ): void {
     const stateKey = `${state.size}|${(state.blinkPhase * 100) | 0}`;
     if (dangerDishStateCache.get(graphics) === stateKey) return;
