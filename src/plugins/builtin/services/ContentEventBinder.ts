@@ -54,6 +54,10 @@ export class ContentEventBinder {
     });
     this.on(GameEvents.DISH_DAMAGED, (payload: DishDamagedEventPayload) => {
       s.get(DishLifecycleController).onDishDamaged(payload);
+      const et = payload.snapshot.entityType;
+      if (et === 'spaceship' || et === 'gatekeeper_spaceship') {
+        s.get(FeedbackSystem).onSpaceshipHit(payload.x, payload.y);
+      }
     });
     this.on(GameEvents.DISH_MISSED, (payload: DishMissedEventPayload) => {
       s.get(DishLifecycleController).onDishMissed(payload);

@@ -879,7 +879,7 @@ export interface UpgradeAbsorptionConfig {
   impactGlowEase: string;
 }
 
-export interface PlayerHitDebrisConfig {
+export interface DebrisConfig {
   count: number;
   minSize: number;
   maxSize: number;
@@ -899,7 +899,12 @@ export interface PlayerHitFeedbackConfig {
   flashStrokeAlpha: number;
   flashStrokeWidth: number;
   flashRadiusOffset: number;
-  debris: PlayerHitDebrisConfig;
+  debris: DebrisConfig;
+}
+
+export interface SpaceshipHitFeedbackConfig {
+  debrisColor: string;
+  debris: DebrisConfig;
 }
 
 export interface FeedbackConfig {
@@ -910,6 +915,7 @@ export interface FeedbackConfig {
   energyEffect: EnergyEffectConfig;
   cursorTrail: CursorTrailConfig;
   bossAttack: BossAttackConfig;
+  spaceshipHit: SpaceshipHitFeedbackConfig;
   playerHit: PlayerHitFeedbackConfig;
   upgradeAbsorption: UpgradeAbsorptionConfig;
   shakePresets: Record<string, ShakePreset>;

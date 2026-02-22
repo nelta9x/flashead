@@ -206,6 +206,21 @@
       "rainbowParticleMultiplier": 2
     }
   },
+  "spaceshipHit": {
+    "debrisColor": "#ff2222",
+    "debris": {
+      "count": 10,
+      "minSize": 6,
+      "maxSize": 13,
+      "minVelocity": 120,
+      "maxVelocity": 280,
+      "upwardForce": 70,
+      "gravity": 280,
+      "rotationSpeedRange": 10,
+      "minDuration": 500,
+      "maxDuration": 900
+    }
+  },
   "playerHit": {
     "flashDuration": 80,
     "sparkColor": "#ff4444",
@@ -214,16 +229,16 @@
     "flashStrokeWidth": 3,
     "flashRadiusOffset": 3,
     "debris": {
-      "count": 10,
-      "minSize": 6,
-      "maxSize": 12,
-      "minVelocity": 100,
-      "maxVelocity": 240,
-      "upwardForce": 80,
-      "gravity": 320,
-      "rotationSpeedRange": 8,
-      "minDuration": 500,
-      "maxDuration": 800
+      "count": 14,
+      "minSize": 8,
+      "maxSize": 16,
+      "minVelocity": 140,
+      "maxVelocity": 320,
+      "upwardForce": 90,
+      "gravity": 300,
+      "rotationSpeedRange": 10,
+      "minDuration": 600,
+      "maxDuration": 1000
     }
   },
   "shakePresets": {

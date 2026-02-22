@@ -62,7 +62,7 @@ describe('FeedbackSystem', () => {
       );
       expect(mockParticleManager.createPlayerHitDebris).toHaveBeenCalledTimes(1);
       expect(mockParticleManager.createPlayerHitDebris).toHaveBeenCalledWith(
-        100, 200, 0xff4444,
+        100, 200,
       );
     });
 

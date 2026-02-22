@@ -5,6 +5,7 @@ import { ParticleManager } from '../../../effects/ParticleManager';
 import { ScreenShake } from '../../../systems/ScreenShake';
 import { DamageText } from '../../../ui/DamageText';
 import { SoundSystem } from './SoundSystem';
+import type { DebrisConfig } from '../../../data/types';
 
 export class FeedbackSystem {
   static inject = [Phaser.Scene, ParticleManager, ScreenShake, DamageText, SoundSystem] as const;
@@ -13,6 +14,8 @@ export class FeedbackSystem {
   private damageText: DamageText;
   private soundSystem: SoundSystem;
   private cachedPlayerHitSparkColor: number | null = null;
+  private cachedSpaceshipHitDebrisColor: number | null = null;
+  private cachedSpaceshipHitDebrisCfg: DebrisConfig | null = null;
 
   constructor(
     _scene: Phaser.Scene,
@@ -138,7 +141,17 @@ export class FeedbackSystem {
       ).color;
     }
     this.particleManager.createSparkBurst(x, y, this.cachedPlayerHitSparkColor);
-    this.particleManager.createPlayerHitDebris(x, y, this.cachedPlayerHitSparkColor);
+    this.particleManager.createPlayerHitDebris(x, y);
+  }
+
+  onSpaceshipHit(x: number, y: number): void {
+    if (this.cachedSpaceshipHitDebrisColor === null) {
+      const cfg = Data.feedback.spaceshipHit;
+      this.cachedSpaceshipHitDebrisColor = Phaser.Display.Color.HexStringToColor(cfg.debrisColor).color;
+      this.cachedSpaceshipHitDebrisCfg = cfg.debris;
+    }
+    this.particleManager.createSparkBurst(x, y, this.cachedSpaceshipHitDebrisColor);
+    this.particleManager.createHitDebris(x, y, this.cachedSpaceshipHitDebrisColor, this.cachedSpaceshipHitDebrisCfg!);
   }
 
   onHealthPackCollected(x: number, y: number): void {

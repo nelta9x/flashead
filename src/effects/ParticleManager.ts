@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, DEPTHS, RAINBOW_COLORS } from '../data/constants';
 import { Data } from '../data/DataManager';
+import type { DebrisConfig } from '../data/types';
 import type { SoundSystem } from '../plugins/builtin/services/SoundSystem';
 import {
   CursorPositionProvider,
@@ -467,9 +468,11 @@ export class ParticleManager {
     emitter.explode(15, x, y);
   }
 
-  createPlayerHitDebris(x: number, y: number, _color: number): void {
-    const cfg = Data.feedback.playerHit.debris;
+  createPlayerHitDebris(x: number, y: number): void {
+    this.createHitDebris(x, y, COLORS.WHITE, Data.feedback.playerHit.debris);
+  }
 
+  createHitDebris(x: number, y: number, color: number, cfg: DebrisConfig): void {
     for (let i = 0; i < cfg.count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const shard = this.acquireGraphics();
@@ -477,7 +480,7 @@ export class ParticleManager {
 
       const size = Phaser.Math.Between(cfg.minSize, cfg.maxSize);
 
-      shard.fillStyle(COLORS.WHITE, 0.9);
+      shard.fillStyle(color, 0.9);
       const points: Phaser.Math.Vector2[] = [];
       const numPoints = Phaser.Math.Between(3, 4);
       for (let j = 0; j < numPoints; j++) {
