@@ -54,6 +54,11 @@ function createMockScene() {
     clear: vi.fn(),
     fillStyle: vi.fn(),
     fillCircle: vi.fn(),
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    closePath: vi.fn(),
+    fillPath: vi.fn(),
     destroy: vi.fn(),
   };
   const tweenMock = { stop: vi.fn(), remove: vi.fn() };

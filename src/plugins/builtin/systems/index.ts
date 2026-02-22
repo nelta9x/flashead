@@ -11,6 +11,7 @@ import { HealthPackSystemPlugin } from './HealthPackSystemPlugin';
 import { GameLevelSystemsPlugin } from './GameLevelSystemsPlugin';
 import { GameWrappersSystemPlugin } from './GameWrappersSystemPlugin';
 import { SpaceshipSystemsPlugin } from './SpaceshipSystemsPlugin';
+import { PlayerProjectileSystemPlugin } from './PlayerProjectileSystemPlugin';
 import { InitialSpawnSystemPlugin } from './InitialSpawnSystemPlugin';
 
 export function registerBuiltinSystemPlugins(): void {
@@ -26,6 +27,7 @@ export function registerBuiltinSystemPlugins(): void {
   registry.registerSystemPlugin(new FallingBombSystemPlugin());
   registry.registerSystemPlugin(new HealthPackSystemPlugin());
   registry.registerSystemPlugin(new SpaceshipSystemsPlugin());
+  registry.registerSystemPlugin(new PlayerProjectileSystemPlugin());
   registry.registerSystemPlugin(new GameLevelSystemsPlugin());
   registry.registerSystemPlugin(new GameWrappersSystemPlugin());
 }

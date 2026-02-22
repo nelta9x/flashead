@@ -17,6 +17,7 @@
     "core:orb_system",
     "core:health_pack",
     "core:spaceship_systems",
+    "core:player_projectile_system",
     "core:game_wrappers"
   ],
   "entityTypes": [
@@ -47,6 +48,7 @@
     "core:cursor_attack",
     "core:spaceship_ai",
     "core:spaceship_projectile",
+    "core:player_projectile",
     "core:black_hole",
     "core:orb",
     "core:falling_bomb",

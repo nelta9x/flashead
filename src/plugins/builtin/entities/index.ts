@@ -9,7 +9,7 @@ import entitiesJson from '../../../../data/entities.json';
 
 function createBasicDish(typeId: string): EntityTypePlugin {
   const data = entitiesJson.types[typeId as keyof typeof entitiesJson.types];
-  if (!data || !('lifetime' in data) || typeof data.lifetime !== 'number') {
+  if (!data || !('lifetime' in data)) {
     throw new Error(`Invalid dish type data for "${typeId}"`);
   }
   return new BasicDishPlugin(typeId, {

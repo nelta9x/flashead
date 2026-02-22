@@ -39,6 +39,7 @@ const parsedVisualColor = Phaser.Display.Color.HexStringToColor(visual.color).co
 const parsedLightColor = Phaser.Display.Color.HexStringToColor(visual.lightColor).color;
 const parsedChargeMainColor = Phaser.Display.Color.HexStringToColor(chargeConfig.mainColor).color;
 const parsedChargeAccentColor = Phaser.Display.Color.HexStringToColor(chargeConfig.accentColor).color;
+const trail = visual.trail;
 const OFFSCREEN_MARGIN = 50;
 
 export class SpaceshipProjectileSystem implements EntitySystem {
@@ -240,6 +241,29 @@ export class SpaceshipProjectileSystem implements EntitySystem {
     this.graphics.clear();
 
     for (const p of this.projectiles) {
+      // Trail (tapered ribbon polygon behind projectile)
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      if (speed > 0) {
+        const invSpeed = 1 / speed;
+        const dirX = -p.vx * invSpeed;
+        const dirY = -p.vy * invSpeed;
+        const perpX = -dirY;
+        const perpY = dirX;
+        const headW = projConfig.size * trail.headWidthRatio;
+        const tailW = projConfig.size * trail.tailWidthRatio;
+        const tailX = p.x + dirX * trail.length;
+        const tailY = p.y + dirY * trail.length;
+
+        this.graphics.fillStyle(parsedVisualColor, trail.alpha);
+        this.graphics.beginPath();
+        this.graphics.moveTo(p.x + perpX * headW, p.y + perpY * headW);
+        this.graphics.lineTo(tailX + perpX * tailW, tailY + perpY * tailW);
+        this.graphics.lineTo(tailX - perpX * tailW, tailY - perpY * tailW);
+        this.graphics.lineTo(p.x - perpX * headW, p.y - perpY * headW);
+        this.graphics.closePath();
+        this.graphics.fillPath();
+      }
+
       // Glow levels (same structure as spaceship core)
       for (const level of visual.glowLevels) {
         this.graphics.fillStyle(parsedVisualColor, level.alpha);

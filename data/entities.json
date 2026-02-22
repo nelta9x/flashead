@@ -11,7 +11,32 @@
     "player": {
       "name": "플레이어",
       "spawnCategory": "singleton",
-      "cursorInteraction": "none"
+      "cursorInteraction": "none",
+      "projectile": {
+        "speed": 600,
+        "size": 5,
+        "hitboxRadius": 8,
+        "lifetime": 3000,
+        "damage": 10,
+        "visual": {
+          "color": "#ffffff",
+          "bodyAlpha": 0.8,
+          "lightColor": "#ffffff",
+          "lightAlpha": 0.8,
+          "lightRadiusRatio": 0.4,
+          "glowLevels": [
+            { "radiusMultiplier": 1.4, "alpha": 0.45 },
+            { "radiusMultiplier": 1.8, "alpha": 0.25 },
+            { "radiusMultiplier": 2.4, "alpha": 0.1 }
+          ],
+          "trail": {
+            "length": 50,
+            "headWidthRatio": 0.9,
+            "tailWidthRatio": 0,
+            "alpha": 0.35
+          }
+        }
+      }
     },
     "basic": {
       "name": "기본 접시",
@@ -111,21 +136,27 @@
         "hitDamage": 5
       },
       "projectile": {
-        "speed": 180,
+        "speed": 600,
         "size": 6,
         "hitboxRadius": 10,
         "lifetime": 5000,
         "visual": {
           "color": "#ff0000",
           "bodyAlpha": 0.8,
-          "lightColor": "#ffffff",
+          "lightColor": "#ff0000",
           "lightAlpha": 0.8,
           "lightRadiusRatio": 0.4,
           "glowLevels": [
-            { "radiusMultiplier": 1.3, "alpha": 0.25 },
-            { "radiusMultiplier": 1.6, "alpha": 0.12 },
-            { "radiusMultiplier": 2.0, "alpha": 0.04 }
-          ]
+            { "radiusMultiplier": 1.4, "alpha": 0.45 },
+            { "radiusMultiplier": 1.8, "alpha": 0.25 },
+            { "radiusMultiplier": 2.4, "alpha": 0.1 }
+          ],
+          "trail": {
+            "length": 50,
+            "headWidthRatio": 0.9,
+            "tailWidthRatio": 0,
+            "alpha": 0.35
+          }
         },
         "damage": 1,
         "invincibilityDuration": 500,
