@@ -949,6 +949,7 @@ export interface WaveBossConfig {
 export interface SpaceshipWaveConfig {
   maxActive: number;
   spawnInterval: number;
+  respawnDelay?: number;
 }
 
 export interface WaveData {
@@ -1003,6 +1004,7 @@ export interface InfiniteScalingConfig {
     spawnInterval: number;
     spawnIntervalReduction?: number;
     minSpawnInterval?: number;
+    respawnDelay?: number;
   };
 }
 

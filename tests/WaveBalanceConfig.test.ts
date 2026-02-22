@@ -134,6 +134,9 @@ describe('Wave balance config', () => {
       expect(wave.spaceship!.maxActive, `wave ${wave.number} maxActive`).toBeGreaterThanOrEqual(1);
       expect(wave.spaceship!.maxActive, `wave ${wave.number} maxActive`).toBeLessThanOrEqual(5);
       expect(wave.spaceship!.spawnInterval, `wave ${wave.number} spawnInterval`).toBeGreaterThan(0);
+      if (wave.spaceship!.respawnDelay != null) {
+        expect(wave.spaceship!.respawnDelay, `wave ${wave.number} respawnDelay`).toBeGreaterThanOrEqual(wave.spaceship!.spawnInterval);
+      }
 
       const hasSpaceshipInDishTypes = wave.dishTypes.some((dt) => dt.type === 'spaceship');
       expect(hasSpaceshipInDishTypes, `wave ${wave.number} dishTypes should not contain spaceship`).toBe(false);

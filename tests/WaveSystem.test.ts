@@ -70,7 +70,7 @@ vi.mock('../src/data/DataManager', () => ({
             { type: 'basic', weight: 0.8 },
             { type: 'golden', weight: 0.2, maxActive: 1 },
           ],
-          spaceship: { maxActive: 1, spawnInterval: 2000 },
+          spaceship: { maxActive: 1, spawnInterval: 2000, respawnDelay: 8000 },
           bossTotalHp: 200,
           bosses: [
             {
@@ -467,6 +467,77 @@ describe('WaveSystem', () => {
         (args) => args[0] === 'spaceship',
       );
       expect(spaceshipCalls.length).toBe(0);
+    });
+
+    it('should apply respawnDelay when spaceship destroyed and respawnDelay > spawnInterval', () => {
+      const ws = createSpaceshipWaveSystem();
+      // Wave 2 spaceship: maxActive=1, spawnInterval=2000, respawnDelay=8000
+      ws.startWave(2);
+
+      // maxActive reached
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'spaceship' ? 1 : 0));
+      ws.update(5000);
+
+      // Spaceship destroyed — count drops below maxActive
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'spaceship' ? 0 : 0));
+      mockSpawnDelegate.spawnDish.mockClear();
+
+      // Advance 7999ms — less than respawnDelay, should NOT spawn
+      ws.update(7999);
+      const callsBefore = mockSpawnDelegate.spawnDish.mock.calls.filter(
+        (args) => args[0] === 'spaceship',
+      );
+      expect(callsBefore.length).toBe(0);
+
+      // Advance 1ms more — respawnDelay elapsed, should spawn
+      ws.update(1);
+      const callsAfter = mockSpawnDelegate.spawnDish.mock.calls.filter(
+        (args) => args[0] === 'spaceship',
+      );
+      expect(callsAfter.length).toBe(1);
+    });
+
+    it('should use spawnInterval when respawnDelay is not set', () => {
+      const ws = createSpaceshipWaveSystem();
+      // Wave 1 spaceship: maxActive=2, spawnInterval=3000, no respawnDelay
+      ws.startWave(1);
+
+      // maxActive reached
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'spaceship' ? 2 : 0));
+      ws.update(5000);
+
+      // Spaceship destroyed
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'spaceship' ? 1 : 0));
+      mockSpawnDelegate.spawnDish.mockClear();
+
+      // After spawnInterval (3000ms) it should spawn
+      ws.update(3000);
+      const calls = mockSpawnDelegate.spawnDish.mock.calls.filter(
+        (args) => args[0] === 'spaceship',
+      );
+      expect(calls.length).toBe(1);
+    });
+
+    it('should reset respawnDelay flag on new wave start', () => {
+      const ws = createSpaceshipWaveSystem();
+      // Wave 2 spaceship: maxActive=1, spawnInterval=2000, respawnDelay=8000
+      ws.startWave(2);
+
+      // maxActive reached
+      mockGetActiveCountByType.mockImplementation((type: string) => (type === 'spaceship' ? 1 : 0));
+      ws.update(5000);
+
+      // Start new wave — should reset the flag
+      mockGetActiveCountByType.mockImplementation(() => 0);
+      ws.startWave(1);
+      mockSpawnDelegate.spawnDish.mockClear();
+
+      // Wave 1: spawnInterval=3000, no respawnDelay — should spawn after 3000ms, not 8000ms
+      ws.update(3000);
+      const calls = mockSpawnDelegate.spawnDish.mock.calls.filter(
+        (args) => args[0] === 'spaceship',
+      );
+      expect(calls.length).toBe(1);
     });
   });
 

@@ -60,6 +60,7 @@ export class WaveConfigResolver {
             spaceshipScaling.minSpawnInterval ?? 2500,
             spaceshipScaling.spawnInterval - wavesBeyond * (spaceshipScaling.spawnIntervalReduction ?? 0),
           ),
+          ...(spaceshipScaling.respawnDelay != null ? { respawnDelay: spaceshipScaling.respawnDelay } : {}),
         }
       : waveData.spaceship;
 

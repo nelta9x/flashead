@@ -21,7 +21,8 @@
       ],
       "spaceship": {
         "maxActive": 1,
-        "spawnInterval": 8000
+        "spawnInterval": 8000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 440,
       "bosses": [
@@ -70,7 +71,8 @@
       ],
       "spaceship": {
         "maxActive": 1,
-        "spawnInterval": 8000
+        "spawnInterval": 8000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 620,
       "bosses": [
@@ -119,7 +121,8 @@
       ],
       "spaceship": {
         "maxActive": 2,
-        "spawnInterval": 6000
+        "spawnInterval": 6000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 800,
       "bosses": [
@@ -168,7 +171,8 @@
       ],
       "spaceship": {
         "maxActive": 2,
-        "spawnInterval": 6000
+        "spawnInterval": 6000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 700,
       "bosses": [
@@ -228,7 +232,8 @@
       ],
       "spaceship": {
         "maxActive": 2,
-        "spawnInterval": 5500
+        "spawnInterval": 5500,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 980,
       "bosses": [
@@ -288,7 +293,8 @@
       ],
       "spaceship": {
         "maxActive": 3,
-        "spawnInterval": 5000
+        "spawnInterval": 5000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 1200,
       "bosses": [
@@ -352,7 +358,8 @@
       ],
       "spaceship": {
         "maxActive": 3,
-        "spawnInterval": 5000
+        "spawnInterval": 5000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 1050,
       "bosses": [
@@ -416,7 +423,8 @@
       ],
       "spaceship": {
         "maxActive": 3,
-        "spawnInterval": 4500
+        "spawnInterval": 4500,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 1400,
       "bosses": [
@@ -485,7 +493,8 @@
       ],
       "spaceship": {
         "maxActive": 4,
-        "spawnInterval": 4000
+        "spawnInterval": 4000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 1700,
       "bosses": [
@@ -572,7 +581,8 @@
       ],
       "spaceship": {
         "maxActive": 4,
-        "spawnInterval": 4000
+        "spawnInterval": 4000,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 1500,
       "bosses": [
@@ -669,7 +679,8 @@
       ],
       "spaceship": {
         "maxActive": 5,
-        "spawnInterval": 3500
+        "spawnInterval": 3500,
+        "respawnDelay": 10000
       },
       "bossTotalHp": 2200,
       "bosses": [
@@ -897,7 +908,8 @@
       "maxActive": 5,
       "spawnInterval": 3500,
       "spawnIntervalReduction": 50,
-      "minSpawnInterval": 2500
+      "minSpawnInterval": 2500,
+      "respawnDelay": 10000
     },
     "remainderType": "basic",
     "remainderMinWeight": 0.05,

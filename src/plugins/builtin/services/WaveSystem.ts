@@ -16,6 +16,7 @@ export class WaveSystem {
   private timeSinceLastSpawn = 0;
   private timeSinceLastFillSpawn = 0;
   private timeSinceLastSpaceshipSpawn = 0;
+  private wasAtMaxSpaceships = false;
   private waveConfig: WaveRuntimeConfig | null = null;
   private isFeverTime = false;
   private totalGameTime = 0;
@@ -57,6 +58,7 @@ export class WaveSystem {
     this.timeSinceLastSpawn = 0;
     this.timeSinceLastFillSpawn = 0;
     this.timeSinceLastSpaceshipSpawn = 0;
+    this.wasAtMaxSpaceships = false;
     this.phaseController.startSpawning();
 
     this.waveConfig = this.configResolver.resolveWaveConfig(waveNumber);
@@ -117,12 +119,21 @@ export class WaveSystem {
     if (!this.waveConfig?.spaceship) return;
     if (this.isFeverTime) return;
 
-    const { maxActive, spawnInterval } = this.waveConfig.spaceship;
+    const { maxActive, spawnInterval, respawnDelay } = this.waveConfig.spaceship;
     const activeCount = this.getActiveCountByType?.('spaceship') ?? 0;
 
     if (activeCount >= maxActive) {
+      this.wasAtMaxSpaceships = true;
       this.timeSinceLastSpaceshipSpawn = 0;
       return;
+    }
+
+    // Spaceship destroyed — apply respawn delay
+    if (this.wasAtMaxSpaceships) {
+      this.wasAtMaxSpaceships = false;
+      if (respawnDelay != null && respawnDelay > spawnInterval) {
+        this.timeSinceLastSpaceshipSpawn = spawnInterval - respawnDelay;
+      }
     }
 
     this.timeSinceLastSpaceshipSpawn += delta;
