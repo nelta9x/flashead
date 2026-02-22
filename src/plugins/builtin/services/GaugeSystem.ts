@@ -1,6 +1,7 @@
 import { Data } from '../../../data/DataManager';
 import { EventBus, GameEvents } from '../../../utils/EventBus';
 import { ComboSystem } from './ComboSystem';
+import type { DishDestroyedEventPayload } from './ContentContracts';
 
 export class GaugeSystem {
   static inject = [ComboSystem] as const;
@@ -9,7 +10,10 @@ export class GaugeSystem {
   private readonly gainPerDish: number = Data.gameConfig.gauge.gainPerDish;
   private comboSystem: ComboSystem;
 
-  private onDishDestroyed = () => this.increaseGauge(this.calculateGain());
+  private onDishDestroyed = (payload: DishDestroyedEventPayload) => {
+    if (payload.byAbility) return;
+    this.increaseGauge(this.calculateGain());
+  };
   private onWaveStarted = () => this.reset();
 
   constructor(comboSystem: ComboSystem) {

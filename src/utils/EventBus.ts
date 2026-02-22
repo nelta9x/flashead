@@ -22,12 +22,12 @@ export class EventBus {
     EventBus.instance = new EventBus();
   }
 
-  on(event: string, callback: EventCallback): void {
-    this.addListener(event, callback, false);
+  on<T extends unknown[] = unknown[]>(event: string, callback: (...args: T) => void): void {
+    this.addListener(event, callback as EventCallback, false);
   }
 
-  once(event: string, callback: EventCallback): void {
-    this.addListener(event, callback, true);
+  once<T extends unknown[] = unknown[]>(event: string, callback: (...args: T) => void): void {
+    this.addListener(event, callback as EventCallback, true);
   }
 
   private addListener(event: string, callback: EventCallback, once: boolean): void {
@@ -37,7 +37,7 @@ export class EventBus {
     this.events.get(event)!.push({ callback, once });
   }
 
-  off(event: string, callback?: EventCallback): void {
+  off<T extends unknown[] = unknown[]>(event: string, callback?: (...args: T) => void): void {
     if (!callback) {
       this.events.delete(event);
       return;
