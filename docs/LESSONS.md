@@ -65,22 +65,7 @@
 
 ---
 
-## 4. 피해 기믹 피드백 일관성 `occurrences: 1`
-
-### 원칙
-- 동일 유형 기믹의 동일 결과는 발생 경로와 무관하게 같은 피드백(색상/텍스트)을 사용
-- 새 피해 기믹 추가 시 기존 동종 기믹의 피드백 색상·텍스트를 먼저 확인 후 통일
-- 피드백 텍스트 표시는 한 곳(호출자 또는 FeedbackSystem)에서만 담당 — 중복 표시 금지
-
-### 사례 요약
-- 일반 폭탄 제거(CYAN) vs 낙하폭탄 제거(빨강) 색상 불일치 → FeedbackSystem 중복 텍스트 제거 + 낙하폭탄에 CYAN 텍스트 추가로 통일
-- 원인: DishResolutionService가 CYAN 텍스트를 표시한 뒤 FeedbackSystem이 빨간 텍스트를 중복 표시
-
-> 상세: [LESSONS_ARCHIVE.md](LESSONS_ARCHIVE.md)
-
----
-
-## 5. ObjectPool 안전성 `occurrences: 1`
+## 4. ObjectPool 안전성 `occurrences: 1`
 
 ### 원칙
 - `active` 플래그와 `activeObjects` Set 이중 추적 금지 → `acquire()`에서 두 조건 모두 체크
@@ -95,25 +80,7 @@
 
 ---
 
-## 6. 리팩토링 원칙 `occurrences: 1`
-
-### 원칙
-- Scene은 흐름 오케스트레이션(`create/update/cleanup`), 규칙은 모듈로 분리
-- 이벤트 바인딩은 전용 바인더(`GameSceneEventBinder`)로 일원화
-- 테스트는 내부 구현(private)보다 공개 모듈 계약에 맞춰야 리팩토링 비용이 낮아짐
-- Renderer 분리 시 `delayedCall`/이벤트 핸들러 내 콜백까지 전수 조사 필수
-- 트윈은 목적별 핸들(`spawn/reaction/death`)을 분리해 수명 제어를 독립적으로 유지
-
-### 사례 요약
-- `GameScene` 1900+ 라인 → 5개 모듈로 분리 (BossCombatCoordinator, PlayerAttackController 등)
-- `LaserRenderer` 도입 후 콜백 내 `this.laserGraphics` 유령 참조 → 런타임 크래시
-- 보스 `killTweensOf(this)` 일괄 kill → 스폰 트윈 중단으로 투명 고정, 핸들 분리로 해결
-
-> 상세: [LESSONS_ARCHIVE.md](LESSONS_ARCHIVE.md)
-
----
-
-## 7. UI/입력 `occurrences: 1`
+## 5. UI/입력 `occurrences: 1`
 
 ### 원칙
 - UI 상태 변경(`visible`)은 애니메이션 시작 **전**에 즉시 수행, guard clause는 함수 최상단
@@ -134,7 +101,7 @@
 
 ---
 
-## 8. 데이터 SSOT `occurrences: 2`
+## 6. 데이터 SSOT `occurrences: 2`
 
 ### 원칙
 - 동작 의미가 바뀌는 리팩토링은 데이터 키 명명까지 함께 맞춤
@@ -155,193 +122,7 @@
 
 ---
 
-## 9. 렌더 레이어 깊이 중앙화 `occurrences: 1`
-
-### 원칙
-- 모든 `setDepth()` 값은 `data/game-config.json`의 `depths` 섹션에 정의하고, 소스에서는 `DEPTHS.xxx`로 참조
-- 소스 코드에 숫자 리터럴 depth를 직접 작성하지 않음 — 레이어 순서 변경 시 JSON 한 곳만 수정
-- 테스트 mock에 `DEPTHS`를 추가하는 것을 잊지 않도록 주의
-
-### 사례 요약
-- 8개 소스 파일에 흩어진 하드코딩 depth 값(−10 ~ 2510)을 `DEPTHS` SSOT로 일괄 마이그레이션
-- DamageText 테스트가 `DEPTHS` mock 누락으로 17건 실패 → mock에 필요한 키 추가로 해결
-
-> 상세: [LESSONS_ARCHIVE.md](LESSONS_ARCHIVE.md)
-
----
-
-## 10. 웨이브 상태 관리 `occurrences: 1`
-
-### 원칙
-- 게임 상태를 변경하는 **모든 경로**(성공/실패/타임아웃)에서 카운트 업데이트 필수
-- 새 단계(웨이브) 시작 시 관련 **모든** 상태를 초기화
-- 위치 추적 시스템의 제거 로직은 관대하게 설계 (누적 방지)
-
-### 사례 요약
-- 일반 접시 타임아웃 시 `dishesDestroyed` 미증가 → 웨이브 완료 조건 영원히 미달
-- `activeDishPositions` 미초기화 → 이전 웨이브 데이터가 스폰 위치 탐색을 방해
-
-> 상세: [LESSONS_ARCHIVE.md](LESSONS_ARCHIVE.md)
-
----
-
-## 11. 플러그인 아키텍처 (MOD 확장) `occurrences: 1`
-
-### 원칙
-- 새 적 타입, 새 어빌리티, 새 공격 패턴은 코어 코드 수정 없이 플러그인으로 추가할 수 있어야 한다.
-- Entity는 하나의 통합 클래스, 행동 차이는 EntityTypePlugin의 설정과 훅으로 표현한다.
-- 이벤트 페이로드의 엔티티 참조는 구체 클래스(Dish/Boss) 대신 `EntitySnapshot` 값 타입을 사용하여 유연성을 확보한다.
-- 무한 스케일링의 접시 타입 가중치 변화는 하드코딩이 아닌 `dishTypeScaling` 배열로 데이터 주도화한다.
-
-### 사례 요약
-- Dish와 Boss가 별개 클래스로 존재하여 새 적 타입 추가가 어려웠음 → 통합 Entity + EntityTypePlugin 도입
-- UpgradeSystem에 30개 이상의 getter가 하드코딩되어 있었음 → UpgradeSystemCore 인터페이스 + AbilityPlugin.getEffectValue() 패턴 도입
-- WaveConfigResolver.getScaledDishTypes()에 접시 타입별 스케일링이 하드코딩 → dishTypeScaling 배열로 데이터 주도 리팩토링
-
----
-
-## 12. setContext() 안티패턴 `occurrences: 1`
-
-### 원칙
-- 시스템에 매 프레임 `setContext(gameTime, playerX, ...)` 같은 setter를 호출해 외부 상태를 주입하는 것은 안티패턴이다.
-- 글로벌 게임 상태는 `World.context` (GameContext)에 한 번만 동기화하고, 시스템은 `this.world.context`에서 직접 읽는다.
-- 시스템이 필요로 하는 콜백/서비스는 `setContext()`가 아닌 **생성자 주입**(ServiceRegistry DI 또는 ServiceToken)으로 전달한다.
-- `GameScene.update()`는 오케스트레이션(입력→pause→pipeline.run()→비주얼)에 집중하고, 개별 시스템의 tick/update를 직접 호출하지 않는다.
-
-### 사례 요약
-- BlackHoleSystem.setGameTime(), OrbSystem.setContext(), FallingBombSystem.setContext(), HealthPackSystem.setContext()를 모두 제거
-- World.context (GameContext)로 gameTime/currentWave/playerId를 SSOT화
-- OrbSystem의 getBossSnapshots/damageBoss 콜백을 ServiceToken 기반 생성자 주입으로 전환
-- 게임 레벨 시스템(Wave/Combo/StatusEffect/BossCoordinator/Mod)을 래퍼 EntitySystem으로 파이프라인에 통합
-- GameScene.update()가 ~100줄에서 ~35줄로 축소
-
----
-
-## 13. Data-driven 초기 엔티티 스폰 `occurrences: 1`
-
-### 원칙
-- Scene에서 특정 엔티티 타입 ID(`'player'`)를 하드코딩하여 spawn하지 않는다.
-- 초기 스폰 대상은 `game-config.json`의 `initialEntities` 배열로 data-driven 정의.
-- `InitialEntitySpawnSystem.start()`에서 EntityTypePlugin.spawn()을 호출하여 ECS 라이프사이클에 통합.
-- `PluginRegistry.resetInstance()`로 레지스트리를 통째로 초기화하고 재등록하는 패턴은 지양 — entity type/ability 등록을 system plugin 생성 **전**으로 이동하면 reset 불필요.
-- entity type/ability가 SystemPlugin.createSystems()에서 참조되는 경우, 등록 순서를 보장해야 한다.
-
-### 사례 요약
-- GameScene에서 `PluginRegistry.getEntityType('player')!.spawn!(world)` 하드코딩을 InitialEntitySpawnSystem으로 이전
-- `PluginRegistry.resetInstance()` → entity type/ability 재등록 순서를 제거하고, 단일 등록 후 SystemPlugin 구성으로 단순화
-
----
-
-## 14. ECS 엔티티 타입 구분: boolean 플래그 vs 별도 컴포넌트 `occurrences: 1`
-
-### 원칙
-- 공유 컴포넌트의 boolean 플래그(`DishProps.dangerous`)로 엔티티 타입을 구분하면, 모든 소비자(쿼리/이벤트 핸들러/해상도 로직)에 분기가 전파된다.
-- 별도 컴포넌트(`C_BombProps` vs `C_DishProps`)로 분리하면 World query가 자연스럽게 필터하므로 소비자 분기가 제거된다.
-- 동일 행동을 공유하는 엔티티(웨이브 폭탄/낙하 폭탄)는 공통 컴포넌트(`C_BombProps`) + 통합 이벤트(`BOMB_DESTROYED`)로 중복을 제거한다.
-- 식별 방법: `world.bombProps.has(id)`(모든 폭탄), `world.fallingBomb.has(id)`(낙하 폭탄), `world.bombProps.has(id) && !world.fallingBomb.has(id)`(웨이브 폭탄).
-
-### 사례 요약
-- `DishProps.dangerous`/`invulnerable`로 폭탄을 구분 → 접시 쿼리 전체에 `if (dp.dangerous)` 분기 산재
-- `C_BombProps` 분리 + `BOMB_DESTROYED`/`BOMB_MISSED` 통합 → OrbSystem/BlackHoleSystem/PlayerAttackController에서 접시/폭탄 쿼리를 독립적으로 실행, `DishResolutionService`에서 폭탄 분기 전부 제거
-- `FALLING_BOMB_DESTROYED`/`FALLING_BOMB_MISSED` 제거 → `GameSceneEventBinder`에서 단일 `BOMB_DESTROYED` 핸들러로 웨이브+낙하 폭탄 통합 처리
-
----
-
-## 15. 엔진 마이그레이션 (Phaser 3 → 4) `occurrences: 1`
-
-### 원칙
-- Phaser 4에서 `fillPoints`/`strokePoints`는 `{x,y}` 리터럴 대신 `Phaser.Math.Vector2` 인스턴스를 요구한다.
-- `BlendModes`, `generateTexture`, `HexStringToColor` 등 핵심 API는 v4에서 보존되어 코드 수정 불필요.
-- 테스트 mock은 Phaser 내부 구현과 무관한 스텁이므로, export 구조가 변하지 않는 한 수정 불필요.
-
-### 사례 요약
-- `MenuBossRenderer`와 `ParticleManager`에서 `{x,y}` 리터럴을 `new Phaser.Math.Vector2(x,y)`로 변경 (총 4곳)
-- 그 외 59개 `import Phaser from 'phaser'` 파일, 37개 테스트 파일 모두 수정 없이 통과
-
----
-
-## 16. 업그레이드 조회 API 단일화 `occurrences: 1`
-
-### 원칙
-- `UpgradeSystem`에 어빌리티별 전용 getter를 계속 추가하는 방식은 확장 시 결합도를 키운다.
-- 런타임 호출부는 `abilityId + effect key` 기반 공통 API(`getAbilityLevel`, `getEffectValue`, `getLevelData`, `getSystemUpgrade`)만 사용한다.
-- 잘못된 `abilityId`/`effect key`는 조용히 0 처리하지 않고 즉시 예외로 실패시켜 데이터/호출부 오타를 조기 발견한다.
-- 효과 키 난립을 막기 위해 카탈로그 상수(`AbilityEffectCatalog`)를 SSOT로 사용한다.
-- 복합 계산식(예: 저주 배수 합성)은 별도 유틸(`CurseEffectMath`)로 분리해 중복을 제거한다.
-
-### 사례 요약
-- `UpgradeSystem`의 전용 getter 집합을 제거하고 공통 조회 API로 일괄 전환
-- Player/Boss/Dish/System 전역 호출부를 `abilityId + key` 접근으로 통일
-- 테스트 mock shape를 공통 API 기준으로 맞춰 회귀 검증 안정성 확보
-
----
-
-## 17. 파이프라인 드리프트 fail-fast + MOD raw bus 금지 `occurrences: 1`
-
-### 원칙
-- `entityPipeline` 설정과 실제 등록 시스템의 불일치를 초기화 시점에 즉시 실패시킨다.
-- `EntitySystemPipeline`는 진단 메서드(`missing`/`unmapped`)를 로그용으로만 두지 않고, `assertConfigSyncOrThrow()`로 배포 환경까지 동일하게 강제한다.
-- MOD tick 컨텍스트에는 raw `EventBus`를 전달하지 않는다. 시스템별로 바인딩된 `ScopedEventBus`만 허용한다.
-- MOD 시스템이 scoped bus 바인딩 없이 실행되는 경로는 호환성보다 안전성을 우선해 즉시 예외 처리한다.
-
-### 사례 요약
-- `GameScene.initializeSystems()`에서 `startAll()` 직전 `assertConfigSyncOrThrow()`를 실행해 오타/누락을 게임 시작 전에 차단
-- `ModSystemRegistry`에 `bindSystemEventBus(systemId, bus)`를 도입하고 `runAll()`에서 미바인딩 시스템을 즉시 실패 처리
-- `ModRegistry.loadMod()`에서 diff로 파악한 `modSystemIds` 전부에 MOD의 scoped bus를 바인딩하도록 표준 경로를 고정
-- `GameWrappersSystemPlugin`/`ModTickSystem`에서 raw `EventBus` 주입을 제거해 scoped 이벤트 경로 우회 가능성을 제거
-
----
-
-## 18. 부트 에셋 프리로드 data-driven + 문서 시퀀스 동기화 `occurrences: 1`
-
-### 원칙
-- BootScene의 아이콘 preload 대상은 하드코딩 배열이 아니라 `abilities.json.active[].icon` 기준으로 계산한다.
-- preload 대상은 `abilities.json.active[].upgradeId`와 `upgrades.system[].id`를 교차 검증해 미정의 매핑을 제외하고, 경고만 남긴다(실패로 승격하지 않음).
-- 아이콘 파일 누락은 부팅 실패가 아니라 UI fallback symbol 렌더(`UpgradeIconCatalog`)로 흡수한다.
-- 아키텍처 문서의 초기화 시퀀스는 실제 `GameScene.initializeSystems()` 순서와 항상 동일하게 유지한다.
-- 특히 서비스 resolve → abilities/entityTypes 등록 → system 생성 순서는 불변 조건으로 문서에 명시한다.
-
-### 사례 요약
-- BootScene 아이콘 리스트 하드코딩을 제거하고 data-driven resolver로 전환
-- 아이콘 누락 시 경고 후 진행 + HUD/업그레이드 UI에서 심볼 폴백 렌더를 유지
-- `PLUGIN_ARCHITECTURE`에 초기화 순서 invariant를 추가해 온보딩 혼선을 차단
-
----
-
-## 19. Ability 스키마 분리 + 매핑 fail-fast `occurrences: 1`
-
-### 원칙
-- 어빌리티 활성 목록과 메타(`pluginId`, `upgradeId`, `icon`)는 `game-config.json`에 섞지 않고 `abilities.json`으로 분리한다.
-- 런타임 canonical ID는 `ability.id`로 고정하고, 업그레이드 수치 조회는 `abilityId -> upgradeId` 매핑을 통해 일관되게 수행한다.
-- `pluginId`/`upgradeId`/`icon` 메타 드리프트는 `initializeSystems()` 단계에서 즉시 실패시켜 조기 감지한다.
-- 아이콘 누락은 경고 + UI fallback으로 처리해 런타임을 지속하고, 설정 오류는 validator에서 fail-fast로 차단한다.
-
-### 사례 요약
-- `data/abilities.json` 신설 후 `game-config.json.abilities` 제거(브레이킹 전환)
-- `registerBuiltinAbilities()`를 definition 기반(`id`, `pluginId`) strict 검증 경로로 전환
-- `UpgradeSystem`/description/preview 경로를 매핑 기반 조회로 통일
-- `AbilityConfigSyncValidator`를 도입해 중복/미등록 pluginId/미정의 upgradeId/icon 메타 오류를 초기화 시점에 즉시 차단
-
----
-
-## 20. Ability 서비스 계층 분리 + 플러그인 중심 효과 조회 `occurrences: 1`
-
-### 원칙
-- 런타임 효과 조회는 단일 경로(`AbilityRuntimeQueryService`)로 통일하고, 미정의 ability/key는 즉시 예외로 실패시킨다.
-- 레벨/선택 상태(`AbilityProgressionService`)와 데이터 매핑 조회(`AbilityDataRepository`)를 분리해 책임을 분명히 한다.
-- 설명/프리뷰 생성은 `AbilityPresentationService`로 분리하고, 플러그인 `getDerivedStats` 훅을 병합해 UI/런타임 계산 경로를 일치시킨다.
-- Ability 플러그인 컨텍스트는 `upgradeSystem` 직접 참조 대신 `abilityState`/`abilityData` 리더 계약만 받는다.
-- `GameScene.update()` 외부 직접 tick 호출을 금지하고, `AbilityTickSystem` + 파이프라인 실행을 유지한다.
-
-### 사례 요약
-- `PlayerAttackController`, `BossCombatCoordinator`, `DishLifecycleController`, `Magnet/Orb/BlackHole/HealthPack/FallingBomb/PlayerTick` 시스템을 Ability 서비스 DI로 전환
-- `InGameUpgradeUI`/`HUD`/`AbilitySummaryWidget`를 `rollChoices`/`applyChoice`/`presentation` 경로로 전환
-- `AbilityManager`에 `getPluginOrThrow`/`getEffectValueOrThrow`를 추가하고, 0 fallback 경로를 제거
-- 신규 단위 테스트(`AbilityRuntimeQueryService`, `AbilityProgressionService`, `AbilityPresentationService`)로 fail-fast/프리뷰 병합 회귀를 고정
-
----
-
-## 21. 시스템 분리 시 결합 방식 선택 `occurrences: 1`
+## 7. 시스템 분리 시 결합 방식 선택 `occurrences: 1`
 
 ### 원칙
 - 시스템 분리의 목적은 독립성 확보. 분리 후 closure 공유 배열/직접 메서드 호출로 재결합하면 분리 의미가 퇴색한다.
@@ -354,13 +135,14 @@
 
 ---
 
-## 22. drift 엔티티의 근접 판정은 앵커 기준 `occurrences: 1`
+## 8. 충돌 판정은 transform 기준 (프로젝트 표준 패턴) `occurrences: 2`
 
 ### 원칙
-- drift 이동 엔티티의 `transform.x/y`는 `homeX/Y + sin(...) * amplitude` — 진폭이 수백 px에 달할 수 있다.
-- 근접 판정(eat, collect 등)을 `transform` 기준으로 하면 진폭 >> 판정 반경이라 거의 발동하지 않는다.
-- 앵커(`homeX/homeY`)가 대상에 수렴했는지로 판정해야 chase→eat 흐름이 성립한다.
+- 모든 충돌/근접 판정(eat, collect, attack)은 **`transform.x/y`**(실제 화면 위치) 기준이 프로젝트 표준 패턴이다 (CursorAttack, Orb, BlackHole 공통).
+- 범위: `dist <= sizeA + sizeB` (두 원의 반지름 합).
+- drift 엔티티의 **chase 방향**은 앵커(`homeX/homeY`) 기준이 맞다 — 진동 중심을 대상에 수렴시키는 것이 목적.
+- chase 거리와 eat 거리는 분리해야 한다: chase는 앵커→대상, eat은 transform→대상.
 
 ### 사례 요약
-- 우주선 drift 진폭 X:±400, Y:±120 vs eatRange 45 → transform 거리가 항상 eatRange를 초과하여 먹기 불가
-- eat 판정을 `homeX/homeY` 기준으로 변경하여 해결
+- 우주선 eat 판정이 앵커(`homeX/homeY`) 기준이었음 → `homeX/Y`는 drift 진동 중심이라 실제 화면 위치(`transform`)와 수백 px 차이 → 화면에서 겹쳐도 먹기 미발동
+- eat 판정을 `transform.x/y` 기준으로 변경하여 프로젝트 표준 패턴과 통일

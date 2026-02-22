@@ -84,8 +84,7 @@ export class SpaceshipAISystem implements EntitySystem {
       if (nearestId !== null) {
         const dishT = this.world.transform.get(nearestId);
         if (dishT && mov.drift) {
-          // Chase + eat use anchor-to-dish distance
-          // (transform includes drift oscillation that dwarfs collision radii)
+          // Chase: move anchor toward dish (drift oscillation center converges on target)
           const dx = dishT.x - mov.homeX;
           const dy = dishT.y - mov.homeY;
           const dist = Math.sqrt(dx * dx + dy * dy);
@@ -96,10 +95,13 @@ export class SpaceshipAISystem implements EntitySystem {
             mov.homeY = Phaser.Math.Clamp(mov.homeY + (dy / dist) * move, bounds.minY, bounds.maxY);
           }
 
-          // Eat: circle-circle collision using actual entity sizes
+          // Eat: circle-circle collision using transform (project standard pattern)
+          const eatDx = dishT.x - t.x;
+          const eatDy = dishT.y - t.y;
+          const eatDist = Math.sqrt(eatDx * eatDx + eatDy * eatDy);
           const shipSize = this.world.dishProps.get(entityId)?.size ?? 0;
           const dishSize = this.world.dishProps.get(nearestId)?.size ?? 0;
-          if (dist <= shipSize + dishSize && gameTime - state.lastEatHitTime >= dishAttackConfig.hitInterval) {
+          if (eatDist <= shipSize + dishSize && gameTime - state.lastEatHitTime >= dishAttackConfig.hitInterval) {
             state.lastEatHitTime = gameTime;
             this.entityDamageService.applyDamage(nearestId, dishAttackConfig.hitDamage);
 

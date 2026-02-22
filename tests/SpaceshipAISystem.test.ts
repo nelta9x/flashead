@@ -175,8 +175,8 @@ describe('SpaceshipAISystem', () => {
     expect(opts.mov!.homeY).toBe(100);
   });
 
-  it('should apply damage when anchor within shipSize + dishSize', () => {
-    // anchor dist = 30 < 35 + 30 = 65
+  it('should apply damage when transform within shipSize + dishSize', () => {
+    // transform dist = 30 < 35 + 30 = 65
     env.addEntity('ship1', 'spaceship', 100, 100, shipMov(100, 100));
     env.addEntity('dish1', 'basic', 130, 100, dishOpts());
 
@@ -186,8 +186,8 @@ describe('SpaceshipAISystem', () => {
     expect(mockDamageService.applyDamage).toHaveBeenCalledWith('dish1', dishAttack.hitDamage);
   });
 
-  it('should NOT eat when anchor distance exceeds shipSize + dishSize', () => {
-    // anchor dist = 70 > 35 + 30 = 65
+  it('should NOT eat when transform distance exceeds shipSize + dishSize', () => {
+    // transform dist = 70 > 35 + 30 = 65
     env.addEntity('ship1', 'spaceship', 100, 100, shipMov(100, 100));
     env.addEntity('dish1', 'basic', 170, 100, dishOpts());
 
@@ -246,11 +246,11 @@ describe('SpaceshipAISystem', () => {
     expect(fireListener).not.toHaveBeenCalled();
   });
 
-  it('should use anchor distance (not transform) for eat check', () => {
-    // Transform far from dish (drift offset), but anchor close
-    env.addEntity('ship1', 'spaceship', 500, 100, shipMov(130, 100));
+  it('should use transform distance (not anchor) for eat check', () => {
+    // Transform close to dish, but anchor far (drift offset)
+    env.addEntity('ship1', 'spaceship', 140, 100, shipMov(500, 100));
     env.addEntity('dish1', 'basic', 140, 100, dishOpts());
-    // anchorDist = 10 < 65 (shipSize+dishSize), transform dist = 360
+    // transformDist = 0 < 65 (shipSize+dishSize), anchorDist = 360
 
     env.world.context.gameTime = 1000;
     system.tick(16);
@@ -258,10 +258,10 @@ describe('SpaceshipAISystem', () => {
     expect(mockDamageService.applyDamage).toHaveBeenCalledWith('dish1', dishAttack.hitDamage);
   });
 
-  it('should NOT eat when anchor is outside collision range even if transform is close', () => {
-    env.addEntity('ship1', 'spaceship', 140, 100, shipMov(500, 100));
+  it('should NOT eat when transform is outside collision range even if anchor is close', () => {
+    env.addEntity('ship1', 'spaceship', 500, 100, shipMov(130, 100));
     env.addEntity('dish1', 'basic', 140, 100, dishOpts());
-    // anchorDist = 360 >> 65, transform dist = 0
+    // transformDist = 360 >> 65, anchorDist = 10
 
     env.world.context.gameTime = 1000;
     system.tick(16);
