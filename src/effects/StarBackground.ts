@@ -28,113 +28,117 @@ interface ShootingStarData {
 }
 
 export class StarBackground {
-  private starGraphics: Phaser.GameObjects.Graphics;
+  private staticStarGraphics: Phaser.GameObjects.Graphics;
+  private twinkleStarGraphics: Phaser.GameObjects.Graphics;
   private shootingStarGraphics: Phaser.GameObjects.Graphics;
   private config: StarsConfig;
-  private stars: StarData[] = [];
+  private twinkleStars: StarData[] = [];
   private shootingStars: ShootingStarData[] = [];
   private shootingStarColor: number = COLORS.CYAN;
   private nextBurstInMs: number = 0;
   private burstSpawnDelayMs: number = 0;
   private burstRemainingCount: number = 0;
   private frameCounter: number = 10;
-  private accumulatedDelta: number = 0;
-  private starsDirty: boolean = true;
-  private lastGridSpeed: number = 0;
+  private twinkleDirty: boolean = true;
 
   constructor(scene: Phaser.Scene, config: StarsConfig) {
     this.config = config;
-    this.starGraphics = scene.add.graphics();
+    this.staticStarGraphics = scene.add.graphics();
+    this.twinkleStarGraphics = scene.add.graphics();
     this.shootingStarGraphics = scene.add.graphics();
     this.init();
     this.initShootingStarState();
   }
 
   private init(): void {
-    this.stars = [];
+    this.twinkleStars = [];
     const limitY = GAME_HEIGHT * this.config.verticalLimitRatio;
+    const twinkleRatio = Phaser.Math.Clamp(this.config.twinkleRatio, 0, 1);
 
     for (let i = 0; i < this.config.count; i++) {
-      this.stars.push({
-        x: Math.random() * GAME_WIDTH,
-        y: Math.random() * limitY,
-        size: Phaser.Math.FloatBetween(this.config.minSize, this.config.maxSize),
-        twinkleSpeed: Phaser.Math.FloatBetween(
-          this.config.twinkleSpeedMin,
-          this.config.twinkleSpeedMax
-        ),
-        offset: Math.random() * Math.PI * 2,
-        cachedAlpha: 1,
-      });
+      const x = Math.random() * GAME_WIDTH;
+      const y = Math.random() * limitY;
+      const size = Phaser.Math.FloatBetween(this.config.minSize, this.config.maxSize);
+      const isTwinkle = Math.random() < twinkleRatio;
+
+      if (isTwinkle) {
+        this.twinkleStars.push({
+          x,
+          y,
+          size,
+          twinkleSpeed: Phaser.Math.FloatBetween(
+            this.config.twinkleSpeedMin,
+            this.config.twinkleSpeedMax
+          ),
+          offset: Math.random() * Math.PI * 2,
+          cachedAlpha: 1,
+        });
+      } else {
+        this.drawStaticStar(x, y, size);
+      }
     }
   }
 
-  public update(delta: number, time: number, gridSpeed: number): void {
+  private drawStaticStar(x: number, y: number, size: number): void {
+    const alpha = Phaser.Math.FloatBetween(0.3, 0.9);
+    this.staticStarGraphics.fillStyle(0xffffff, alpha);
+    this.staticStarGraphics.fillCircle(x, y, size);
+
+    if (size > 1.5) {
+      this.staticStarGraphics.lineStyle(1, COLORS.CYAN, alpha * 0.4);
+      this.staticStarGraphics.strokeCircle(x, y, size + 1);
+    }
+  }
+
+  public update(delta: number, time: number, _gridSpeed: number): void {
     const limitY = GAME_HEIGHT * this.config.verticalLimitRatio;
 
-    this.accumulatedDelta += delta;
-    this.lastGridSpeed = gridSpeed;
     this.frameCounter++;
-
     if (this.frameCounter >= 10) {
-      this.updateStarPhysics(time, limitY);
+      this.updateTwinkleAlpha(time);
       this.frameCounter = 0;
-      this.accumulatedDelta = 0;
-      this.starsDirty = true;
+      this.twinkleDirty = true;
     }
 
-    if (this.starsDirty) {
-      this.starsDirty = false;
-      this.redrawStars();
+    if (this.twinkleDirty) {
+      this.twinkleDirty = false;
+      this.redrawTwinkleStars();
     }
 
     this.shootingStarGraphics.clear();
     this.updateShootingStars(delta, limitY);
   }
 
-  private updateStarPhysics(time: number, limitY: number): void {
-    const accDelta = this.accumulatedDelta;
-    const gridSpeed = this.lastGridSpeed;
-
-    for (let i = 0; i < this.stars.length; i++) {
-      const star = this.stars[i];
-      const sizeFactor = star.size / this.config.maxSize;
-      const baseRatio = this.config.parallaxRatio;
-      const variation = this.config.sizeSpeedFactor;
-      const parallaxSpeed = gridSpeed * baseRatio * (1 - variation * 0.5 + sizeFactor * variation);
-
-      star.y += parallaxSpeed * accDelta;
-
-      if (star.y > limitY) {
-        star.y = 0;
-        star.x = Math.random() * GAME_WIDTH;
-      }
-
+  private updateTwinkleAlpha(time: number): void {
+    for (let i = 0; i < this.twinkleStars.length; i++) {
+      const star = this.twinkleStars[i];
       star.cachedAlpha = 0.2 + Math.abs(Math.sin(time * star.twinkleSpeed + star.offset)) * 0.8;
     }
   }
 
-  private redrawStars(): void {
-    this.starGraphics.clear();
-    for (let i = 0; i < this.stars.length; i++) {
-      const star = this.stars[i];
-      this.starGraphics.fillStyle(0xffffff, star.cachedAlpha);
-      this.starGraphics.fillCircle(star.x, star.y, star.size);
+  private redrawTwinkleStars(): void {
+    this.twinkleStarGraphics.clear();
+    for (let i = 0; i < this.twinkleStars.length; i++) {
+      const star = this.twinkleStars[i];
+      this.twinkleStarGraphics.fillStyle(0xffffff, star.cachedAlpha);
+      this.twinkleStarGraphics.fillCircle(star.x, star.y, star.size);
 
       if (star.size > 1.5) {
-        this.starGraphics.lineStyle(1, COLORS.CYAN, star.cachedAlpha * 0.4);
-        this.starGraphics.strokeCircle(star.x, star.y, star.size + 1);
+        this.twinkleStarGraphics.lineStyle(1, COLORS.CYAN, star.cachedAlpha * 0.4);
+        this.twinkleStarGraphics.strokeCircle(star.x, star.y, star.size + 1);
       }
     }
   }
 
   public setDepth(depth: number): void {
-    this.starGraphics.setDepth(depth);
+    this.staticStarGraphics.setDepth(depth);
+    this.twinkleStarGraphics.setDepth(depth);
     this.shootingStarGraphics.setDepth(depth);
   }
 
   public destroy(): void {
-    this.starGraphics.destroy();
+    this.staticStarGraphics.destroy();
+    this.twinkleStarGraphics.destroy();
     this.shootingStarGraphics.destroy();
   }
 
