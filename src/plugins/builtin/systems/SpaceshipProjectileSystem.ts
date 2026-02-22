@@ -1,15 +1,14 @@
 import Phaser from 'phaser';
 import { CURSOR_HITBOX, GAME_WIDTH, GAME_HEIGHT } from '../../../data/constants';
 import { Data } from '../../../data/DataManager';
-import { C_DishTag, C_Identity, C_Transform } from '../../../world';
+import { EventBus, GameEvents } from '../../../utils/EventBus';
 import entitiesJson from '../../../../data/entities.json';
 import type { EntitySystem } from '../../../systems/entity-systems/EntitySystem';
 import type { World } from '../../../world';
-import type { EntityId } from '../../../world/EntityId';
 import type { HealthSystem } from '../../../systems/HealthSystem';
 import type { FeedbackSystem } from '../services/FeedbackSystem';
 import type { AbilityRuntimeQueryService } from '../services/abilities/AbilityRuntimeQueryService';
-import type { EntityDamageService } from '../services/EntityDamageService';
+import type { SpaceshipFireProjectilePayload } from './SpaceshipAISystem';
 import {
   ABILITY_IDS,
   CURSOR_SIZE_EFFECT_KEYS,
@@ -23,13 +22,7 @@ interface Projectile {
   spawnTime: number;
 }
 
-interface SpaceshipState {
-  targetDishId: EntityId | null;
-  lastEatHitTime: number;
-}
-
 const projConfig = entitiesJson.types.spaceship.projectile;
-const dishAttackConfig = entitiesJson.types.spaceship.dishAttack;
 const parsedProjectileColor = Phaser.Display.Color.HexStringToColor(projConfig.color).color;
 const parsedCoreColor = Phaser.Display.Color.HexStringToColor(projConfig.coreColor).color;
 const OFFSCREEN_MARGIN = 50;
@@ -43,12 +36,15 @@ export class SpaceshipProjectileSystem implements EntitySystem {
   private readonly healthSystem: HealthSystem;
   private readonly feedbackSystem: FeedbackSystem;
   private readonly abilityRuntimeQuery: AbilityRuntimeQueryService;
-  private readonly entityDamageService: EntityDamageService;
 
   private readonly graphics: Phaser.GameObjects.Graphics;
   private readonly projectiles: Projectile[] = [];
-  private readonly spaceshipStates = new Map<EntityId, SpaceshipState>();
   private lastHitTime = 0;
+
+  private readonly handleFireRequest = (payload: unknown): void => {
+    const p = payload as SpaceshipFireProjectilePayload;
+    this.fireProjectile(p.fromX, p.fromY, p.targetX, p.targetY, p.gameTime);
+  };
 
   constructor(
     scene: Phaser.Scene,
@@ -56,92 +52,22 @@ export class SpaceshipProjectileSystem implements EntitySystem {
     healthSystem: HealthSystem,
     feedbackSystem: FeedbackSystem,
     abilityRuntimeQuery: AbilityRuntimeQueryService,
-    entityDamageService: EntityDamageService,
   ) {
     this.scene = scene;
     this.world = world;
     this.healthSystem = healthSystem;
     this.feedbackSystem = feedbackSystem;
     this.abilityRuntimeQuery = abilityRuntimeQuery;
-    this.entityDamageService = entityDamageService;
 
     this.graphics = this.scene.add.graphics();
     this.graphics.setDepth(Data.gameConfig.depths.laser);
+
+    EventBus.getInstance().on(GameEvents.SPACESHIP_FIRE_PROJECTILE, this.handleFireRequest);
   }
 
   tick(delta: number): void {
     const gameTime = this.world.context.gameTime;
     const dtSec = delta / 1000;
-
-    // Collect active spaceship entity IDs and clean stale states
-    const activeSpaceshipIds = new Set<EntityId>();
-    for (const [entityId, identity] of this.world.query(C_Identity, C_Transform)) {
-      if (identity.entityType !== 'spaceship') continue;
-      activeSpaceshipIds.add(entityId);
-    }
-
-    for (const id of this.spaceshipStates.keys()) {
-      if (!activeSpaceshipIds.has(id)) {
-        this.spaceshipStates.delete(id);
-      }
-    }
-
-    // Dish-chase + eat-to-fire logic
-    const playerT = this.world.transform.get(this.world.context.playerId);
-    for (const entityId of activeSpaceshipIds) {
-      const t = this.world.transform.get(entityId);
-      if (!t) continue;
-      const mov = this.world.movement.get(entityId);
-
-      let state = this.spaceshipStates.get(entityId);
-      if (!state) {
-        state = { targetDishId: null, lastEatHitTime: 0 };
-        this.spaceshipStates.set(entityId, state);
-      }
-
-      // Find nearest dish (non-spaceship entity with DishTag)
-      let nearestId: EntityId | null = null;
-      let nearestDist = Infinity;
-      for (const [dishId, , dishIdentity, dishTransform] of this.world.query(C_DishTag, C_Identity, C_Transform)) {
-        if (dishIdentity.entityType === 'spaceship') continue;
-        const dx = dishTransform.x - t.x;
-        const dy = dishTransform.y - t.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < nearestDist) {
-          nearestDist = dist;
-          nearestId = dishId;
-        }
-      }
-
-      state.targetDishId = nearestId;
-
-      if (nearestId !== null) {
-        const dishT = this.world.transform.get(nearestId);
-        if (dishT) {
-          // Chase toward target dish by shifting the drift anchor
-          const dx = dishT.x - t.x;
-          const dy = dishT.y - t.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 0 && mov?.drift) {
-            const move = Math.min(dishAttackConfig.chaseSpeed * dtSec, dist);
-            const bounds = mov.drift.bounds;
-            mov.homeX = Phaser.Math.Clamp(mov.homeX + (dx / dist) * move, bounds.minX, bounds.maxX);
-            mov.homeY = Phaser.Math.Clamp(mov.homeY + (dy / dist) * move, bounds.minY, bounds.maxY);
-          }
-
-          // Eat: apply damage at interval when in range
-          if (dist <= dishAttackConfig.eatRange && gameTime - state.lastEatHitTime >= dishAttackConfig.hitInterval) {
-            state.lastEatHitTime = gameTime;
-            this.entityDamageService.applyDamage(nearestId, dishAttackConfig.hitDamage);
-
-            // If dish was destroyed, fire projectile toward player
-            if (!this.world.isActive(nearestId) && playerT) {
-              this.fireProjectile(t.x, t.y, playerT.x, playerT.y, gameTime);
-            }
-          }
-        }
-      }
-    }
 
     // Move projectiles
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -160,6 +86,7 @@ export class SpaceshipProjectileSystem implements EntitySystem {
     }
 
     // Cursor collision check
+    const playerT = this.world.transform.get(this.world.context.playerId);
     if (playerT) {
       const cursorSizeBonus = this.abilityRuntimeQuery.getEffectValueOrThrow(
         ABILITY_IDS.CURSOR_SIZE,
@@ -239,12 +166,12 @@ export class SpaceshipProjectileSystem implements EntitySystem {
 
   clear(): void {
     this.projectiles.length = 0;
-    this.spaceshipStates.clear();
     this.lastHitTime = 0;
     this.graphics.clear();
   }
 
   destroy(): void {
+    EventBus.getInstance().off(GameEvents.SPACESHIP_FIRE_PROJECTILE, this.handleFireRequest);
     this.clear();
     this.graphics.destroy();
   }

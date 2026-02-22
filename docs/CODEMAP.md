@@ -96,12 +96,13 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
   - `BlackHoleSystem` (`core:black_hole`): World query로 접시/폭탄 흡인 + 피해 + 렌더링
   - `OrbSystem` (`core:orb`): World query로 접시/폭탄 충돌 판정 + 렌더링
   - `FallingBombSystem` (`core:falling_bomb`): World query로 낙하 폭탄 스폰/이동/충돌 + 커서 충돌 체크
-  - `SpaceshipProjectileSystem` (`core:spaceship_projectile`): 우주선 엔티티의 발사체 스폰/이동/커서 충돌/렌더링. 우주선별 발사 타이머(Map<EntityId, FireState>), 플레이어 방향 + aimVariance 각도 오차 발사, 무적 쿨다운 충돌 판정.
+  - `SpaceshipAISystem` (`core:spaceship_ai`): 우주선 AI — 접시 추적(chase homeX/Y), 먹기(eat damage), 접시 파괴 시 `SPACESHIP_FIRE_PROJECTILE` 이벤트 발행.
+  - `SpaceshipProjectileSystem` (`core:spaceship_projectile`): 우주선 발사체 — `SPACESHIP_FIRE_PROJECTILE` 이벤트 구독으로 발사체 생성, 이동, 커서 충돌(무적 쿨다운), 렌더링.
   - `HealthPackSystem` (`core:health_pack`): World query로 힐팩 스폰/이동/충돌 + 수집 체크
   - `ModTickSystem` (`core:mod_tick`): `ModSystemRegistry.runAll()` 호출. `EntityQueryService`/`StatusEffectManager`만 공유 컨텍스트로 전달하고, `eventBus`는 레지스트리가 시스템별 scoped bus를 주입.
-- **`EntitySystemPipeline.ts`** (`src/systems/`): data-driven 엔티티 시스템 실행 파이프라인. `game-config.json`의 `entityPipeline` 배열이 실행 순서의 SSOT (21개 시스템). `register(system)`, `unregister(id)`, `setEnabled(id, enabled)`, `run(delta)`. config 순서대로 배치 → config에 없는 등록 시스템은 끝에 추가. `getMissingSystems()`, `getUnmappedSystems()`, `getRegisteredIds()` 진단 메서드와 `assertConfigSyncOrThrow()` fail-fast 검증 메서드를 제공.
-  - GameScene 호출 순서: `syncWorldContext()` → `entitySystemPipeline.run(delta)` (21개 시스템 순차, 모든 tick 로직 포함)
-  - 파이프라인 순서: initial_spawn → wave → combo → status_effect_tick → entity_status → entity_timing → player → ability_tick → entity_movement → boss_reaction → boss_coordinator → magnet → cursor_attack → spaceship_projectile → black_hole → orb → falling_bomb → health_pack → entity_visual → entity_render → mod_tick
+- **`EntitySystemPipeline.ts`** (`src/systems/`): data-driven 엔티티 시스템 실행 파이프라인. `game-config.json`의 `entityPipeline` 배열이 실행 순서의 SSOT (22개 시스템). `register(system)`, `unregister(id)`, `setEnabled(id, enabled)`, `run(delta)`. config 순서대로 배치 → config에 없는 등록 시스템은 끝에 추가. `getMissingSystems()`, `getUnmappedSystems()`, `getRegisteredIds()` 진단 메서드와 `assertConfigSyncOrThrow()` fail-fast 검증 메서드를 제공.
+  - GameScene 호출 순서: `syncWorldContext()` → `entitySystemPipeline.run(delta)` (22개 시스템 순차, 모든 tick 로직 포함)
+  - 파이프라인 순서: initial_spawn → wave → combo → status_effect_tick → entity_status → entity_timing → player → ability_tick → entity_movement → boss_reaction → boss_coordinator → magnet → cursor_attack → spaceship_ai → spaceship_projectile → black_hole → orb → falling_bomb → health_pack → entity_visual → entity_render → mod_tick
 - **`builtin/systems/GameLevelSystemsPlugin.ts`**: ComboTickSystem(colocate) + StatusEffectTickSystem을 파이프라인에 등록하는 SystemPlugin.
 - **`Entity.ts` 연동**: 경량 Phaser wrapper (~182줄). `deactivate()` 시 `StatusEffectManager.clearEntity()` 및 `World.destroyEntity()` 자동 호출로 풀 반환 시 잔류 효과/컴포넌트 방지. `spawn()` 시 `EntitySpawnInitializer`를 통해 World 컴포넌트를 초기화. freeze/slow는 StatusEffectManager로 위임. 모든 tick 로직은 외부 ECS 시스템이 World 스토어를 직접 읽어 처리.
 
@@ -228,7 +229,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 - **`src/data/constants.ts`**: JSON 기반 데이터 중 코드에서 자주 쓰이는 물리/기하학적 상수.
 - **`src/data/game.config.ts`**: Phaser 엔진 기술 설정 (물리, 렌더링, 스케일, 오디오 등).
 - **데이터 파일 목록 (`data/*.json`)**:
-  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT. **`entityPipeline`**: 21개 엔티티 시스템 실행 순서 배열 (초기 스폰 1개 + 게임 레벨 6개 + 엔티티 14개). **`systemPlugins`**: 서비스/시스템 플러그인 활성화 목록. **`entityTypes`**: 활성화할 빌트인 엔티티 타입 ID 배열 (factory map 기반 동적 등록). **`initialEntities`**: 게임 시작 시 data-driven 스폰할 엔티티 타입 ID 배열.
+  - `game-config.json`: 전역 설정, 기본 언어(`defaultLanguage`), 플레이어 스탯, UI 레이아웃, 폰트 설정, 레이저 공격, 자기장 설정, **렌더 레이어 깊이(`depths`)** — 모든 `setDepth()` 값의 SSOT. **`entityPipeline`**: 22개 엔티티 시스템 실행 순서 배열 (초기 스폰 1개 + 게임 레벨 6개 + 엔티티 15개). **`systemPlugins`**: 서비스/시스템 플러그인 활성화 목록. **`entityTypes`**: 활성화할 빌트인 엔티티 타입 ID 배열 (factory map 기반 동적 등록). **`initialEntities`**: 게임 시작 시 data-driven 스폰할 엔티티 타입 ID 배열.
   - `abilities.json`: 활성 어빌리티 SSOT. `active[]`에서 `id`(런타임 ID) + `pluginId`(factory lookup) + `upgradeId`(업그레이드 매핑) + `icon`(Boot preload 메타)을 함께 정의한다.
   - `locales.json`: 다국어(EN, KO) 번역 데이터 및 업그레이드 설명/카드 라벨 템플릿 (`upgrade.stat.*`, `upgrade.card.*`).
   - `main-menu.json`: 메인 메뉴 씬 설정 (별 배경, 보스 애니메이션, 메뉴 접시 스폰, 언어 UI 설정).
@@ -284,6 +285,7 @@ MOD가 커스텀 상태효과, 크로스 엔티티 상호작용, 매 프레임 �
 |                   | `PLAYER_ATTACK`         | 게이지 완충 후 공격 시         | `GaugeSystem`     | `GameScene`                            |
 | **블랙홀**        | `BLACK_HOLE_CONSUMED`   | 블랙홀이 폭탄/접시 흡수 시     | `BlackHoleSystem` | `ContentEventBinder` (피드백 텍스트)   |
 | **저주**          | `CURSE_HP_PENALTY`      | 글래스캐논 업그레이드 적용 시  | `AbilityProgressionService` | `ContentEventBinder` (maxHP 감소)    |
+| **우주선**        | `SPACESHIP_FIRE_PROJECTILE` | 우주선이 접시를 파괴했을 때 | `SpaceshipAISystem` | `SpaceshipProjectileSystem` (발사체 생성) |
 
 ---
 

@@ -16,7 +16,7 @@
     "core:black_hole_system",
     "core:orb_system",
     "core:health_pack",
-    "core:spaceship_projectile",
+    "core:spaceship_systems",
     "core:game_wrappers"
   ],
   "entityTypes": [
@@ -44,6 +44,7 @@
     "core:boss_coordinator",
     "core:magnet",
     "core:cursor_attack",
+    "core:spaceship_ai",
     "core:spaceship_projectile",
     "core:black_hole",
     "core:orb",

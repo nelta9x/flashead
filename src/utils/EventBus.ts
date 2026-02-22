@@ -153,4 +153,7 @@ export const GameEvents = {
 
   // 블랙홀 관련
   BLACK_HOLE_CONSUMED: 'blackHole:consumed',
+
+  // 우주선 관련
+  SPACESHIP_FIRE_PROJECTILE: 'spaceship:fireProjectile',
 } as const;

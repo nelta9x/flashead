@@ -338,3 +338,16 @@
 - `InGameUpgradeUI`/`HUD`/`AbilitySummaryWidget`를 `rollChoices`/`applyChoice`/`presentation` 경로로 전환
 - `AbilityManager`에 `getPluginOrThrow`/`getEffectValueOrThrow`를 추가하고, 0 fallback 경로를 제거
 - 신규 단위 테스트(`AbilityRuntimeQueryService`, `AbilityProgressionService`, `AbilityPresentationService`)로 fail-fast/프리뷰 병합 회귀를 고정
+
+---
+
+## 21. 시스템 분리 시 결합 방식 선택 `occurrences: 1`
+
+### 원칙
+- 시스템 분리의 목적은 독립성 확보. 분리 후 closure 공유 배열/직접 메서드 호출로 재결합하면 분리 의미가 퇴색한다.
+- CLAUDE.md 규칙 6 "시스템 간 직접 결합보다 EventBus를 우선 사용"은 같은 도메인/같은 플러그인에서 분리된 시스템에도 예외 없이 적용.
+- "밀결합이었으니 분리 후에도 밀결합"이라는 추론은 오류. 원래 밀결합이었기 때문에 분리하는 것.
+
+### 사례 요약
+- SpaceshipProjectileSystem 분리 시, AI→Projectile 발사 트리거를 closure 공유 FireRequest[]로 설계 → EventBus 이벤트로 전환
+- 공유 상태가 없으면 각 시스템이 완전히 독립적으로 테스트/교체 가능
