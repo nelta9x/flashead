@@ -135,14 +135,16 @@
 
 ---
 
-## 8. 충돌 판정은 transform 기준 (프로젝트 표준 패턴) `occurrences: 2`
+## 8. drift 엔티티의 위치 판정 `occurrences: 4`
 
 ### 원칙
-- 모든 충돌/근접 판정(eat, collect, attack)은 **`transform.x/y`**(실제 화면 위치) 기준이 프로젝트 표준 패턴이다 (CursorAttack, Orb, BlackHole 공통).
-- 범위: `dist <= sizeA + sizeB` (두 원의 반지름 합).
-- drift 엔티티의 **chase 방향**은 앵커(`homeX/homeY`) 기준이 맞다 — 진동 중심을 대상에 수렴시키는 것이 목적.
-- chase 거리와 eat 거리는 분리해야 한다: chase는 앵커→대상, eat은 transform→대상.
+- drift amplitude가 크면 AI 판정(좌표 선택, 시각 일치, 타겟 안정성)이 전부 망가진다. 코드로 patch하는 건 끝이 없다.
+- **해결: 우주선 drift amplitude를 0으로** (`entities.json`). transform = homeX/homeY가 되어 좌표 프레임 혼동 자체가 사라짐.
+- AI 코드는 단순하게: 타겟 선택(homeX 기준, 잠금), 진입/범위 체크(transform 기준), chase(homeX 이동).
 
 ### 사례 요약
-- 우주선 eat 판정이 앵커(`homeX/homeY`) 기준이었음 → `homeX/Y`는 drift 진동 중심이라 실제 화면 위치(`transform`)와 수백 px 차이 → 화면에서 겹쳐도 먹기 미발동
-- eat 판정을 `transform.x/y` 기준으로 변경하여 프로젝트 표준 패턴과 통일
+- 1~3차: eat 판정에 anchor/transform을 번갈아 사용하며 3회 연속 혼동
+- 4~5차: 좌표 프레임 통일 시도 → 시각 불일치 또는 drift 중 먹기 문제
+- 6차: drift 억제/복원/phase 리셋 → 코드 복잡도만 증가, 텔레포트 문제
+- 7차: 타겟 잠금 + anchor 기반 선택 → drift가 시각적으로 chase를 완전히 가림
+- 8차(확정): **drift amplitude = 0**. 근본 원인(drift) 제거. AI 코드 대폭 단순화

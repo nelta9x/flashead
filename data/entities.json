@@ -94,14 +94,14 @@
       "movement": {
         "type": "drift",
         "drift": {
-          "xAmplitude": 400,
-          "xFrequency": 0.0003,
-          "yAmplitude": 120,
-          "yFrequency": 0.0005
+          "xAmplitude": 0,
+          "xFrequency": 0,
+          "yAmplitude": 0,
+          "yFrequency": 0
         },
         "bounds": {
-          "minX": 60, "maxX": 1220,
-          "minY": 60, "maxY": 500
+          "minX": 0, "maxX": 1280,
+          "minY": 0, "maxY": 720
         },
         "entry": { "offsetY": -400, "speed": 0.15 }
       },

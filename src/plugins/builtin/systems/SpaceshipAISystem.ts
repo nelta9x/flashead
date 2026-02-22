@@ -1,4 +1,3 @@
-import Phaser from 'phaser';
 import { C_DishTag, C_Identity, C_Transform } from '../../../world';
 import entitiesJson from '../../../../data/entities.json';
 import { EventBus, GameEvents } from '../../../utils/EventBus';
@@ -9,6 +8,7 @@ import type { EntityDamageService } from '../services/EntityDamageService';
 
 interface SpaceshipState {
   targetDishId: EntityId | null;
+  isEating: boolean;
   lastEatHitTime: number;
 }
 
@@ -22,6 +22,14 @@ export interface SpaceshipFireProjectilePayload {
 
 const dishAttackConfig = entitiesJson.types.spaceship.dishAttack;
 
+/**
+ * Spaceship AI state machine: CHASING ↔ EATING.
+ *
+ * - Target selection: homeX/homeY (anchor) — stable, not oscillating.
+ * - Entry/range check: transform — visual position.
+ * - Chase: moves homeX/homeY toward dish.
+ * - Drift amplitude is 0 (entities.json), so transform ≈ homeX/homeY.
+ */
 export class SpaceshipAISystem implements EntitySystem {
   readonly id = 'core:spaceship_ai';
   enabled = true;
@@ -39,7 +47,7 @@ export class SpaceshipAISystem implements EntitySystem {
     const gameTime = this.world.context.gameTime;
     const dtSec = delta / 1000;
 
-    // Collect active spaceship entity IDs and clean stale states
+    // 1. Collect active spaceship IDs and clean stale states
     const activeSpaceshipIds = new Set<EntityId>();
     for (const [entityId, identity] of this.world.query(C_Identity, C_Transform)) {
       if (identity.entityType !== 'spaceship') continue;
@@ -52,61 +60,66 @@ export class SpaceshipAISystem implements EntitySystem {
       }
     }
 
-    // Dish-chase + eat-to-fire logic
+    // 2. Per-spaceship state machine
     const playerT = this.world.transform.get(this.world.context.playerId);
     for (const entityId of activeSpaceshipIds) {
       const t = this.world.transform.get(entityId);
       const mov = this.world.movement.get(entityId);
-      if (!t || !mov) continue;
+      if (!t || !mov || !mov.drift) continue;
 
       let state = this.spaceshipStates.get(entityId);
       if (!state) {
-        state = { targetDishId: null, lastEatHitTime: 0 };
+        state = { targetDishId: null, isEating: false, lastEatHitTime: 0 };
         this.spaceshipStates.set(entityId, state);
       }
 
-      // Find nearest dish (non-spaceship entity with DishTag)
-      let nearestId: EntityId | null = null;
-      let nearestDist = Infinity;
-      for (const [dishId, , dishIdentity, dishTransform] of this.world.query(C_DishTag, C_Identity, C_Transform)) {
-        if (dishIdentity.entityType === 'spaceship') continue;
-        const dx = dishTransform.x - t.x;
-        const dy = dishTransform.y - t.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < nearestDist) {
-          nearestDist = dist;
-          nearestId = dishId;
+      const shipSize = this.world.dishProps.get(entityId)?.size ?? 0;
+
+      // 2a. EATING → CHASING transition: target destroyed or inactive
+      if (state.isEating) {
+        if (state.targetDishId === null || !this.world.isActive(state.targetDishId)) {
+          this.stopEating(state);
         }
       }
 
-      state.targetDishId = nearestId;
+      // 2b. CHASING: target lock + chase + entry check
+      if (!state.isEating) {
+        if (state.targetDishId === null || !this.world.isActive(state.targetDishId)) {
+          state.targetDishId = this.findNearestDish(mov.homeX, mov.homeY);
+        }
 
-      if (nearestId !== null) {
-        const dishT = this.world.transform.get(nearestId);
-        if (dishT && mov.drift) {
-          // Chase: move anchor toward dish (drift oscillation center converges on target)
-          const dx = dishT.x - mov.homeX;
-          const dy = dishT.y - mov.homeY;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 0) {
-            const move = Math.min(dishAttackConfig.chaseSpeed * dtSec, dist);
-            const bounds = mov.drift.bounds;
-            mov.homeX = Phaser.Math.Clamp(mov.homeX + (dx / dist) * move, bounds.minX, bounds.maxX);
-            mov.homeY = Phaser.Math.Clamp(mov.homeY + (dy / dist) * move, bounds.minY, bounds.maxY);
+        if (state.targetDishId !== null) {
+          const dishT = this.world.transform.get(state.targetDishId);
+          if (dishT) {
+            this.chaseAnchorToward(mov, dishT.x, dishT.y, dtSec);
+
+            const dishSize = this.world.dishProps.get(state.targetDishId)?.size ?? 0;
+            if (this.distanceBetween(t.x, t.y, dishT.x, dishT.y) <= shipSize + dishSize) {
+              state.isEating = true;
+              state.lastEatHitTime = 0;
+            }
+          }
+        }
+      }
+
+      // 2c. EATING: range check + chase + timer damage
+      if (state.isEating && state.targetDishId !== null) {
+        const dishT = this.world.transform.get(state.targetDishId);
+        if (dishT) {
+          const dishSize = this.world.dishProps.get(state.targetDishId)?.size ?? 0;
+
+          if (this.distanceBetween(t.x, t.y, dishT.x, dishT.y) > shipSize + dishSize) {
+            this.stopEating(state);
+            continue;
           }
 
-          // Eat: circle-circle collision using transform (project standard pattern)
-          const eatDx = dishT.x - t.x;
-          const eatDy = dishT.y - t.y;
-          const eatDist = Math.sqrt(eatDx * eatDx + eatDy * eatDy);
-          const shipSize = this.world.dishProps.get(entityId)?.size ?? 0;
-          const dishSize = this.world.dishProps.get(nearestId)?.size ?? 0;
-          if (eatDist <= shipSize + dishSize && gameTime - state.lastEatHitTime >= dishAttackConfig.hitInterval) {
-            state.lastEatHitTime = gameTime;
-            this.entityDamageService.applyDamage(nearestId, dishAttackConfig.hitDamage);
+          this.chaseAnchorToward(mov, dishT.x, dishT.y, dtSec);
 
-            // If dish was destroyed, fire projectile toward player via EventBus
-            if (!this.world.isActive(nearestId) && playerT) {
+          if (gameTime - state.lastEatHitTime >= dishAttackConfig.hitInterval) {
+            state.lastEatHitTime = gameTime;
+            this.entityDamageService.applyDamage(state.targetDishId, dishAttackConfig.hitDamage);
+
+            if (!this.world.isActive(state.targetDishId) && playerT) {
               const payload: SpaceshipFireProjectilePayload = {
                 fromX: t.x,
                 fromY: t.y,
@@ -115,11 +128,51 @@ export class SpaceshipAISystem implements EntitySystem {
                 gameTime,
               };
               EventBus.getInstance().emit(GameEvents.SPACESHIP_FIRE_PROJECTILE, payload);
+              this.stopEating(state);
             }
           }
         }
       }
     }
+  }
+
+  private stopEating(state: SpaceshipState): void {
+    state.isEating = false;
+    state.targetDishId = null;
+  }
+
+  private findNearestDish(fromX: number, fromY: number): EntityId | null {
+    let nearestId: EntityId | null = null;
+    let nearestDist = Infinity;
+    for (const [dishId, , dishIdentity, dishTransform] of this.world.query(C_DishTag, C_Identity, C_Transform)) {
+      if (dishIdentity.entityType === 'spaceship') continue;
+      const dist = this.distanceBetween(fromX, fromY, dishTransform.x, dishTransform.y);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestId = dishId;
+      }
+    }
+    return nearestId;
+  }
+
+  private chaseAnchorToward(
+    mov: { homeX: number; homeY: number },
+    targetX: number, targetY: number, dtSec: number,
+  ): void {
+    const dx = targetX - mov.homeX;
+    const dy = targetY - mov.homeY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 0) {
+      const move = Math.min(dishAttackConfig.chaseSpeed * dtSec, dist);
+      mov.homeX += (dx / dist) * move;
+      mov.homeY += (dy / dist) * move;
+    }
+  }
+
+  private distanceBetween(x1: number, y1: number, x2: number, y2: number): number {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   clear(): void {
