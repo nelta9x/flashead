@@ -11,15 +11,15 @@ export class BlackHoleSystemPlugin implements SystemPlugin {
   readonly id = 'core:black_hole_system';
 
   createSystems(ctx: SystemPluginContext): EntitySystem[] {
-    return [
-      new BlackHoleSystem(
-        ctx.services.get(AbilityProgressionService),
-        ctx.services.get(AbilityRuntimeQueryService),
-        ctx.world,
-        ctx.services.get(EntityDamageService),
-        ctx.services.get(BossCombatCoordinator),
-        ctx.services.get(BlackHoleRenderer),
-      ),
-    ];
+    const system = new BlackHoleSystem(
+      ctx.services.get(AbilityProgressionService),
+      ctx.services.get(AbilityRuntimeQueryService),
+      ctx.world,
+      ctx.services.get(EntityDamageService),
+      ctx.services.get(BossCombatCoordinator),
+      ctx.services.get(BlackHoleRenderer),
+    );
+    ctx.services.set(BlackHoleSystem, system);
+    return [system];
   }
 }

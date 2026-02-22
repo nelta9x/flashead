@@ -28,6 +28,7 @@ export interface BlackHoleSnapshot {
 interface ActiveBlackHole extends BlackHoleSnapshot {
   damage: number;
   remainingDuration: number;
+  timeSinceLastDamageTick: number;
 }
 
 interface PullTarget {
@@ -55,7 +56,6 @@ export class BlackHoleSystem implements EntitySystem {
 
   private blackHoles: ActiveBlackHole[] = [];
   private timeSinceLastSpawn = 0;
-  private timeSinceLastDamageTick = 0;
   private lastAppliedLevel = 0;
 
   constructor(
@@ -101,7 +101,6 @@ export class BlackHoleSystem implements EntitySystem {
     if (level !== this.lastAppliedLevel) {
       this.spawnBlackHoles(blackHoleData, gameTime);
       this.timeSinceLastSpawn = 0;
-      this.timeSinceLastDamageTick = 0;
       this.lastAppliedLevel = level;
     }
 
@@ -115,10 +114,12 @@ export class BlackHoleSystem implements EntitySystem {
     this.applyPull(delta, blackHoleData);
 
     const damageInterval = Math.max(1, blackHoleData.damageInterval);
-    this.timeSinceLastDamageTick += delta;
-    while (this.timeSinceLastDamageTick >= damageInterval) {
-      this.timeSinceLastDamageTick -= damageInterval;
-      this.applyDamageTick(blackHoleData, criticalChanceBonus);
+    for (const hole of this.blackHoles) {
+      hole.timeSinceLastDamageTick += delta;
+      while (hole.timeSinceLastDamageTick >= damageInterval) {
+        hole.timeSinceLastDamageTick -= damageInterval;
+        this.applyDamageTickForHole(hole, blackHoleData, criticalChanceBonus);
+      }
     }
   }
 
@@ -178,7 +179,6 @@ export class BlackHoleSystem implements EntitySystem {
   public clear(): void {
     this.blackHoles = [];
     this.timeSinceLastSpawn = 0;
-    this.timeSinceLastDamageTick = 0;
     this.lastAppliedLevel = 0;
   }
 
@@ -232,6 +232,7 @@ export class BlackHoleSystem implements EntitySystem {
       spawnedAt,
       damage,
       remainingDuration: duration,
+      timeSinceLastDamageTick: 0,
     };
   }
 
@@ -247,6 +248,8 @@ export class BlackHoleSystem implements EntitySystem {
       if (!this.world.isActive(entityId)) continue;
       dishTargets.push({ id: entityId, transform: t, consumable: false });
     }
+    // isBeingPulled 리셋은 MagnetSystem(core:magnet)이 담당.
+    // 파이프라인에서 magnet이 black_hole보다 먼저 실행됨 (game-config.json entityPipeline 참조).
     this.applyPullToTargets(dishTargets, deltaSeconds, consumeRatio, data, {
       isActive: (id) => this.world.isActive(id),
       forceDestroy: (id) => this.damageService.forceDestroy(id, true),
@@ -340,33 +343,38 @@ export class BlackHoleSystem implements EntitySystem {
     }
   }
 
-  private applyDamageTick(data: BlackHoleLevelData, criticalChanceBonus: number): void {
-    if (this.blackHoles.length === 0) return;
-
+  private applyDamageTickForHole(
+    hole: ActiveBlackHole,
+    data: BlackHoleLevelData,
+    criticalChanceBonus: number,
+  ): void {
+    // 1) 스냅샷 수집 — query iterator 순회 중 엔티티 삭제 안전성 (applyPull과 동일 패턴)
+    const targets: Array<{ id: number; tx: number; ty: number }> = [];
     for (const [entityId, , , t] of this.world.query(C_DishTag, C_DishProps, C_Transform)) {
-      for (const hole of this.blackHoles) {
-        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, t.x, t.y);
-        if (distance > hole.radius) continue;
+      if (!this.world.isActive(entityId)) continue;
+      targets.push({ id: entityId, tx: t.x, ty: t.y });
+    }
 
-        const wasActive = this.world.isActive(entityId);
-        this.damageService.applyUpgradeDamage(entityId, hole.damage, 0, criticalChanceBonus);
-        if (wasActive && !this.world.isActive(entityId)) {
-          this.applyConsumeGrowth(hole, data);
-        }
-        break;
+    // 2) 안전한 순회
+    for (const target of targets) {
+      if (!this.world.isActive(target.id)) continue;
+      const distance = Phaser.Math.Distance.Between(hole.x, hole.y, target.tx, target.ty);
+      if (distance > hole.radius) continue;
+
+      const wasActive = this.world.isActive(target.id);
+      this.damageService.applyUpgradeDamage(target.id, hole.damage, 0, criticalChanceBonus);
+      if (wasActive && !this.world.isActive(target.id)) {
+        this.consumeTarget(hole, data);
       }
     }
 
     const bosses = this.bcc.getAliveVisibleBossSnapshotsWithRadius();
     for (const boss of bosses) {
-      for (const hole of this.blackHoles) {
-        const distance = Phaser.Math.Distance.Between(hole.x, hole.y, boss.x, boss.y);
-        if (distance > hole.radius + boss.radius) continue;
+      const distance = Phaser.Math.Distance.Between(hole.x, hole.y, boss.x, boss.y);
+      if (distance > hole.radius + boss.radius) continue;
 
-        const criticalResult = this.resolveCriticalDamage(hole.damage, criticalChanceBonus);
-        this.bcc.damageBoss(boss.id, criticalResult.damage, hole.x, hole.y, criticalResult.isCritical);
-        break;
-      }
+      const criticalResult = this.resolveCriticalDamage(hole.damage, criticalChanceBonus);
+      this.bcc.damageBoss(boss.id, criticalResult.damage, hole.x, hole.y, criticalResult.isCritical);
     }
   }
 

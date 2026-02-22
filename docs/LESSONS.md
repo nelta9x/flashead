@@ -164,3 +164,27 @@
 
 ### 사례 요약
 - 우주선 `maxActive` 도달 상태에서 `timeSinceLastSpaceshipSpawn`이 매 프레임 누적 → 우주선 파괴 직후 timer >= spawnInterval이 이미 충족되어 즉시 재소환. maxActive 도달 시 타이머를 0으로 리셋하여 해결
+
+---
+
+## 10. getEffectValue switch 완전 커버리지 `occurrences: 1`
+
+### 원칙
+- `AbilityPlugin.getEffectValue()` switch문은 해당 레벨 데이터 인터페이스의 **모든 키**를 커버해야 한다.
+- 테스트에서 mock이 실제 호출 경로(AbilityRuntimeQueryService → AbilityPlugin.getEffectValue)를 우회하면 누락을 발견할 수 없다.
+- 새 필드를 레벨 데이터에 추가할 때 switch case도 반드시 함께 추가.
+
+### 사례 요약
+- BlackHoleAbility switch에 7개 키만 존재, BlackHoleSystem.resolveBlackHoleData()가 12개 키를 요청 → 5개 키 누락으로 런타임 크래시. 테스트 mock이 getEffectValueOrThrow를 직접 구현하여 미발견.
+
+---
+
+## 11. query iterator 순회 중 엔티티 삭제 안전성 `occurrences: 1`
+
+### 원칙
+- ECS query iterator 순회 중 엔티티를 삭제(비활성화)하면 iterator 무효화 또는 건너뛰기 발생 가능.
+- **스냅샷 패턴** 필수: 먼저 대상을 배열로 수집 → 별도 루프에서 처리. 처리 루프 내에서도 `isActive` 재확인.
+- 같은 파일 내 `applyPull`이 이미 snapshot을 사용한다면 `applyDamageTick`도 동일 패턴 적용.
+
+### 사례 요약
+- BlackHoleSystem.applyDamageTick에서 world.query 직접 순회 중 dish 파괴 → iterator 안전성 미보장. applyPull과 동일한 snapshot 수집 패턴으로 수정.
