@@ -39,16 +39,28 @@ export interface SpaceshipVisualState {
   armor: ArmorVisualConfig;
 }
 
+/** Per-graphics dirty state cache for SpaceshipRenderer skip-redraw optimization. */
+const spaceshipStateCache = new WeakMap<Phaser.GameObjects.Graphics, string>();
+
 export class SpaceshipRenderer {
   static render(
     graphics: Phaser.GameObjects.Graphics,
     state: SpaceshipVisualState,
   ): void {
-    graphics.clear();
-
     const { core, armor, hitFlashPhase, timeElapsed } = state;
     const hpRatio = Phaser.Math.Clamp(state.currentHp / state.maxHp, 0, 1);
     const filledPieces = Math.ceil(hpRatio * armor.pieces);
+
+    // Quantized stateKey — skip redraw when visual change is imperceptible.
+    // timeQ at ~60ms steps: rotation ~2°/step, pulse ~18° sine/step.
+    const timeQ = (timeElapsed / 60) | 0;
+    const flashQ = (hitFlashPhase * 10) | 0;
+    const stateKey = `${filledPieces}|${timeQ}|${flashQ}`;
+    if (spaceshipStateCache.get(graphics) === stateKey) return;
+    spaceshipStateCache.set(graphics, stateKey);
+
+    graphics.clear();
+
     const dangerLevel = 1 - hpRatio;
     const flashWhite = hitFlashPhase > 0 ? hitFlashPhase : 0;
 
