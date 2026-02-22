@@ -150,42 +150,21 @@ describe('SpaceshipAISystem', () => {
     expect(opts.mov!.homeX).toBe(100);
   });
 
-  it('should lock chase target until it becomes inactive', () => {
+  it('should switch to closer dish each frame', () => {
     const opts = shipMov(100, 100);
     env.addEntity('ship1', 'spaceship', 100, 100, opts);
     env.addEntity('dish1', 'basic', 300, 100, dishOpts());
-    env.addEntity('dish2', 'basic', 400, 100, dishOpts());
 
     system.tick(1000);
-    const homeAfterTick1 = opts.mov!.homeX;
+    const homeAfterTick1 = opts.mov!.homeX; // moved toward dish1 (300)
 
-    const dish2T = env.world.transform.get('dish2')!;
-    dish2T.x = 150;
-
-    system.tick(1000);
-    expect(opts.mov!.homeX).toBeGreaterThan(homeAfterTick1);
-  });
-
-  it('should select target by anchor distance', () => {
-    const opts = shipMov(500, 100);
-    env.addEntity('ship1', 'spaceship', 500, 100, opts);
-    env.addEntity('dish1', 'basic', 200, 100, dishOpts());
-    env.addEntity('dish2', 'basic', 600, 100, dishOpts());
+    // dish2 spawns much closer
+    env.addEntity('dish2', 'basic', 150, 100, dishOpts());
 
     system.tick(1000);
-    expect(opts.mov!.homeX).toBeGreaterThan(500);
-  });
-
-  it('should re-acquire target when chase target becomes inactive', () => {
-    const opts = shipMov(100, 100);
-    env.addEntity('ship1', 'spaceship', 100, 100, opts);
-    env.addEntity('dish1', 'basic', 300, 100, dishOpts());
-    env.addEntity('dish2', 'basic', 900, 100, dishOpts());
-
-    system.tick(1000);
-    env.removeEntity('dish1');
-    system.tick(1000);
-    expect(opts.mov!.homeX).toBeGreaterThan(220);
+    // should have moved toward dish2 (150), not continued toward dish1 (300)
+    // homeX was ~220 after tick1, dish2 is at 150 → homeX should decrease
+    expect(opts.mov!.homeX).toBeLessThan(homeAfterTick1);
   });
 
   // --- Entry check (transform-based) ---

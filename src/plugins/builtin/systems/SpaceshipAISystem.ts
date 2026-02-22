@@ -82,11 +82,9 @@ export class SpaceshipAISystem implements EntitySystem {
         }
       }
 
-      // 2b. CHASING: target lock + chase + entry check
+      // 2b. CHASING: target selection + chase + entry check
       if (!state.isEating) {
-        if (state.targetDishId === null || !this.world.isActive(state.targetDishId)) {
-          state.targetDishId = this.findNearestDish(mov.homeX, mov.homeY);
-        }
+        state.targetDishId = this.findNearestDish(mov.homeX, mov.homeY);
 
         if (state.targetDishId !== null) {
           const dishT = this.world.transform.get(state.targetDishId);
